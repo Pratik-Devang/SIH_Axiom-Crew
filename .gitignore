@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# IDE and operating system
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local data
+data/raw/**
+data/interim/**
+data/processed/**
+data/external/**
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep
+
+# Model artifacts
+models/checkpoints/**
+models/exports/**
+!models/checkpoints/.gitkeep
+!models/exports/.gitkeep
+
+# Results and demo recordings
+results/metrics/**
+results/plots/**
+results/trajectories/**
+demo/recordings/**
+!results/metrics/.gitkeep
+!results/plots/.gitkeep
+!results/trajectories/.gitkeep
+!demo/recordings/.gitkeep
+
+# Android build outputs and local SDK settings
+android/.gradle/
+android/local.properties
+android/**/build/
+

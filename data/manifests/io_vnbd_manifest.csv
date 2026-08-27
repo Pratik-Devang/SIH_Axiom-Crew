@@ -1,0 +1,2 @@
+trip_id,source_path,duration_seconds,distance_meters,imu_rate_hz,gnss_rate_hz,status,notes
+

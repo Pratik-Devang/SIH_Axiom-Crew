@@ -1,0 +1,40 @@
+project:
+  name: percorsa
+  seed: 42
+
+data:
+  dataset: io_vnbd
+  raw_dir: data/raw/io_vnbd
+  processed_dir: data/processed/io_vnbd
+  manifest: data/manifests/io_vnbd_manifest.csv
+  split_file: data/splits/io_vnbd_splits.yaml
+  model_rate_hz: 10
+
+outage:
+  enabled: true
+  start_seconds: 60
+  duration_seconds: 30
+
+ml:
+  model: tcn
+  input_channels: 6
+  window_seconds: 2
+  output: forward_speed
+  checkpoint_dir: models/checkpoints
+
+navigation:
+  mode: planar_ekf
+  imu_rate_hz: 100
+  use_speed_update: true
+  use_stop_update: true
+  use_non_holonomic_constraint: true
+  use_map_constraint: false
+
+evaluation:
+  baselines:
+    - last_fix
+    - constant_velocity
+    - pure_ins
+    - ekf_with_constraints
+  output_dir: results
+

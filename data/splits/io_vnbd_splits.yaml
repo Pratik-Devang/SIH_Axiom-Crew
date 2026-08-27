@@ -1,0 +1,6 @@
+# Assign complete trips to exactly one split. Never split overlapping windows
+# from the same trip across training and validation sets.
+train: []
+validation: []
+test: []
+

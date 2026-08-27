@@ -1,0 +1,2 @@
+"""Percorsa automated tests."""
+
