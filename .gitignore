@@ -54,3 +54,9 @@ local.properties
 # Generated runtime caches and event logs
 cache/
 logs/
+
+# Generated reports and review renders
+output/
+report_assets/
+tmp/
+a11y_report*.json

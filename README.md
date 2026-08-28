@@ -40,6 +40,28 @@ IO-VNBD data
     -> evaluation and dashboard
 ```
 
+## Run the integrated prototype
+
+From the repository root, activate the `percorsa` environment and run:
+
+```powershell
+python -m pytest -q
+python scripts/run_dashboard.py
+```
+
+The dashboard loads processed CSV trips from
+`data/processed/io_vnbd/trips/`. If that directory is empty, it starts with a
+clearly labelled synthetic route so the interface can still be tested. With a
+real trip, the committed ONNX TCN estimates speed from 20 IMU samples, the
+planar EKF continues the trajectory through the selected GNSS outage, and the
+evaluation layer compares it with a last-fix baseline.
+
+For a command-line replay:
+
+```powershell
+python scripts/run_replay.py data/processed/io_vnbd/trips/A1.csv --start 60 --duration 30
+```
+
 ## Data policy
 
 Raw data and processed datasets are gitignored; keep only manifests,
@@ -51,11 +73,11 @@ Store normalization parameters and model metadata next to every exported model.
 
 ## Role 2 — TCN speed prototype
 
-Use the project virtual environment on Windows:
+Use the project Conda environment on Windows:
 
 ```powershell
 # Inspect the data and verify the pipeline
-.\.venv\Scripts\python.exe scripts\inspect_data.py
+python scripts\inspect_data.py
 
 # Train (only needed if retraining from scratch)
 python -m src.ml.train
@@ -70,10 +92,10 @@ python -m src.ml.export_onnx
 python -m src.ml.verify_onnx
 
 # CPU latency benchmark
-.\.venv\Scripts\python.exe scripts\benchmark.py
+python scripts\benchmark.py
 
 # Run test suite
-.\.venv\Scripts\python.exe -m pytest tests/ -v
+python -m pytest tests/ -v
 ```
 
 The TCN input is a causal 2 second IMU window sampled at 10 Hz:
