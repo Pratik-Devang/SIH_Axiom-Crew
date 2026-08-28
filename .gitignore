@@ -54,3 +54,7 @@ build/
 app/build/
 local.properties
 
+# Generated runtime caches and event logs
+cache/
+logs/
+
