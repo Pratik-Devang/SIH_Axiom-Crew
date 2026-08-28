@@ -37,6 +37,10 @@ class DebugActivity : AppCompatActivity() {
     private lateinit var tvDbgGnssQuality: TextView
     private lateinit var tvDbgAccuracy: TextView
     private lateinit var tvDbgTripStatus: TextView
+    private lateinit var tvDbgVehicleFrameAccel: TextView
+    private lateinit var tvDbgTcnStatus: TextView
+    private lateinit var tvDbgTcnModel: TextView
+    private lateinit var tvDbgProcessedStream: TextView
     private lateinit var tvDbgSampleCount: TextView
     private lateinit var tvDebugRecIndicator: TextView
     private lateinit var btnDebugRecord: Button
@@ -55,28 +59,32 @@ class DebugActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_debug)
 
-        tvDbgHealthSummary  = findViewById(R.id.tvDbgHealthSummary)
-        tvDbgHealthDetails  = findViewById(R.id.tvDbgHealthDetails)
-        tvDbgGpsStatus      = findViewById(R.id.tvDbgGpsStatus)
-        tvDbgGpsCoords      = findViewById(R.id.tvDbgGpsCoords)
-        tvDbgGpsAccuracy    = findViewById(R.id.tvDbgGpsAccuracy)
-        tvDbgGpsSpeed       = findViewById(R.id.tvDbgGpsSpeed)
-        tvDbgImuHz          = findViewById(R.id.tvDbgImuHz)
-        tvDbgSamples        = findViewById(R.id.tvDbgSamples)
-        tvDbgAccel          = findViewById(R.id.tvDbgAccel)
-        tvDbgGyro           = findViewById(R.id.tvDbgGyro)
-        tvDbgOrient         = findViewById(R.id.tvDbgOrient)
-        tvDbgNavMode        = findViewById(R.id.tvDbgNavMode)
-        tvDbgDrProvider     = findViewById(R.id.tvDbgDrProvider)
-        tvDbgGnssQuality    = findViewById(R.id.tvDbgGnssQuality)
-        tvDbgAccuracy       = findViewById(R.id.tvDbgAccuracy)
-        tvDbgTripStatus     = findViewById(R.id.tvDbgTripStatus)
-        tvDbgSampleCount    = findViewById(R.id.tvDbgSampleCount)
-        tvDebugRecIndicator = findViewById(R.id.tvDebugRecIndicator)
-        btnDebugRecord      = findViewById(R.id.btnDebugRecord)
-        btnDebugCalibrate   = findViewById(R.id.btnDebugCalibrate)
-        btnDebugShare       = findViewById(R.id.btnDebugShare)
-        btnDebugBack        = findViewById(R.id.btnDebugBack)
+        tvDbgHealthSummary      = findViewById(R.id.tvDbgHealthSummary)
+        tvDbgHealthDetails      = findViewById(R.id.tvDbgHealthDetails)
+        tvDbgGpsStatus          = findViewById(R.id.tvDbgGpsStatus)
+        tvDbgGpsCoords          = findViewById(R.id.tvDbgGpsCoords)
+        tvDbgGpsAccuracy        = findViewById(R.id.tvDbgGpsAccuracy)
+        tvDbgGpsSpeed           = findViewById(R.id.tvDbgGpsSpeed)
+        tvDbgImuHz              = findViewById(R.id.tvDbgImuHz)
+        tvDbgSamples            = findViewById(R.id.tvDbgSamples)
+        tvDbgAccel              = findViewById(R.id.tvDbgAccel)
+        tvDbgGyro               = findViewById(R.id.tvDbgGyro)
+        tvDbgOrient             = findViewById(R.id.tvDbgOrient)
+        tvDbgVehicleFrameAccel  = findViewById(R.id.tvDbgVehicleFrameAccel)
+        tvDbgTcnStatus          = findViewById(R.id.tvDbgTcnStatus)
+        tvDbgTcnModel           = findViewById(R.id.tvDbgTcnModel)
+        tvDbgProcessedStream    = findViewById(R.id.tvDbgProcessedStream)
+        tvDbgNavMode            = findViewById(R.id.tvDbgNavMode)
+        tvDbgDrProvider         = findViewById(R.id.tvDbgDrProvider)
+        tvDbgGnssQuality        = findViewById(R.id.tvDbgGnssQuality)
+        tvDbgAccuracy           = findViewById(R.id.tvDbgAccuracy)
+        tvDbgTripStatus         = findViewById(R.id.tvDbgTripStatus)
+        tvDbgSampleCount        = findViewById(R.id.tvDbgSampleCount)
+        tvDebugRecIndicator     = findViewById(R.id.tvDebugRecIndicator)
+        btnDebugRecord          = findViewById(R.id.btnDebugRecord)
+        btnDebugCalibrate       = findViewById(R.id.btnDebugCalibrate)
+        btnDebugShare           = findViewById(R.id.btnDebugShare)
+        btnDebugBack            = findViewById(R.id.btnDebugBack)
 
         btnDebugBack.setOnClickListener { finish() }
 
@@ -176,6 +184,23 @@ class DebugActivity : AppCompatActivity() {
         val roll  = Math.toDegrees(Math.atan2(2.0 * (q0 * q1 + q2 * q3), 1.0 - 2.0 * (q1 * q1 + q2 * q2)))
         val yaw   = Math.toDegrees(Math.atan2(2.0 * (q0 * q3 + q1 * q2), 1.0 - 2.0 * (q2 * q2 + q3 * q3)))
         tvDbgOrient.text = "P: %+.0f°  R: %+.0f°  Y: %+.0f°".format(Locale.US, pitch, roll, yaw)
+
+        tvDbgVehicleFrameAccel.text = "Fwd: %+.3f  Left: %+.3f  Up: %+.3f".format(
+            Locale.US, snap.correctedLinearForward, snap.correctedLinearLeft, snap.correctedLinearUp)
+
+        // ── TCN ML Pipeline Status ───────────────────────────────────────────
+        val bufferReadyStr = if (snap.tcnBufferReady) "20/20 READY" else "${snap.tcnBufferCount}/20 WAITING"
+        tvDbgTcnStatus.text = "TCN Input Buffer: $bufferReadyStr (10 Hz canonical stream)"
+        tvDbgTcnStatus.setTextColor(if (snap.tcnBufferReady) 0xFF34D399.toInt() else 0xFFF59E0B.toInt())
+        tvDbgTcnModel.text = "Model Status: NOT ACTIVE (Input buffer ready for feature/ml-speed-tcn)"
+        val lastCan = snap.lastCanonicalSample
+        if (lastCan != null) {
+            tvDbgProcessedStream.text = "10Hz Canonical: ax=%.2f ay=%.2f az=%.2f gx=%.2f gy=%.2f gz=%.2f".format(
+                Locale.US, lastCan.accelX, lastCan.accelY, lastCan.accelZ, lastCan.gyroX, lastCan.gyroY, lastCan.gyroZ
+            )
+        } else {
+            tvDbgProcessedStream.text = "Pipeline: RAW → GRAVITY → LINEAR → VEHICLE FRAME → 10 Hz CANONICAL"
+        }
 
         // ── Navigation engine ─────────────────────────────────────────────────
         tvDbgNavMode.text = "Mode: ${state.navMode}"
