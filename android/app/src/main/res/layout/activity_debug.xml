@@ -279,6 +279,74 @@
                     android:text="P: +0°  R: +0°  Y: +0°"
                     android:textColor="#E2E8F0"
                     android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="VEHICLE FRAME ACCEL (Fwd/Left/Up)"
+                    android:textColor="#64748B"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="2dp" />
+
+                <TextView
+                    android:id="@+id/tvDbgVehicleFrameAccel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Fwd: +0.00  Left: +0.00  Up: -9.81"
+                    android:textColor="#38BDF8"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+
+            <!-- ── TCN & ML PIPELINE SECTION ──────────────────────────────────── -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TCN ML PIPELINE (10 Hz Canonical)"
+                android:textColor="#38BDF8"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="4dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="10dp">
+
+                <TextView
+                    android:id="@+id/tvDbgTcnStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TCN Input Buffer: 0/20 WAITING (10 Hz canonical stream)"
+                    android:textColor="#F59E0B"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/tvDbgTcnModel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Status: NOT ACTIVE (Ready for downstream inference on feature/ml-speed-tcn)"
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/tvDbgProcessedStream"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Pipeline: RAW → GRAVITY → LINEAR → VEHICLE FRAME → 10 Hz CANONICAL"
+                    android:textColor="#64748B"
+                    android:textSize="10sp"
                     android:fontFamily="monospace" />
 
             </LinearLayout>

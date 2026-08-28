@@ -71,6 +71,9 @@ data class SensorSnapshot(
     val rawCallbackHz: Float,
     val totalCallbacks: Int,
     val gpsFixAgeMs: Long,
+    val tcnBufferCount: Int,
+    val tcnBufferReady: Boolean,
+    val lastCanonicalSample: CanonicalImuSample?,
     val loggedCsvRows: Long,
     val duplicateTimestampsCount: Long,
     val nonMonotonicTimestampsCount: Long,
@@ -175,6 +178,10 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     private var currentRawCallbackHz: Float = 0f
 
     private var lastGpsFixTimestampMs: Long = 0L
+
+    val imuPreprocessor = ImuPreprocessor()
+    val tcnInputBuffer = TcnInputBuffer(capacity = 20)
+    private var lastCanonicalSample: CanonicalImuSample? = null
 
     private val locationListener = object : LocationListener {
         override fun onLocationChanged(loc: Location) {
@@ -295,6 +302,13 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
                 hasAccel = true
                 primaryImuSampleCount.incrementAndGet()
                 checkExtremeValues("Accel", values)
+
+                val snap = getSnapshot()
+                val canonical = imuPreprocessor.processSnapshot(snap)
+                if (canonical != null) {
+                    lastCanonicalSample = canonical
+                    tcnInputBuffer.push(canonical)
+                }
 
                 if (isRecording) {
                     processSampleAndLog(timestampNs)
@@ -522,6 +536,9 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             rawCallbackHz = currentRawCallbackHz,
             totalCallbacks = totalCallbackCount.get(),
             gpsFixAgeMs = if (lastGpsFixTimestampMs > 0) System.currentTimeMillis() - lastGpsFixTimestampMs else -1L,
+            tcnBufferCount = tcnInputBuffer.size,
+            tcnBufferReady = tcnInputBuffer.isReady,
+            lastCanonicalSample = lastCanonicalSample,
             loggedCsvRows = loggedCsvRowCount.get(),
             duplicateTimestampsCount = duplicateTimestampCount.get(),
             nonMonotonicTimestampsCount = nonMonotonicTimestampCount.get(),
