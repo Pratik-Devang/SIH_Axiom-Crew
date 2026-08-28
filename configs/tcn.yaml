@@ -1,0 +1,36 @@
+model:
+  input_channels: 6
+  channels: [32, 32, 32, 32]
+  kernel_size: 3
+  dilations: [1, 2, 4, 8]
+  dropout: 0.1
+  predict_uncertainty: true
+
+data:
+  raw_dir: data/raw
+  smartphone_glob: "S-Vta1a*"
+  vehicle_glob: "V-Vta1a*"
+  sample_rate_hz: 10
+  window_seconds: 2
+  window_samples: 20
+  stride: 1
+  train_fraction: 0.70
+  validation_fraction: 0.15
+  test_fraction: 0.15
+
+training:
+  batch_size: 128
+  learning_rate: 0.001
+  epochs: 30
+  weight_decay: 0.0001
+  seed: 42
+
+target:
+  name: indicated_vehicle_speed
+  source_column: "Indicated Vehicle Speed (km/hr)"
+  unit: "m/s"
+
+deployment:
+  input_shape: [1, 6, 20]
+  output_shape_deterministic: [1]
+  output_shape_uncertainty: [1, 2]
