@@ -55,6 +55,9 @@ class NavigationController(private val context: Context) {
         )
     }
 
+    private var smoothedSpeedMps: Double = 0.0
+    private var smoothedEtaSec: Double = 0.0
+
     fun start() {
         sensorEngine.start()
         lastUpdateMs = System.currentTimeMillis()
@@ -159,11 +162,31 @@ class NavigationController(private val context: Context) {
         var isRecalculating = current.recalculating
 
         if (route != null && isDrivingMode) {
-            distRemaining = distanceTo(lat, lon,
-                current.destination!!.location.lat,
-                current.destination.location.lon)
-            val avgSpeedMps = if (speed > 0.5f) speed.toDouble() else 8.33
-            etaSec = (distRemaining / avgSpeedMps).toLong()
+            // 1. Polyline-constrained distance remaining
+            distRemaining = computeRemainingRouteDistance(lat, lon, route)
+
+            // 2. Exponentially smoothed speed to prevent jitter
+            smoothedSpeedMps = 0.05 * speed.toDouble() + 0.95 * smoothedSpeedMps
+
+            // 3. Robust ETA calculation: route baseline + EMA speed blending
+            val routeProgressRatio = (distRemaining / route.distanceM.coerceAtLeast(1.0)).coerceIn(0.0, 1.0)
+            val routeBaselineEtaS = route.durationSeconds * routeProgressRatio
+
+            val targetEtaS = if (smoothedSpeedMps > 3.0) {
+                // If moving steadily (>10 km/h), blend 70% route baseline + 30% instantaneous speed ETA
+                val speedBasedEtaS = distRemaining / smoothedSpeedMps
+                0.7 * routeBaselineEtaS + 0.3 * speedBasedEtaS
+            } else {
+                routeBaselineEtaS
+            }
+
+            if (smoothedEtaSec <= 0.0) {
+                smoothedEtaSec = targetEtaS
+            } else {
+                // Smooth ETA transitions slowly (alpha = 0.03) so ETA never jumps abruptly
+                smoothedEtaSec = 0.03 * targetEtaS + 0.97 * smoothedEtaSec
+            }
+            etaSec = smoothedEtaSec.toLong().coerceAtLeast(0L)
 
             val pair = findNextManeuvers(lat, lon, route)
             nextManeuver = pair.first
@@ -407,7 +430,28 @@ class NavigationController(private val context: Context) {
             filterHealth = HealthStatus.GOOD,
             tcnHealth = HealthStatus.GOOD,
             routeHealth = if (_state.value.offRoute) HealthStatus.DEGRADED else HealthStatus.GOOD,
-            details = "IMU: %.0fHz | GPS Acc: %.1fm".format(snap.imuHz, snap.gpsAccuracyM)
+            details = "IMU: %.0fHz | GPS Acc: %.1fm | FixAge: %dms".format(snap.imuHz, snap.gpsAccuracyM, snap.gpsFixAgeMs)
         )
+    }
+
+    private fun computeRemainingRouteDistance(lat: Double, lon: Double, route: Route): Double {
+        if (route.polyline.isEmpty()) return 0.0
+        var closestIdx = 0
+        var closestDist = Double.MAX_VALUE
+        for (i in route.polyline.indices) {
+            val pt = route.polyline[i]
+            val d = distanceTo(lat, lon, pt.lat, pt.lon)
+            if (d < closestDist) {
+                closestDist = d
+                closestIdx = i
+            }
+        }
+        var sum = distanceTo(lat, lon, route.polyline[closestIdx].lat, route.polyline[closestIdx].lon)
+        for (i in closestIdx until route.polyline.size - 1) {
+            val pt1 = route.polyline[i]
+            val pt2 = route.polyline[i + 1]
+            sum += distanceTo(pt1.lat, pt1.lon, pt2.lat, pt2.lon)
+        }
+        return sum
     }
 }

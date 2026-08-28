@@ -716,12 +716,16 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        navController?.stop()
+        // Do NOT call navController.stop() here, so Developer Mode (DebugActivity)
+        // can observe the live stream without unregistering sensors!
         uiHandler.removeCallbacks(uiRunnable)
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        if (isFinishing) {
+            navController?.stop()
+        }
         navController = null
     }
 

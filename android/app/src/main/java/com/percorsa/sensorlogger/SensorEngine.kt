@@ -1,4 +1,4 @@
-﻿package com.percorsa.sensorlogger
+package com.percorsa.sensorlogger
 
 import android.content.Context
 import android.hardware.Sensor
@@ -70,6 +70,7 @@ data class SensorSnapshot(
     val imuHz: Float,
     val rawCallbackHz: Float,
     val totalCallbacks: Int,
+    val gpsFixAgeMs: Long,
     val loggedCsvRows: Long,
     val duplicateTimestampsCount: Long,
     val nonMonotonicTimestampsCount: Long,
@@ -173,6 +174,8 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     private var currentImuHz: Float = 0f
     private var currentRawCallbackHz: Float = 0f
 
+    private var lastGpsFixTimestampMs: Long = 0L
+
     private val locationListener = object : LocationListener {
         override fun onLocationChanged(loc: Location) {
             if (loc.provider == LocationManager.NETWORK_PROVIDER && loc.accuracy > 30f) return
@@ -183,6 +186,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
                 it.longitude = kfLon
             }
             synchronized(this@SensorEngine) {
+                lastGpsFixTimestampMs = System.currentTimeMillis()
                 rawLastLocation = loc
                 lastLocation = smoothed
             }
@@ -517,6 +521,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             imuHz = currentImuHz,
             rawCallbackHz = currentRawCallbackHz,
             totalCallbacks = totalCallbackCount.get(),
+            gpsFixAgeMs = if (lastGpsFixTimestampMs > 0) System.currentTimeMillis() - lastGpsFixTimestampMs else -1L,
             loggedCsvRows = loggedCsvRowCount.get(),
             duplicateTimestampsCount = duplicateTimestampCount.get(),
             nonMonotonicTimestampsCount = nonMonotonicTimestampCount.get(),

@@ -132,9 +132,11 @@ class DebugActivity : AppCompatActivity() {
         val state = nc.state.value
         val health = state.navigationHealth
 
-        // ── Health ───────────────────────────────────────────────────────────
-        tvDbgHealthSummary.text = "GNSS: ${health.gnssHealth} | IMU: ${health.accelHealth} | Route: ${health.routeHealth}"
-        tvDbgHealthDetails.text = health.details
+        // ── Health & Stream Live Status ──────────────────────────────────────
+        val imuStatusStr = if (snap.imuHz > 10) "ACTIVE (%.0f Hz)".format(Locale.US, snap.imuHz) else "STALE"
+        val gpsAgeStr = if (snap.gpsFixAgeMs >= 0) "${snap.gpsFixAgeMs} ms ago" else "No fix yet"
+        tvDbgHealthSummary.text = "IMU Stream: $imuStatusStr | GNSS Fix: $gpsAgeStr"
+        tvDbgHealthDetails.text = "GNSS: ${health.gnssHealth} | IMU: ${health.accelHealth} | Route: ${health.routeHealth} | DR: ${state.drProvider}"
 
         // ── GPS ──────────────────────────────────────────────────────────────
         val hasGps = snap.hasGps && snap.latitude != 0.0
@@ -145,7 +147,7 @@ class DebugActivity : AppCompatActivity() {
             GnssQuality.DENIED     -> "● NO FIX"        to 0xFFF87171.toInt()
             GnssQuality.RECOVERING -> "● RECOVERING"    to 0xFFA78BFA.toInt()
         }
-        tvDbgGpsStatus.text = gpsLabel
+        tvDbgGpsStatus.text = "$gpsLabel (Fix age: $gpsAgeStr)"
         tvDbgGpsStatus.setTextColor(gpsColor)
 
         if (hasGps) {
@@ -159,7 +161,7 @@ class DebugActivity : AppCompatActivity() {
         }
 
         // ── IMU ───────────────────────────────────────────────────────────────
-        tvDbgImuHz.text = "IMU: %.0f Hz".format(Locale.US, snap.imuHz)
+        tvDbgImuHz.text = "IMU: %.0f Hz (Raw Callbacks: %.0f Hz)".format(Locale.US, snap.imuHz, snap.rawCallbackHz)
         tvDbgSamples.text = "Samples: ${snap.loggedCsvRows}"
 
         tvDbgAccel.text = "X: %+.3f  Y: %+.3f  Z: %+.3f".format(
@@ -177,9 +179,9 @@ class DebugActivity : AppCompatActivity() {
 
         // ── Navigation engine ─────────────────────────────────────────────────
         tvDbgNavMode.text = "Mode: ${state.navMode}"
-        tvDbgDrProvider.text = "DR Provider: ${state.drProvider}" +
+        tvDbgDrProvider.text = "DR Engine: ${state.drProvider}" +
                 if (state.drProvider == DrProviderType.SIMPLIFIED_INS)
-                    "  ⚠ Placeholder" else ""
+                    " (Fallback INS — Percorsa ESKF stub inactive)" else ""
         tvDbgGnssQuality.text = "GNSS Quality: ${state.gnssQuality}"
         tvDbgAccuracy.text = if (state.positionAccuracy < Float.MAX_VALUE)
             "Position Accuracy: %.0f m".format(Locale.US, state.positionAccuracy)

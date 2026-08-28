@@ -1,9 +1,10 @@
 package com.percorsa.sensorlogger
 
+import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
-import kotlin.math.atan2
 
 /**
  * TEMPORARY simplified INS-based dead-reckoning provider.
@@ -79,30 +80,39 @@ class SimplifiedInsProvider : DeadReckoningProvider {
             if (it < 0f) it + 360f else it
         }
 
-        // 2. Forward acceleration from calibrated vehicle frame
-        val forwardAccel = if (snapshot.isCalibrated)
+        // 2. Forward acceleration from calibrated vehicle frame with deadband & low-pass filtering
+        val rawForwardAccel = if (snapshot.isCalibrated)
             snapshot.correctedLinearForward
         else
             snapshot.linearAccelX   // fallback before calibration
 
-        // 3. ZUPT — detect stationary state
+        // Deadband filter: ignore small accelerations and hand tremor (< 0.6 m/s²)
+        val deadbandAccel = if (abs(rawForwardAccel) < 0.6f) 0f else rawForwardAccel
+
+        // 3. ZUPT & Shake Detection — detect stationary or rapid hand movement
         val accelMag = sqrt(
             snapshot.linearAccelX * snapshot.linearAccelX +
             snapshot.linearAccelY * snapshot.linearAccelY +
             snapshot.linearAccelZ * snapshot.linearAccelZ
         )
-        if (accelMag < ZUPT_ACCEL_THRESHOLD) {
+        val gyroMag = snapshot.gyroMag
+
+        // Rapid gyro changes or high 3D accel variance indicates hand shaking, not vehicle motion
+        val isHandShaking = gyroMag > 2.5f || (accelMag > 6.0f && snapshot.gpsSpeedMps < 1.0f)
+
+        if (accelMag < ZUPT_ACCEL_THRESHOLD || isHandShaking) {
             stationaryAccumSeconds += dtSeconds
         } else {
             stationaryAccumSeconds = 0.0
         }
         val isStationary = stationaryAccumSeconds >= ZUPT_WINDOW_SECONDS
 
-        // 4. Velocity integration (clamp to 0 if ZUPT triggered)
-        if (isStationary) {
+        // 4. Velocity integration (clamp to 0 if ZUPT/shake or low GPS speed)
+        if (isStationary || (snapshot.hasGps && snapshot.gpsSpeedMps < 0.3f && snapshot.gpsAccuracyM < 15f)) {
             velocityMps = 0f
-        } else {
-            velocityMps = (velocityMps + forwardAccel * dtSeconds.toFloat()).coerceAtLeast(0f)
+        } else if (!isHandShaking) {
+            // Low-pass filtered acceleration step
+            velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, 40f)
         }
 
         // 5. Position integration
