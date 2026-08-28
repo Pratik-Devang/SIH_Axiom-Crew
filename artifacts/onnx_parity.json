@@ -1,0 +1,6 @@
+{
+  "max_abs_diff": 1.9073486328125e-06,
+  "mean_abs_diff": 8.344650268554688e-07,
+  "tolerance": 0.0001,
+  "passed": true
+}

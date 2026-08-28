@@ -1,0 +1,45 @@
+{
+  "mae": 3.4733352661132812,
+  "rmse": 4.487979888916016,
+  "sample_rate_hz": 10,
+  "window_seconds": 2,
+  "window_samples": 20,
+  "input_channels": 6,
+  "target_source_column": " Indicated Vehicle Speed (km/hr)",
+  "target_unit": "m/s",
+  "test_samples": 3833,
+  "motion_state_method": "Derived from reference speed, acceleration, and vehicle yaw rate; not official labels.",
+  "by_motion_state": {
+    "acceleration": {
+      "samples": 867,
+      "mae": 3.015674591064453,
+      "rmse": 3.8527371883392334
+    },
+    "braking": {
+      "samples": 538,
+      "mae": 3.0733389854431152,
+      "rmse": 3.8622887134552
+    },
+    "cruising": {
+      "samples": 1680,
+      "mae": 3.0669188499450684,
+      "rmse": 3.712761640548706
+    },
+    "turning": {
+      "samples": 748,
+      "mae": 5.204310894012451,
+      "rmse": 6.657303810119629
+    }
+  },
+  "uncertainty": {
+    "representation": "model output column 0 is speed_mean_mps; column 1 is log_variance",
+    "log_var_bounds_train": [
+      -4.0,
+      2.0
+    ],
+    "mean_predicted_std_mps": 2.7182812690734863,
+    "raw_mean_predicted_std_mps": 36.20346450805664,
+    "gaussian_nll": 2.362959146499634,
+    "calibrated": false
+  }
+}

@@ -20,7 +20,7 @@ ml:
   input_channels: 6
   window_seconds: 2
   output: forward_speed
-  checkpoint_dir: models/checkpoints
+  checkpoint_dir: artifacts
 
 navigation:
   mode: planar_ekf

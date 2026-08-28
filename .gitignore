@@ -14,7 +14,7 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Local data
+# Local data — raw and processed datasets are not committed
 data/raw/**
 data/interim/**
 data/processed/**
@@ -24,11 +24,8 @@ data/external/**
 !data/processed/.gitkeep
 !data/external/.gitkeep
 
-# Model artifacts
-models/checkpoints/**
-models/exports/**
-!models/checkpoints/.gitkeep
-!models/exports/.gitkeep
+# artifacts/ is intentionally committed so the team can access the trained TCN
+# and ONNX model without retraining.  Do NOT add blanket ignores for artifacts/.
 
 # Results and demo recordings
 results/metrics/**
@@ -57,4 +54,3 @@ local.properties
 # Generated runtime caches and event logs
 cache/
 logs/
-
