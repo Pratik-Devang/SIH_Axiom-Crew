@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT))
 from src.ml.tcn import build_model, count_parameters
 
 ARTIFACTS = ROOT / "artifacts"
+ARTIFACTS_V2 = ROOT / "artifacts" / "v2"
 
 
 def percentile(values: list[float], pct: float) -> float:
@@ -23,7 +24,11 @@ def percentile(values: list[float], pct: float) -> float:
 
 
 def main() -> None:
-    ckpt = torch.load(ARTIFACTS / "tcn_best.pt", map_location="cpu")
+    ckpt_file = ARTIFACTS / "tcn_best.pt"
+    if not ckpt_file.exists():
+        ckpt_file = ARTIFACTS_V2 / "tcn_best.pt"
+
+    ckpt = torch.load(ckpt_file, map_location="cpu")
     config = ckpt["config"]
     model = build_model(config)
     model.load_state_dict(ckpt["model_state_dict"])
@@ -52,8 +57,13 @@ def main() -> None:
         "pytorch_file_size_bytes": pt_file.stat().st_size if pt_file.exists() else None,
         "onnx_file_size_bytes": onnx_file.stat().st_size if onnx_file.exists() else None,
     }
+    
     with (ARTIFACTS / "latency.json").open("w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
+    ARTIFACTS_V2.mkdir(parents=True, exist_ok=True)
+    with (ARTIFACTS_V2 / "latency.json").open("w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2)
+        
     print(result)
     print(f"saved: {ARTIFACTS / 'latency.json'}")
 

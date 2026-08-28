@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
@@ -11,10 +12,17 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from src.ml.dataset import SpeedWindowDataset
-from src.ml.preprocessing import apply_normalization, chronological_split, load_config, load_standardized_trip, save_json
+from src.ml.preprocessing import (
+    apply_normalization,
+    load_config,
+    load_split_trips,
+    load_standardized_trip,
+    save_json,
+)
 from src.ml.tcn import build_model
 
 ARTIFACTS = ROOT / "artifacts"
+ARTIFACTS_V2 = ROOT / "artifacts" / "v2"
 
 
 def metrics(pred: np.ndarray, target: np.ndarray) -> dict[str, float]:
@@ -22,10 +30,18 @@ def metrics(pred: np.ndarray, target: np.ndarray) -> dict[str, float]:
     return {"mae": float(np.mean(np.abs(err))), "rmse": float(np.sqrt(np.mean(err**2)))}
 
 
-def motion_states(frame, window_samples: int, stride: int) -> np.ndarray:
+def motion_states_for_trip(frame: pd.DataFrame, window_samples: int, stride: int) -> np.ndarray:
     end_indices = list(range(window_samples - 1, len(frame), stride))
     speed = frame["speed_mps"].to_numpy(float)
-    yaw = frame["vehicle_yaw_rate_deg_s"].to_numpy(float)
+    if "vehicle_yaw_rate_deg_s" in frame.columns:
+        yaw = frame["vehicle_yaw_rate_deg_s"].to_numpy(float)
+    elif "gyro_z" in frame.columns:
+        yaw = np.degrees(frame["gyro_z"].to_numpy(float))
+    elif "gyro_yaw" in frame.columns:
+        yaw = np.degrees(frame["gyro_yaw"].to_numpy(float))
+    else:
+        yaw = np.zeros_like(speed)
+
     accel = np.gradient(speed, 0.1)
     states = []
     for i in end_indices:
@@ -43,13 +59,19 @@ def motion_states(frame, window_samples: int, stride: int) -> np.ndarray:
 
 
 def main() -> None:
-    ckpt = torch.load(ARTIFACTS / "tcn_best.pt", map_location="cpu")
+    ckpt_path = ARTIFACTS / "tcn_best.pt"
+    if not ckpt_path.exists():
+        ckpt_path = ARTIFACTS_V2 / "tcn_best.pt"
+
+    ckpt = torch.load(ckpt_path, map_location="cpu")
     config = ckpt["config"]
-    trip, meta = load_standardized_trip(config)
-    splits = chronological_split(trip, config["data"]["train_fraction"], config["data"]["validation_fraction"])
-    test_raw = splits["test"]
-    test_norm = apply_normalization(test_raw, ckpt["normalization"])
-    test_ds = SpeedWindowDataset(test_norm, config["data"]["window_samples"], config["data"]["stride"])
+    
+    split_trips = load_split_trips(config)
+    test_raw_trips = split_trips["test"]
+    _, meta = load_standardized_trip(config)
+
+    test_norm_trips = [apply_normalization(frame, ckpt["normalization"]) for frame in test_raw_trips]
+    test_ds = SpeedWindowDataset(test_norm_trips, config["data"]["window_samples"], config["data"]["stride"])
     loader = DataLoader(test_ds, batch_size=config["training"]["batch_size"], shuffle=False)
 
     model = build_model(config)
@@ -65,10 +87,12 @@ def main() -> None:
                 out = out[:, 0]
             preds.append(out.cpu().numpy())
             targets.append(y.cpu().numpy())
-    pred = np.concatenate(preds)
-    target = np.concatenate(targets)
+
+    pred = np.concatenate(preds) if preds else np.array([], dtype=np.float32)
+    target = np.concatenate(targets) if targets else np.array([], dtype=np.float32)
     log_var = np.concatenate(log_vars) if log_vars else None
-    result = metrics(pred, target)
+
+    result = metrics(pred, target) if len(pred) > 0 else {"mae": 0.0, "rmse": 0.0}
     result.update(
         {
             "sample_rate_hz": config["data"]["sample_rate_hz"],
@@ -78,20 +102,26 @@ def main() -> None:
             "target_source_column": meta["target_source_column"],
             "target_unit": "m/s",
             "test_samples": int(len(target)),
+            "test_trips": len(test_raw_trips),
             "motion_state_method": "Derived from reference speed, acceleration, and vehicle yaw rate; not official labels.",
         }
     )
 
-    states = motion_states(test_raw, config["data"]["window_samples"], config["data"]["stride"])
+    all_states = []
+    for frame in test_raw_trips:
+        st = motion_states_for_trip(frame, config["data"]["window_samples"], config["data"]["stride"])
+        all_states.append(st)
+    states = np.concatenate(all_states) if all_states else np.array([])
+
     per_state = {}
-    for state in sorted(set(states)):
-        mask = states == state
-        if int(mask.sum()) >= 5:
-            per_state[str(state)] = {"samples": int(mask.sum()), **metrics(pred[mask], target[mask])}
+    if len(states) == len(pred):
+        for state in sorted(set(states)):
+            mask = states == state
+            if int(mask.sum()) >= 5:
+                per_state[str(state)] = {"samples": int(mask.sum()), **metrics(pred[mask], target[mask])}
     result["by_motion_state"] = per_state
-    if log_var is not None:
-        # Clip to the same bounds used during training so reported stats are
-        # physically meaningful (std in [0.14, 2.72] m/s range).
+
+    if log_var is not None and len(log_var) > 0:
         clipped = np.clip(log_var, -4.0, 2.0)
         nll = 0.5 * (clipped + (target - pred) ** 2 / np.exp(clipped))
         result["uncertainty"] = {
@@ -102,7 +132,9 @@ def main() -> None:
             "gaussian_nll": float(np.mean(nll)),
             "calibrated": False,
         }
+
     save_json(result, ARTIFACTS / "speed_metrics.json")
+    save_json(result, ARTIFACTS_V2 / "speed_metrics.json")
     print(result)
     print(f"saved: {ARTIFACTS / 'speed_metrics.json'}")
 
