@@ -1,27 +1,24 @@
 {
   "model": "SpeedTCN",
   "version": "v2",
-  "parameters": 22626,
+  "parameters": 348417,
   "input_shape": [
     null,
     6,
-    20
+    50
   ],
-  "output": [
-    "speed_mean_mps",
-    "log_variance"
-  ],
-  "train_trips": 1,
-  "validation_trips": 1,
-  "test_trips": 1,
-  "train_rows": 17973,
-  "validation_rows": 3851,
-  "test_rows": 3852,
-  "train_windows": 17954,
-  "validation_windows": 3832,
-  "test_windows": 3833,
-  "best_validation_loss": 3.194139568010966,
-  "warmup_epochs": 7,
+  "output": "speed_mps",
+  "train_trips": 18,
+  "validation_trips": 4,
+  "test_trips": 5,
+  "train_rows": 293363,
+  "validation_rows": 183428,
+  "test_rows": 5976,
+  "train_windows": 292481,
+  "validation_windows": 18325,
+  "test_windows": 5731,
+  "best_validation_loss": 23.937125626537537,
+  "warmup_epochs": 0,
   "target_column": "vehicle_speed",
   "target_unit": "m/s"
 }
