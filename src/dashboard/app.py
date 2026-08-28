@@ -1,634 +1,361 @@
-# ruff: noqa: E501
-"""Judge-facing Percorsa journey replay and sensor dashboard."""
-
+﻿"""
+Percorsa – Axiom Crew | Navigation Evaluation Dashboard v2
+"""
 from __future__ import annotations
-
-import html
-import os
-import sys
-from io import BytesIO
-from pathlib import Path
-
+import html, io, math, pathlib, sys
+from typing import Optional
+import folium
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from folium.plugins import AntPath, MiniMap
+from streamlit_folium import st_folium
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+_ROOT = pathlib.Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-from src.data.live_trip import normalize_trip_frame  # noqa: E402
-from src.evaluation.replay import run_outage_replay  # noqa: E402
-from src.ml.inference import OnnxSpeedPredictor  # noqa: E402
+from src.data.live_trip import normalize_trip_frame
+from src.evaluation.metrics import horizontal_errors, trajectory_metrics
+from src.evaluation.replay import run_outage_replay
+from src.ml.inference import OnnxSpeedPredictor
 
-DATA_DIR = PROJECT_ROOT / "data" / "processed" / "io_vnbd" / "trips"
-ONNX_PATH = PROJECT_ROOT / "artifacts" / "tcn.onnx"
-NORMALIZATION_PATH = PROJECT_ROOT / "artifacts" / "normalization.json"
-MAX_DASHBOARD_UPLOAD_BYTES = 25 * 1024 * 1024
+ONNX_PATH = _ROOT / "artifacts" / "v2" / "tcn.onnx"
+NORM_PATH  = _ROOT / "artifacts" / "v2" / "normalization.json"
 
+st.set_page_config(page_title="Percorsa | Navigation Dashboard", page_icon="🧭",
+                   layout="wide", initial_sidebar_state="expanded")
 
-def apply_theme() -> None:
-    st.markdown(
-        """
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        :root { --ink:#111318; --muted:#6c7078; --line:#e7e8e5;
-                --green:#15865b; --green-soft:#e9f7f0; --paper:#ffffff;
-                --canvas:#f6f7f5; --danger:#d95757; }
-        html, body, [class*="css"] { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-        .stApp { background:var(--canvas); color:var(--ink); }
-        .block-container { max-width:1440px; padding:1.15rem 2.3rem 3rem; }
-        #MainMenu, footer, header[data-testid="stHeader"] { visibility:hidden; height:0; }
-        .percorsa-nav { display:flex; align-items:center; justify-content:space-between;
-            padding:13px 17px; background:rgba(255,255,255,.96); border:1px solid #ecece9;
-            box-shadow:0 8px 28px rgba(23,27,24,.06); border-radius:18px; margin-bottom:18px; }
-        .brand { display:flex; align-items:center; gap:12px; font-size:15px; font-weight:700; }
-        .brand-mark { width:35px; height:35px; display:grid; place-items:center; color:white;
-            border-radius:11px; background:#111318; font-size:18px; }
-        .nav-links { display:flex; gap:28px; color:#53575f; font-size:13px; }
-        .nav-actions { display:flex; align-items:center; gap:10px; }
-        .secure-pill { padding:8px 12px; color:#177a55; background:#edf8f2;
-            border:1px solid #cbeada; border-radius:999px; font-size:12px; font-weight:600; }
-        .hero { position:relative; overflow:hidden; background:var(--paper); border:1px solid var(--line);
-            border-radius:25px; padding:34px 38px 31px; margin-bottom:18px; }
-        .hero:after { content:""; position:absolute; width:290px; height:290px; right:-90px;
-            top:-130px; border-radius:50%; background:radial-gradient(circle,#dff5e9 0%,rgba(223,245,233,0) 70%); }
-        .eyebrow { display:inline-flex; align-items:center; gap:7px; padding:6px 10px;
-            border:1px solid #a9dfc5; background:#f2fbf6; color:#15764f; border-radius:999px;
-            font-size:11px; font-weight:700; letter-spacing:.02em; }
-        .hero h1 { position:relative; z-index:1; font-size:36px; line-height:1.08; letter-spacing:-.04em;
-            max-width:720px; margin:15px 0 10px; }
-        .hero p { position:relative; z-index:1; max-width:720px; color:var(--muted);
-            font-size:14px; line-height:1.65; margin:0; }
-        .section-kicker { color:#177c55; font-size:11px; font-weight:700; text-transform:uppercase;
-            letter-spacing:.12em; margin-bottom:4px; }
-        .section-title { font-size:23px; font-weight:700; letter-spacing:-.025em; margin-bottom:3px; }
-        .section-copy { color:var(--muted); font-size:13px; margin-bottom:13px; }
-        .metric-card { min-height:104px; background:white; border:1px solid var(--line);
-            border-radius:18px; padding:17px 18px; box-shadow:0 5px 18px rgba(17,19,24,.035); }
-        .metric-label { color:#737780; font-size:11px; font-weight:600; margin-bottom:12px; }
-        .metric-value { color:#16181d; font-size:23px; font-weight:700; letter-spacing:-.035em; }
-        .metric-note { color:#8a8d94; font-size:10px; margin-top:4px; }
-        .status-dot { display:inline-block; width:7px; height:7px; border-radius:50%;
-            background:#21a56f; margin-right:6px; box-shadow:0 0 0 4px #e5f6ed; }
-        div[data-testid="stVerticalBlockBorderWrapper"] { background:white; border:1px solid var(--line) !important;
-            border-radius:20px; box-shadow:0 5px 18px rgba(17,19,24,.025); }
-        .stButton > button, .stDownloadButton > button { border-radius:11px; border:1px solid #dfe1de;
-            font-weight:600; min-height:42px; }
-        .stDownloadButton > button { background:#111318; color:white; border-color:#111318; }
-        [data-testid="stFileUploaderDropzone"] { background:#fbfcfa; border:1px dashed #cfd4cf;
-            border-radius:14px; }
-        div[data-baseweb="select"] > div, .stSlider [data-baseweb="slider"] { border-radius:11px; }
-        .notice { border-radius:14px; padding:13px 15px; font-size:12px; line-height:1.5;
-            background:#fff8e8; border:1px solid #f1dfad; color:#735c20; }
-        .good-notice { background:#edf8f2; border-color:#cbeada; color:#166d4b; }
-        .api-card { background:#111318; color:white; border-radius:18px; padding:18px 20px; }
-        .api-card small { color:#afb3b9; } .api-card code { color:#a7efcb; }
-        .footer-note { text-align:center; color:#96999f; font-size:11px; margin-top:30px; }
-        @media (max-width: 800px) { .block-container{padding:1rem;} .nav-links{display:none;}
-            .hero{padding:26px 22px;} .hero h1{font-size:30px;} }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+html,body,[class*="css"]{font-family:'Inter',sans-serif;}
+.stApp{background:#0b0f1a;color:#e2e8f0;}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#0f1628 0%,#111827 100%);border-right:1px solid #1e2a3a;}
+[data-testid="stSidebar"] *{color:#cbd5e1!important;}
+.hero{background:linear-gradient(135deg,#0ea5e9 0%,#6366f1 50%,#a855f7 100%);border-radius:16px;padding:32px 40px;margin-bottom:24px;}
+.hero-title{font-size:2rem;font-weight:700;color:#fff;margin:0;}
+.hero-sub{font-size:1rem;color:rgba(255,255,255,0.8);margin-top:6px;}
+.hero-badge{display:inline-block;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);border-radius:999px;padding:4px 14px;font-size:0.75rem;font-weight:600;color:#fff;margin-bottom:12px;}
+.kpi-card{background:linear-gradient(135deg,#111827 0%,#1a2235 100%);border:1px solid #1e3a5f;border-radius:14px;padding:20px 22px;text-align:center;margin-bottom:8px;}
+.kpi-label{font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#64748b;margin-bottom:6px;}
+.kpi-value{font-size:1.8rem;font-weight:700;color:#38bdf8;line-height:1;}
+.kpi-sub{font-size:0.72rem;color:#475569;margin-top:4px;}
+.kpi-good .kpi-value{color:#34d399;} .kpi-warn .kpi-value{color:#f59e0b;} .kpi-bad .kpi-value{color:#f87171;}
+.status-strip{display:flex;gap:12px;flex-wrap:wrap;background:#0f1628;border:1px solid #1e2a3a;border-radius:10px;padding:12px 18px;margin-bottom:20px;}
+.status-item{display:flex;align-items:center;gap:8px;font-size:0.82rem;color:#94a3b8;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-green{background:#34d399;box-shadow:0 0 8px #34d39980;} .dot-yellow{background:#f59e0b;} .dot-blue{background:#38bdf8;}
+.outage-info{background:linear-gradient(90deg,#1a0a00,#1f1200);border-left:4px solid #f59e0b;border-radius:0 10px 10px 0;padding:12px 18px;font-size:0.85rem;color:#fbbf24;margin:12px 0;}
+.footer{text-align:center;padding:24px;color:#334155;font-size:0.75rem;border-top:1px solid #1e2a3a;margin-top:32px;}
+[data-baseweb="tab-list"]{background:#0f1628;border-radius:10px;padding:4px;border:1px solid #1e2a3a;}
+[data-baseweb="tab"]{border-radius:8px!important;color:#64748b!important;}
+[aria-selected="true"]{background:#1e3a5f!important;color:#38bdf8!important;}
+</style>
+""", unsafe_allow_html=True)
 
+def kpi(label,value,sub="",quality=""):
+    st.markdown(f"<div class='kpi-card {quality}'><div class='kpi-label'>{label}</div><div class='kpi-value'>{value}</div><div class='kpi-sub'>{sub}</div></div>",unsafe_allow_html=True)
 
-def demo_trip(samples: int = 900) -> pd.DataFrame:
-    """Generate a labelled fallback route for interface testing."""
-    time = np.arange(samples) / 10.0
-    speed_mps = 7.0 + 2.0 * np.sin(time / 12.0)
-    heading = 0.3 * np.sin(time / 25.0)
-    east = np.cumsum(speed_mps * np.sin(heading) / 10.0)
-    north = np.cumsum(speed_mps * np.cos(heading) / 10.0)
-    return pd.DataFrame(
-        {
-            "trip_id": "built_in_demo",
-            "time_since_start_s": time,
-            "accel_x": np.gradient(speed_mps, time),
-            "accel_y": np.zeros(samples),
-            "accel_z": np.full(samples, 9.81),
-            "gyro_x": np.zeros(samples),
-            "gyro_y": np.zeros(samples),
-            "gyro_z": np.gradient(heading, time),
-            "latitude": 19.05 + north / 111_000.0,
-            "longitude": 72.89 + east / (111_000.0 * np.cos(np.deg2rad(19.05))),
-            "vehicle_speed": speed_mps * 3.6,
-            "gps_accuracy_m": 3.0,
-        }
-    )
+def _pd():
+    return dict(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(15,22,40,0.6)",
+                font=dict(family="Inter",color="#94a3b8",size=12),
+                margin=dict(l=8,r=8,t=36,b=8),
+                legend=dict(bgcolor="rgba(0,0,0,0)"),
+                xaxis=dict(gridcolor="#1e2a3a",zerolinecolor="#1e2a3a",color="#64748b"),
+                yaxis=dict(gridcolor="#1e2a3a",zerolinecolor="#1e2a3a",color="#64748b"))
 
+def sensor_fig(df,cols,title,units=""):
+    COLORS=["#38bdf8","#818cf8","#34d399","#f59e0b","#f87171","#e879f9"]
+    fig=go.Figure()
+    t=df["time_since_start_s"].to_numpy(float)
+    for i,col in enumerate(cols):
+        if col not in df.columns: continue
+        fig.add_trace(go.Scatter(x=t,y=df[col].to_numpy(float),name=col,mode="lines",
+                                  line=dict(color=COLORS[i%len(COLORS)],width=1.5)))
+    fig.update_layout(title=dict(text=title,font=dict(color="#e2e8f0",size=14),x=0.02),**_pd())
+    if units: fig.update_yaxes(title_text=units)
+    fig.update_xaxes(title_text="Time (s)")
+    return fig
 
-@st.cache_data(show_spinner=False)
-def load_local_trip(path: str) -> pd.DataFrame:
-    return pd.read_csv(path)
+def error_fig(replay,out_start,out_end):
+    t=replay["time_since_start_s"].to_numpy(float)
+    err=replay["position_error_m"].to_numpy(float)
+    unc=replay["position_uncertainty_m"].to_numpy(float)
+    fig=go.Figure()
+    fig.add_vrect(x0=out_start,x1=out_end,fillcolor="#f59e0b",opacity=0.08,line_width=0,
+                  annotation_text="GNSS denied",annotation_position="top left",annotation_font_color="#f59e0b")
+    fig.add_trace(go.Scatter(x=t,y=unc,name="2σ uncertainty",mode="lines",fill="tozeroy",
+                             fillcolor="rgba(56,189,248,0.08)",line=dict(color="#38bdf8",width=1,dash="dot")))
+    fig.add_trace(go.Scatter(x=t,y=err,name="Horizontal error",mode="lines",line=dict(color="#f87171",width=2)))
+    fig.update_layout(title=dict(text="Position error vs time",font=dict(color="#e2e8f0",size=14),x=0.02),**_pd())
+    fig.update_yaxes(title_text="Error (m)"); fig.update_xaxes(title_text="Time (s)")
+    return fig
 
+def speed_fig(replay):
+    t=replay["time_since_start_s"].to_numpy(float)
+    fig=go.Figure()
+    for col,label,color in [("estimated_speed_mps","EKF speed","#38bdf8"),
+                             ("vehicle_speed","Reference (km/h÷3.6)","#34d399"),
+                             ("gps_speed_mps","GNSS speed","#f59e0b")]:
+        if col not in replay.columns: continue
+        vals=pd.to_numeric(replay[col],errors="coerce").to_numpy(float)
+        if col=="vehicle_speed": vals=vals/3.6
+        fig.add_trace(go.Scatter(x=t,y=vals,name=label,mode="lines",line=dict(color=color,width=1.8)))
+    fig.update_layout(title=dict(text="Speed comparison (m/s)",font=dict(color="#e2e8f0",size=14),x=0.02),**_pd())
+    return fig
 
-@st.cache_data(show_spinner=False)
-def parse_upload(content: bytes, filename: str) -> tuple[pd.DataFrame, dict]:
-    source = pd.read_csv(BytesIO(content))
-    frame, validation = normalize_trip_frame(source, Path(filename).stem)
-    return frame, validation.as_dict()
+def heading_fig(replay):
+    t=replay["time_since_start_s"].to_numpy(float)
+    fig=go.Figure()
+    if "estimated_heading_rad" in replay.columns:
+        fig.add_trace(go.Scatter(x=t,y=np.degrees(replay["estimated_heading_rad"].to_numpy(float)),
+                                 name="EKF heading",mode="lines",line=dict(color="#a78bfa",width=1.8)))
+    if "gps_bearing_deg" in replay.columns:
+        fig.add_trace(go.Scatter(x=t,y=replay["gps_bearing_deg"].to_numpy(float),
+                                 name="GNSS bearing",mode="lines",line=dict(color="#fb923c",width=1.2,dash="dot")))
+    fig.update_layout(title=dict(text="Heading (degrees)",font=dict(color="#e2e8f0",size=14),x=0.02),**_pd())
+    return fig
 
+def build_map(replay,out_start,out_end,show_circles=True):
+    lat_col=next((c for c in ("latitude","latitude_deg") if c in replay.columns),None)
+    lon_col=next((c for c in ("longitude","longitude_deg") if c in replay.columns),None)
+    lat_est=replay["estimated_latitude"].to_numpy(float)
+    lon_est=replay["estimated_longitude"].to_numpy(float)
+    center_lat=float(np.nanmean(lat_est)); center_lon=float(np.nanmean(lon_est))
+    m=folium.Map(location=[center_lat,center_lon],zoom_start=15,tiles=None,prefer_canvas=True)
+    folium.TileLayer(tiles="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+                     attr="CARTO",name="Dark (default)",max_zoom=19).add_to(m)
+    folium.TileLayer(tiles="OpenStreetMap",name="OpenStreetMap").add_to(m)
+    folium.TileLayer(tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                     attr="Esri",name="Satellite",max_zoom=19).add_to(m)
+    if lat_col and lon_col:
+        glat=pd.to_numeric(replay[lat_col],errors="coerce").to_numpy(float)
+        glon=pd.to_numeric(replay[lon_col],errors="coerce").to_numpy(float)
+        valid=np.isfinite(glat)&np.isfinite(glon)
+        if valid.sum()>=2:
+            folium.PolyLine(list(zip(glat[valid],glon[valid])),color="#34d399",weight=3,
+                            opacity=0.7,tooltip="GNSS ground truth",dash_array="6 4").add_to(m)
+    times=replay["time_since_start_s"].to_numpy(float)
+    out_mask=(times>=out_start)&(times<=out_end)
+    before_mask=times<out_start; after_mask=times>out_end
+    def _seg(mask,color,name,w=3.5):
+        lats=lat_est[mask]; lons=lon_est[mask]
+        v=np.isfinite(lats)&np.isfinite(lons)
+        if v.sum()>=2:
+            folium.PolyLine(list(zip(lats[v],lons[v])),color=color,weight=w,
+                            opacity=0.95,tooltip=name).add_to(m)
+    _seg(before_mask,"#38bdf8","EKF — GNSS active")
+    _seg(out_mask,"#f59e0b","EKF — GNSS DENIED",w=4.5)
+    _seg(after_mask,"#818cf8","EKF — GNSS recovered")
+    valid_all=np.isfinite(lat_est)&np.isfinite(lon_est)
+    if valid_all.sum()>=2:
+        AntPath(locations=list(zip(lat_est[valid_all],lon_est[valid_all])),
+                color="#0ea5e9",weight=2,opacity=0.4,delay=600,
+                dash_array=[10,20],tooltip="Estimated route (animated)").add_to(m)
+    sl=float(lat_est[np.isfinite(lat_est)][0]); slo=float(lon_est[np.isfinite(lon_est)][0])
+    el=float(lat_est[np.isfinite(lat_est)][-1]); elo=float(lon_est[np.isfinite(lon_est)][-1])
+    folium.Marker([sl,slo],tooltip="Trip start",icon=folium.Icon(color="green",icon="play",prefix="fa")).add_to(m)
+    folium.Marker([el,elo],tooltip="Trip end",icon=folium.Icon(color="red",icon="stop",prefix="fa")).add_to(m)
+    out_lats=lat_est[out_mask]; out_lons=lon_est[out_mask]
+    vout=np.isfinite(out_lats)&np.isfinite(out_lons)
+    if vout.sum()>=1:
+        folium.Marker([float(out_lats[vout][0]),float(out_lons[vout][0])],
+                      tooltip=f"GNSS outage starts t={out_start:.0f}s",
+                      icon=folium.Icon(color="orange",icon="exclamation-triangle",prefix="fa")).add_to(m)
+        folium.Marker([float(out_lats[vout][-1]),float(out_lons[vout][-1])],
+                      tooltip=f"GNSS outage ends t={out_end:.0f}s",
+                      icon=folium.Icon(color="blue",icon="check-circle",prefix="fa")).add_to(m)
+    if show_circles:
+        step=max(1,len(replay)//80)
+        for i in range(0,len(replay),step):
+            if not(np.isfinite(lat_est[i]) and np.isfinite(lon_est[i])): continue
+            err=float(replay["position_error_m"].iloc[i])
+            unc=float(replay["position_uncertainty_m"].iloc[i])
+            ts=float(replay["time_since_start_s"].iloc[i])
+            cc="#f59e0b" if out_mask[i] else "#38bdf8"
+            folium.CircleMarker([lat_est[i],lon_est[i]],radius=max(3,min(unc/3,12)),
+                                color=cc,fill=True,fill_color=cc,fill_opacity=0.25,
+                                tooltip=f"t={ts:.1f}s err={err:.1f}m σ={unc:.1f}m").add_to(m)
+    MiniMap(toggle_display=True,position="bottomright").add_to(m)
+    folium.LayerControl(position="topright").add_to(m)
+    return m
 
-@st.cache_resource(show_spinner=False)
-def load_speed_predictor() -> OnnxSpeedPredictor:
-    return OnnxSpeedPredictor(ONNX_PATH, NORMALIZATION_PATH)
-
-
-def metric_card(label: str, value: str, note: str) -> None:
-    st.markdown(
-        f"""
-        <div class="metric-card">
-          <div class="metric-label">{html.escape(label)}</div>
-          <div class="metric-value">{html.escape(value)}</div>
-          <div class="metric-note">{html.escape(note)}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def sensor_figure(frame: pd.DataFrame, columns: list[str], title: str) -> go.Figure:
-    figure = go.Figure()
-    colors = ["#167f58", "#4a8dd8", "#e29c35"]
-    for color, column in zip(colors, columns, strict=False):
-        figure.add_trace(
-            go.Scatter(
-                x=frame["time_since_start_s"],
-                y=frame[column],
-                mode="lines",
-                line={"width": 1.6, "color": color},
-                name=column.replace("_", " ").title(),
-            )
-        )
-    figure.update_layout(
-        title={"text": title, "font": {"size": 14}},
-        height=315,
-        margin={"l": 20, "r": 20, "t": 48, "b": 25},
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-        legend={"orientation": "h", "y": 1.12, "x": 0.48},
-        hovermode="x unified",
-    )
-    figure.update_xaxes(title="Journey time (s)", gridcolor="#eef0ed")
-    figure.update_yaxes(gridcolor="#eef0ed")
-    return figure
-
-
-def animated_route(replay: pd.DataFrame) -> go.Figure:
-    """Build a lightweight Plotly journey animation with play controls."""
-    outage = ~replay["gnss_available"].to_numpy(bool)
-    indices = np.unique(
-        np.linspace(0, len(replay) - 1, min(100, len(replay)), dtype=int)
-    )
-    figure = go.Figure(
-        data=[
-            go.Scattermap(
-                lat=replay["latitude"],
-                lon=replay["longitude"],
-                mode="lines",
-                line={"width": 4, "color": "#cfd4d0"},
-                name="GNSS ground truth",
-            ),
-            go.Scattermap(
-                lat=replay.loc[outage, "latitude"],
-                lon=replay.loc[outage, "longitude"],
-                mode="lines",
-                line={"width": 5, "color": "#e05c5c"},
-                name="GNSS withheld",
-            ),
-            go.Scattermap(
-                lat=replay["estimated_latitude"].iloc[:1],
-                lon=replay["estimated_longitude"].iloc[:1],
-                mode="lines",
-                line={"width": 5, "color": "#16855b"},
-                name="Percorsa estimate",
-            ),
-            go.Scattermap(
-                lat=replay["estimated_latitude"].iloc[:1],
-                lon=replay["estimated_longitude"].iloc[:1],
-                mode="markers",
-                marker={"size": 13, "color": "#111318"},
-                name="Vehicle",
-            ),
-        ]
-    )
-    frames = []
-    for index in indices:
-        frames.append(
-            go.Frame(
-                name=str(index),
-                traces=[2, 3],
-                data=[
-                    go.Scattermap(
-                        lat=replay["estimated_latitude"].iloc[: index + 1],
-                        lon=replay["estimated_longitude"].iloc[: index + 1],
-                        mode="lines",
-                        line={"width": 5, "color": "#16855b"},
-                    ),
-                    go.Scattermap(
-                        lat=[replay["estimated_latitude"].iloc[index]],
-                        lon=[replay["estimated_longitude"].iloc[index]],
-                        mode="markers",
-                        marker={"size": 13, "color": "#111318"},
-                    ),
-                ],
-            )
-        )
-    figure.frames = frames
-    steps = [
-        {
-            "label": f"{replay['time_since_start_s'].iloc[i]:.0f}s",
-            "method": "animate",
-            "args": [[str(i)], {"mode": "immediate", "frame": {"duration": 0}}],
-        }
-        for i in indices[:: max(1, len(indices) // 8)]
-    ]
-    figure.update_layout(
-        height=535,
-        map={
-            "style": "open-street-map",
-            "center": {
-                "lat": float(replay["latitude"].median()),
-                "lon": float(replay["longitude"].median()),
-            },
-            "zoom": 14,
-        },
-        margin={"l": 0, "r": 0, "t": 10, "b": 0},
-        paper_bgcolor="white",
-        legend={"orientation": "h", "x": 0.01, "y": 1.0},
-        updatemenus=[
-            {
-                "type": "buttons",
-                "direction": "left",
-                "x": 0.01,
-                "y": 0.02,
-                "buttons": [
-                    {
-                        "label": "Play journey",
-                        "method": "animate",
-                        "args": [
-                            None,
-                            {
-                                "fromcurrent": True,
-                                "frame": {"duration": 90, "redraw": True},
-                                "transition": {"duration": 0},
-                            },
-                        ],
-                    },
-                    {
-                        "label": "Pause",
-                        "method": "animate",
-                        "args": [
-                            [None],
-                            {"mode": "immediate", "frame": {"duration": 0}},
-                        ],
-                    },
-                ],
-            }
-        ],
-        sliders=[
-            {
-                "active": 0,
-                "x": 0.26,
-                "len": 0.71,
-                "y": 0.02,
-                "steps": steps,
-                "currentvalue": {"prefix": "Journey "},
-            }
-        ],
-    )
-    return figure
-
-
-def error_timeline(
-    replay: pd.DataFrame, outage_start: float, outage_end: float
-) -> go.Figure:
-    figure = go.Figure()
-    figure.add_trace(
-        go.Scatter(
-            x=replay["time_since_start_s"],
-            y=replay["position_error_m"],
-            mode="lines",
-            line={"color": "#16855b", "width": 2.4},
-            name="Position error",
-        )
-    )
-    figure.add_trace(
-        go.Scatter(
-            x=replay["time_since_start_s"],
-            y=replay["position_uncertainty_m"],
-            mode="lines",
-            line={"color": "#7a7f87", "width": 1.5, "dash": "dot"},
-            name="2-sigma confidence",
-        )
-    )
-    figure.add_vrect(
-        x0=outage_start,
-        x1=outage_end,
-        fillcolor="#e05c5c",
-        opacity=0.09,
-        line_width=0,
-        annotation_text="GNSS denied",
-        annotation_position="top left",
-    )
-    figure.update_layout(
-        height=330,
-        margin={"l": 18, "r": 18, "t": 36, "b": 30},
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-        hovermode="x unified",
-        legend={"orientation": "h", "y": 1.14},
-    )
-    figure.update_xaxes(title="Journey time (s)", gridcolor="#eef0ed")
-    figure.update_yaxes(title="Metres", gridcolor="#eef0ed")
-    return figure
-
-
-st.set_page_config(
-    page_title="Percorsa Journey Intelligence", page_icon="P", layout="wide"
-)
-apply_theme()
-
-api_configured = len(os.getenv("PERCORSA_API_KEY", "")) >= 32
-api_label = "API secured" if api_configured else "API locked until key is set"
-st.markdown(
-    f"""
-    <div class="percorsa-nav">
-      <div class="brand"><span class="brand-mark">P</span><span>Percorsa</span></div>
-      <div class="nav-links"><span>Overview</span><span>Journey</span><span>Signals</span><span>Integration</span></div>
-      <div class="nav-actions"><span class="secure-pill">● {html.escape(api_label)}</span></div>
-    </div>
-    <div class="hero">
-      <span class="eyebrow"><span class="status-dot"></span>GNSS-resilient navigation</span>
-      <h1>Turn a recorded drive into a clear navigation story.</h1>
-      <p>Replay the complete journey, withhold GNSS over a controlled interval, and show exactly how Percorsa carries the vehicle forward using phone IMU, learned speed and uncertainty-aware filtering.</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-source_column, upload_column = st.columns([1.05, 1.5], gap="large")
-local_files = sorted(DATA_DIR.glob("*.csv"))
-with source_column:
-    with st.container(border=True):
-        st.markdown(
-            "<div class='section-kicker'>Trip source</div>", unsafe_allow_html=True
-        )
-        source_options = ["Built-in judge demo"] + [path.stem for path in local_files]
-        selected_source = st.selectbox(
-            "Available recordings", source_options, label_visibility="collapsed"
-        )
-        st.caption("Use the demo now or select a processed team recording.")
-with upload_column:
-    with st.container(border=True):
-        st.markdown(
-            "<div class='section-kicker'>New recording</div>", unsafe_allow_html=True
-        )
-        uploaded = st.file_uploader(
-            "Upload Android trip CSV",
-            type=["csv"],
-            label_visibility="collapsed",
-            help="Maximum 25 MB. Files are validated before replay.",
-        )
-        st.caption(
-            "Current IMU-only exports open in sensor mode. GNSS-enabled exports unlock route replay."
-        )
-
-validation: dict | None = None
-source_error: str | None = None
-if uploaded is not None:
-    content = uploaded.getvalue()
-    if len(content) > MAX_DASHBOARD_UPLOAD_BYTES:
-        source_error = "The uploaded file exceeds the 25 MB dashboard limit."
-        trip = demo_trip()
+# ── Sidebar ──
+with st.sidebar:
+    st.markdown("## 🧭 Percorsa")
+    st.markdown("**GNSS-denied Navigation Evaluation**")
+    st.markdown("---")
+    st.markdown("### 📂 Data Source")
+    source_mode=st.radio("Input mode",["Upload CSV","Demo (synthetic)"],label_visibility="collapsed")
+    uploaded_file=None
+    if source_mode=="Upload CSV":
+        uploaded_file=st.file_uploader("Upload Android sensor CSV",type=["csv"])
+    st.markdown("---")
+    st.markdown("### ⚙️ TCN Model")
+    onnx_ok=ONNX_PATH.exists() and NORM_PATH.exists()
+    if onnx_ok:
+        st.success("TCN ONNX loaded ✓"); use_tcn=st.checkbox("Use TCN speed",value=True)
     else:
-        try:
-            trip, validation = parse_upload(content, uploaded.name)
-        except (ValueError, pd.errors.ParserError, UnicodeDecodeError) as error:
-            source_error = str(error)
-            trip = demo_trip()
-elif selected_source == "Built-in judge demo":
-    trip = demo_trip()
-    validation = {
-        "trip_id": "built_in_demo",
-        "rows": len(trip),
-        "duration_s": float(trip["time_since_start_s"].iloc[-1]),
-        "replay_ready": True,
-        "has_imu": True,
-        "has_gnss": True,
-        "issues": [],
-    }
-else:
-    trip = load_local_trip(str(local_files[source_options.index(selected_source) - 1]))
+        st.warning("ONNX not found"); use_tcn=False
+    st.markdown("---")
+    st.markdown("### 🗺️ Map Options")
+    map_height=st.slider("Map height (px)",400,900,600,50)
+    show_circles=st.checkbox("Show uncertainty circles",value=True)
+    st.markdown("---"); st.caption(f"Root: `{_ROOT.name}`"); st.caption("Dashboard v2.0 — Axiom Crew")
+
+# ── Hero ──
+st.markdown("""
+<div class='hero'>
+  <div class='hero-badge'>🛰️ GNSS-DENIED NAVIGATION</div>
+  <div class='hero-title'>Percorsa Navigation Dashboard</div>
+  <div class='hero-sub'>Axiom Crew · ESKF · TCN Speed Estimation · Real-map Replay</div>
+</div>""",unsafe_allow_html=True)
+
+# ── Demo data ──
+@st.cache_data
+def _demo_trip():
+    rng=np.random.default_rng(42); n=600; dt=0.1; t=np.arange(n)*dt
+    lat0,lon0=28.6139,77.2090
+    speed=np.clip(rng.normal(12,2,n),0,25)
+    heading=np.zeros(n); heading[300:]=np.pi/2
+    east=np.cumsum(speed*np.sin(heading)*dt); north=np.cumsum(speed*np.cos(heading)*dt)
+    M=6_335_439.0; N=6_378_137.0
+    lat=lat0+np.degrees(north/M); lon=lon0+np.degrees(east/(N*math.cos(math.radians(lat0))))
+    return pd.DataFrame({"trip_id":["demo"]*n,"time_since_start_s":t,
+        "accel_x":rng.normal(0.1,0.05,n),"accel_y":rng.normal(0,0.05,n),"accel_z":rng.normal(-9.81,0.1,n),
+        "gyro_x":rng.normal(0,0.005,n),"gyro_y":rng.normal(0,0.005,n),
+        "gyro_z":np.concatenate([np.zeros(290),rng.normal(0.05,0.01,20),np.zeros(290)]),
+        "latitude":lat,"longitude":lon,"vehicle_speed":speed*3.6,
+        "gps_accuracy_m":rng.uniform(2,6,n),"gps_speed_mps":speed+rng.normal(0,0.3,n),
+        "gps_bearing_deg":np.degrees(heading)})
+
+raw_df=None; source_error=""; validation=None
+if source_mode=="Upload CSV" and uploaded_file is not None:
     try:
-        trip, result = normalize_trip_frame(trip, selected_source)
-        validation = result.as_dict()
-    except ValueError as error:
-        source_error = str(error)
+        raw_df=pd.read_csv(io.BytesIO(uploaded_file.read()))
+        raw_df,validation=normalize_trip_frame(raw_df,uploaded_file.name)
+    except Exception as exc: source_error=str(exc)
+elif source_mode=="Demo (synthetic)":
+    raw_df=_demo_trip()
+    try: raw_df,validation=normalize_trip_frame(raw_df,"demo_trip")
+    except Exception as exc: source_error=str(exc)
 
 if source_error:
-    st.error(f"Recording rejected: {source_error}")
-    st.stop()
+    st.error(f"❌ **Trip rejected:** {source_error}"); st.stop()
+if raw_df is None or validation is None:
+    st.markdown("<div style='text-align:center;padding:60px;color:#475569;'><div style='font-size:3rem;'>📤</div><div style='font-size:1.1rem;color:#94a3b8;'>Upload Android CSV or switch to Demo mode</div></div>",unsafe_allow_html=True); st.stop()
 
-assert validation is not None
-trip_name = html.escape(str(validation["trip_id"]))
-sample_times = trip["time_since_start_s"].to_numpy(float)
-sample_dt = np.diff(sample_times)
-sample_rate = 1.0 / np.median(sample_dt[sample_dt > 0])
+trip=raw_df; v=validation.as_dict(); trip_id=html.escape(str(v["trip_id"]))
+times=trip["time_since_start_s"].to_numpy(float)
+dt_arr=np.diff(times); sample_rate=1.0/np.median(dt_arr[dt_arr>0]) if len(dt_arr)>0 else 10.0
+duration=float(times[-1]-times[0]); has_gnss=bool(v["replay_ready"])
+speed_src_lbl="TCN ONNX" if(onnx_ok and use_tcn) else "Reference speed"
 
-if not bool(validation["replay_ready"]):
-    st.markdown(
-        f"<div class='notice'><strong>{trip_name}</strong> is a valid sensor recording. Route replay is waiting for latitude and longitude, so this view shows the IMU timeline only.</div>",
-        unsafe_allow_html=True,
-    )
-    metric_columns = st.columns(4)
-    with metric_columns[0]:
-        metric_card("Recording", str(validation["trip_id"]), "Validated Android CSV")
-    with metric_columns[1]:
-        metric_card(
-            "Duration",
-            f"{float(validation['duration_s']):.1f} s",
-            "Monotonic sensor timeline",
-        )
-    with metric_columns[2]:
-        metric_card("Samples", f"{int(validation['rows']):,}", "Synchronized IMU rows")
-    with metric_columns[3]:
-        metric_card(
-            "Observed rate", f"{sample_rate:.1f} Hz", "Calculated from timestamps"
-        )
-    st.markdown(
-        "<br><div class='section-title'>Sensor timeline</div><div class='section-copy'>The same upload becomes replay-ready automatically when GNSS fields are added later.</div>",
-        unsafe_allow_html=True,
-    )
-    left, right = st.columns(2, gap="large")
-    with left:
-        st.plotly_chart(
-            sensor_figure(trip, ["accel_x", "accel_y", "accel_z"], "Acceleration"),
-            width="stretch",
-        )
-    with right:
-        st.plotly_chart(
-            sensor_figure(trip, ["gyro_x", "gyro_y", "gyro_z"], "Angular velocity"),
-            width="stretch",
-        )
-    st.stop()
+st.markdown(f"""
+<div class='status-strip'>
+  <div class='status-item'><div class='dot dot-green'></div>Trip: <strong>{trip_id}</strong></div>
+  <div class='status-item'><div class='dot {"dot-green" if has_gnss else "dot-yellow"}'></div>GNSS: {"available" if has_gnss else "IMU-only"}</div>
+  <div class='status-item'><div class='dot {"dot-blue" if onnx_ok else "dot-yellow"}'></div>{speed_src_lbl}</div>
+  <div class='status-item'><div class='dot dot-green'></div>{int(v["rows"]):,} samples · {sample_rate:.1f} Hz · {duration:.1f}s</div>
+</div>""",unsafe_allow_html=True)
 
-duration = float(sample_times[-1] - sample_times[0])
+if not has_gnss:
+    c1,c2=st.columns(2)
+    with c1: st.plotly_chart(sensor_fig(trip,["accel_x","accel_y","accel_z"],"Acceleration","m/s²"),use_container_width=True)
+    with c2: st.plotly_chart(sensor_fig(trip,["gyro_x","gyro_y","gyro_z"],"Gyroscope","rad/s"),use_container_width=True)
+    st.info("Add lat/lon to enable map replay."); st.stop()
+
+# ── Outage controls ──
+st.markdown("### ⚙️ Configure GNSS outage window")
 with st.container(border=True):
-    st.markdown(
-        "<div class='section-kicker'>Controlled evaluation</div>",
-        unsafe_allow_html=True,
-    )
-    control_one, control_two, control_three = st.columns([1, 1, 1.4])
-    default_start = min(60.0, max(0.0, duration * 0.35))
-    with control_one:
-        outage_start = st.slider(
-            "Outage starts at",
-            0.0,
-            max(duration - 1.0, 1.0),
-            min(default_start, max(duration - 1.0, 1.0)),
-            1.0,
-        )
-    max_outage = max(1.0, duration - outage_start)
-    with control_two:
-        outage_duration = st.slider(
-            "Outage duration",
-            1.0,
-            max_outage,
-            min(30.0, max_outage),
-            1.0,
-        )
-    with control_three:
-        st.markdown(
-            f"<div class='good-notice notice'><strong>{trip_name}</strong><br>{len(trip):,} samples at approximately {sample_rate:.1f} Hz. GNSS will be withheld only from the estimator.</div>",
-            unsafe_allow_html=True,
-        )
+    ctrl1,ctrl2,ctrl3=st.columns([1,1,1.6])
+    default_start=min(60.0,max(0.0,duration*0.35))
+    with ctrl1: outage_start=st.slider("Outage starts (s)",0.0,max(duration-1.0,1.0),min(default_start,max(duration-1.0,1.0)),1.0)
+    max_out=max(1.0,duration-outage_start)
+    with ctrl2: outage_dur=st.slider("Outage duration (s)",1.0,max_out,min(30.0,max_out),1.0)
+    with ctrl3:
+        st.markdown(f"<div class='outage-info'>⚠️ <strong>GNSS withheld</strong> t = {outage_start:.0f}s → {outage_start+outage_dur:.0f}s ({outage_dur:.0f}s). Ground-truth kept for error measurement.</div>",unsafe_allow_html=True)
+outage_end=outage_start+outage_dur
 
-speed_prediction = speed_variance = None
-speed_status = "Reference speed fallback"
-if ONNX_PATH.exists() and NORMALIZATION_PATH.exists():
+# ── Run replay ──
+speed_pred=speed_var=None; speed_status="Reference speed"
+if onnx_ok and use_tcn:
     try:
-        speed_prediction, speed_variance = load_speed_predictor().predict(trip)
-        speed_status = "TCN ONNX"
-    except ValueError:
-        speed_status = "Reference speed fallback"
+        predictor=OnnxSpeedPredictor(ONNX_PATH,NORM_PATH); speed_pred,speed_var=predictor.predict(trip); speed_status="TCN ONNX"
+    except Exception: speed_status="Reference speed (TCN failed)"
 
-with st.spinner("Replaying the controlled GNSS outage..."):
-    replay, metrics = run_outage_replay(
-        trip,
-        outage_start,
-        outage_duration,
-        speed_prediction,
-        speed_variance,
-    )
+with st.spinner("🔄 Running GNSS-denied replay…"):
+    replay,metrics=run_outage_replay(trip,outage_start,outage_dur,speed_pred,speed_var)
 
-distance_km = float(
-    np.hypot(np.diff(replay["east"]), np.diff(replay["north"])).sum() / 1000.0
-)
-summary = metrics["percorsa"]
-baseline = metrics["last_fix"]
-metric_columns = st.columns(5)
-with metric_columns[0]:
-    metric_card("Journey distance", f"{distance_km:.2f} km", "GNSS ground-truth path")
-with metric_columns[1]:
-    metric_card(
-        "GNSS denied",
-        f"{outage_duration:.0f} s",
-        f"Starts at {outage_start:.0f} seconds",
-    )
-with metric_columns[2]:
-    metric_card(
-        "Outage RMSE", f"{summary['rmse_m']:.1f} m", "Percorsa horizontal error"
-    )
-with metric_columns[3]:
-    metric_card(
-        "Endpoint drift", f"{summary['endpoint_error_m']:.1f} m", "Before GNSS recovery"
-    )
-with metric_columns[4]:
-    metric_card("Speed source", speed_status, "10 Hz estimator updates")
+distance_km=float(np.hypot(np.diff(replay["east"].to_numpy()),np.diff(replay["north"].to_numpy())).sum()/1000.0)
+summary=metrics["percorsa"]; baseline=metrics["last_fix"]
 
-st.markdown(
-    "<br><div class='section-kicker'>Journey replay</div><div class='section-title'>One route, two sources of truth</div><div class='section-copy'>Press Play journey to watch the estimator cross the red GNSS-denied segment.</div>",
-    unsafe_allow_html=True,
-)
-map_column, state_column = st.columns([2.25, 1], gap="large")
-with map_column:
+# ── KPIs ──
+st.markdown("<br>",unsafe_allow_html=True)
+k1,k2,k3,k4,k5,k6=st.columns(6)
+with k1: kpi("Distance",f"{distance_km:.2f} km","GNSS ground-truth")
+with k2: kpi("GNSS denied",f"{outage_dur:.0f} s",f"From t={outage_start:.0f}s")
+with k3: kpi("RMSE",f"{summary['rmse_m']:.1f} m","EKF horizontal",
+             "kpi-good" if summary['rmse_m']<20 else "kpi-warn" if summary['rmse_m']<50 else "kpi-bad")
+with k4: kpi("Endpoint drift",f"{summary['endpoint_error_m']:.1f} m","Before GNSS recovery",
+             "kpi-good" if summary['endpoint_error_m']<30 else "kpi-warn")
+with k5: kpi("Baseline drift",f"{baseline['endpoint_error_m']:.1f} m","Last-fix dead-reckoning")
+with k6: kpi("Speed source",speed_status,"10 Hz EKF update")
+
+# ── Map ──
+st.markdown("<br>",unsafe_allow_html=True)
+st.markdown("""
+<div style='margin-bottom:8px;'>
+  <span style='font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#0ea5e9;'>Route replay</span><br>
+  <span style='font-size:1.35rem;font-weight:700;color:#f1f5f9;'>Live map — real tiles, real coordinates</span><br>
+  <span style='font-size:0.82rem;color:#64748b;'>🟢 GNSS ground truth &nbsp;|&nbsp; 🔵 EKF active &nbsp;|&nbsp; 🟠 GNSS denied &nbsp;|&nbsp; 🟣 Recovered &nbsp;|&nbsp; Circles = uncertainty σ</span>
+</div>""",unsafe_allow_html=True)
+
+map_col,state_col=st.columns([2.4,1],gap="large")
+with map_col:
+    m=build_map(replay,outage_start,outage_end,show_circles)
+    st_folium(m,height=map_height,use_container_width=True)
+
+with state_col:
     with st.container(border=True):
-        st.plotly_chart(animated_route(replay), width="stretch")
-with state_column:
-    with st.container(border=True):
-        st.markdown(
-            "<div class='section-kicker'>Run summary</div><div class='section-title'>Navigation state</div>",
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            f"""
-            <div class="good-notice notice"><span class="status-dot"></span><strong>Replay complete</strong><br>GNSS handover and recovery were evaluated.</div>
-            <br>
-            <div class="metric-label">Percorsa endpoint error</div><div class="metric-value">{summary["endpoint_error_m"]:.1f} m</div><br>
-            <div class="metric-label">Last-fix endpoint error</div><div class="metric-value">{baseline["endpoint_error_m"]:.1f} m</div><br>
-            <div class="metric-label">Final 2-sigma confidence</div><div class="metric-value">{replay["position_uncertainty_m"].iloc[-1]:.1f} m</div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.download_button(
-            "Download evaluated journey",
-            replay.to_csv(index=False),
-            f"{validation['trip_id']}_evaluated.csv",
-            "text/csv",
-            width="stretch",
-        )
+        st.markdown("#### 🧭 Navigation state")
+        improvement=baseline["endpoint_error_m"]-summary["endpoint_error_m"]
+        st.markdown(f"""
+        <div style="background:#0a1f0a;border:1px solid #166534;border-radius:10px;padding:14px;margin-bottom:12px;">
+            <span style="color:#4ade80;font-weight:700;">✓ Replay complete</span><br>
+            <span style="color:#64748b;font-size:0.8rem;">EKF vs last-fix over {outage_dur:.0f}s outage</span>
+        </div>""",unsafe_allow_html=True)
+        for label,val,unit,color in [
+            ("EKF endpoint error",summary['endpoint_error_m'],"m","#38bdf8"),
+            ("Last-fix endpoint error",baseline['endpoint_error_m'],"m","#f59e0b"),
+            ("EKF improvement",improvement,"m","#34d399"),
+            ("EKF RMSE (outage)",summary['rmse_m'],"m","#818cf8"),
+            ("Final 2σ uncertainty",float(replay["position_uncertainty_m"].iloc[-1]),"m","#94a3b8"),
+        ]:
+            st.markdown(f"<div style='margin-bottom:10px;'><div style='font-size:0.7rem;color:#475569;text-transform:uppercase;'>{label}</div><div style='font-size:1.4rem;font-weight:700;color:{color};'>{val:.1f} <span style='font-size:0.9rem;font-weight:400;'>{unit}</span></div></div>",unsafe_allow_html=True)
+        st.download_button("⬇️ Download evaluated CSV",replay.to_csv(index=False),
+                           f"{v['trip_id']}_evaluated.csv","text/csv",use_container_width=True)
 
-overview_tab, signals_tab, integration_tab = st.tabs(
-    ["Error timeline", "Sensor signals", "Android integration"]
-)
-with overview_tab:
-    st.plotly_chart(
-        error_timeline(replay, outage_start, outage_start + outage_duration),
-        width="stretch",
-    )
-    comparison = pd.DataFrame(metrics).T.rename(
-        columns={
-            "rmse_m": "RMSE (m)",
-            "mae_m": "MAE (m)",
-            "max_error_m": "Maximum error (m)",
-            "endpoint_error_m": "Endpoint error (m)",
-        }
-    )
-    st.dataframe(comparison.style.format("{:.2f}"), width="stretch")
-with signals_tab:
-    sensor_left, sensor_right = st.columns(2, gap="large")
-    with sensor_left:
-        st.plotly_chart(
-            sensor_figure(replay, ["accel_x", "accel_y", "accel_z"], "Acceleration"),
-            width="stretch",
-        )
-    with sensor_right:
-        st.plotly_chart(
-            sensor_figure(replay, ["gyro_x", "gyro_y", "gyro_z"], "Angular velocity"),
-            width="stretch",
-        )
-with integration_tab:
-    api_state = "Configured" if api_configured else "Disabled until an API key is set"
-    st.markdown(
-        f"""
-        <div class="api-card">
-          <strong>Secure Android ingestion</strong><br><br>
-          <small>Status</small><br>{api_state}<br><br>
-          <small>CSV upload</small><br><code>POST /api/v1/trips/upload</code><br><br>
-          <small>Buffered sensor batches</small><br><code>POST /api/v1/trips/batches</code><br><br>
-          <small>Authentication header</small><br><code>X-Percorsa-Key: &lt;secret&gt;</code>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.caption(
-        "Keep the API bound to localhost until the Android client is ready. Use HTTPS before exposing it outside a trusted LAN."
-    )
+# ── Tabs ──
+st.markdown("<br>",unsafe_allow_html=True)
+t1,t2,t3,t4,t5=st.tabs(["📉 Error timeline","🚗 Speed analysis","🧭 Heading","📡 IMU signals","📋 Raw data"])
+with t1:
+    st.plotly_chart(error_fig(replay,outage_start,outage_end),use_container_width=True)
+    comp_df=pd.DataFrame(metrics).T.rename(columns={"rmse_m":"RMSE (m)","mae_m":"MAE (m)","max_error_m":"Max error (m)","endpoint_error_m":"Endpoint (m)"})
+    st.dataframe(comp_df.style.format("{:.2f}"),use_container_width=True)
+with t2:
+    st.plotly_chart(speed_fig(replay),use_container_width=True)
+with t3:
+    st.plotly_chart(heading_fig(replay),use_container_width=True)
+with t4:
+    i1,i2=st.columns(2,gap="large")
+    with i1: st.plotly_chart(sensor_fig(replay,["accel_x","accel_y","accel_z"],"Acceleration","m/s²"),use_container_width=True)
+    with i2: st.plotly_chart(sensor_fig(replay,["gyro_x","gyro_y","gyro_z"],"Gyroscope","rad/s"),use_container_width=True)
+with t5:
+    disp=["time_since_start_s","estimated_latitude","estimated_longitude","position_error_m","position_uncertainty_m","estimated_speed_mps","gnss_available"]
+    show=[c for c in disp if c in replay.columns]
+    st.dataframe(replay[show].style.format({c:"{:.4f}" for c in show if c!="gnss_available"}),use_container_width=True,height=400)
 
-st.markdown(
-    "<div class='footer-note'>Percorsa · Axiom Crew · Controlled GNSS-denied navigation evaluation</div>",
-    unsafe_allow_html=True,
-)
+st.markdown("<div class='footer'>Percorsa · Axiom Crew · GNSS-denied resilient vehicle navigation · Dashboard v2.0</div>",unsafe_allow_html=True)

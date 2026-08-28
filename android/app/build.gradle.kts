@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
@@ -9,13 +9,25 @@ android {
 
     defaultConfig {
         applicationId = "com.percorsa.sensorlogger"
-        minSdk = 26
+        minSdk = 21
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "2.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            enableV1Signing = true
+            enableV2Signing = true
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = true
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -31,20 +43,12 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-
-    // The new XML-based sensor logger replaces the earlier Compose prototype.
-    // Keep the legacy files in Git for reference, but do not compile them with
-    // this app because this build intentionally has no Compose dependencies.
-    sourceSets {
-        getByName("main").java.exclude("com/percorsa/navigation/**")
-        getByName("test").java.exclude("com/percorsa/navigation/**")
-        getByName("androidTest").java.exclude("com/percorsa/navigation/**")
-    }
 }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
     testImplementation("junit:junit:4.13.2")
 }
