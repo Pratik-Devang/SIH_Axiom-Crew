@@ -3,16 +3,28 @@ import json
 import random
 
 
-METADATA_FILE = Path("trip_metadata.json")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+METADATA_FILE = (
+    PROJECT_ROOT
+    / "data"
+    / "manifests"
+    / "trip_metadata.json"
+)
 
-TRAIN_FILE = Path("train.txt")
-VALIDATION_FILE = Path("validation.txt")
-TEST_FILE = Path("test.txt")
+SPLIT_DIR = PROJECT_ROOT / "data" / "splits"
+TRAIN_FILE = SPLIT_DIR / "train.txt"
+VALIDATION_FILE = SPLIT_DIR / "validation.txt"
+TEST_FILE = SPLIT_DIR / "test.txt"
 
 SEED = 42
 
 
 def main():
+
+    SPLIT_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     with open(
         METADATA_FILE,

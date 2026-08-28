@@ -7,9 +7,9 @@
   },
   "processing": {
     "format": "Parquet",
-    "adapter": "data_adapters/io_vnbd.py",
+    "adapter": "src/data/adapters/io_vnbd.py",
     "ingestion_script": "scripts/ingest_io_vnbd.py",
-    "validation_script": "preprocessing/validation.py"
+    "validation_script": "src/preprocessing/validation.py"
   },
   "files": {
     "source_smartphone_files": 144,

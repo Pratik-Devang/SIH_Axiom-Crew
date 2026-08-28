@@ -2,11 +2,24 @@ from pathlib import Path
 import json
 
 
-PROJECT_ROOT = Path(".")
-PARQUET_ROOT = Path("data/processed/io_vnbd")
-QUALITY_REPORT = PARQUET_ROOT / "data_quality_report.json"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PARQUET_ROOT = (
+    PROJECT_ROOT / "data" / "processed" / "io_vnbd"
+)
+QUALITY_REPORT = (
+    PROJECT_ROOT
+    / "results"
+    / "reports"
+    / "io_vnbd"
+    / "data_quality_report.json"
+)
 
-OUTPUT_FILE = PROJECT_ROOT / "dataset_manifest.json"
+OUTPUT_FILE = (
+    PROJECT_ROOT
+    / "data"
+    / "manifests"
+    / "io_vnbd_dataset.json"
+)
 
 
 def main():
@@ -47,9 +60,9 @@ def main():
 
         "processing": {
             "format": "Parquet",
-            "adapter": "data_adapters/io_vnbd.py",
+            "adapter": "src/data/adapters/io_vnbd.py",
             "ingestion_script": "scripts/ingest_io_vnbd.py",
-            "validation_script": "preprocessing/validation.py",
+            "validation_script": "src/preprocessing/validation.py",
         },
 
         "files": {
@@ -123,6 +136,11 @@ def main():
             "urbannav_adapter": "pending",
         },
     }
+
+    OUTPUT_FILE.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     with open(
         OUTPUT_FILE,

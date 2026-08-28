@@ -4,23 +4,25 @@ import sys
 import pandas as pd
 
 # Allow Python to find the project root
-sys.path.insert(
-    0,
-    str(Path(__file__).resolve().parents[1])
-)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
 
-from data_adapters.io_vnbd import (
+from src.data.adapters.io_vnbd import (
     find_smartphone_files,
     read_smartphone_file,
 )
 
 
-RAW_ROOT = Path(
-    "data/raw/io_vnbd/Synchronised V abd S datasets"
+RAW_ROOT = (
+    PROJECT_ROOT
+    / "data"
+    / "raw"
+    / "io_vnbd"
+    / "Synchronised V abd S datasets"
 )
 
-OUTPUT_ROOT = Path(
-    "data/processed/io_vnbd"
+OUTPUT_ROOT = (
+    PROJECT_ROOT / "data" / "processed" / "io_vnbd"
 )
 
 

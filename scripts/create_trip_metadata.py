@@ -3,11 +3,24 @@ import json
 import pandas as pd
 
 
-PARQUET_ROOT = Path("data/processed/io_vnbd")
-OUTPUT_FILE = Path("trip_metadata.json")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PARQUET_ROOT = (
+    PROJECT_ROOT / "data" / "processed" / "io_vnbd"
+)
+OUTPUT_FILE = (
+    PROJECT_ROOT
+    / "data"
+    / "manifests"
+    / "trip_metadata.json"
+)
 
 
 def main():
+
+    OUTPUT_FILE.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     files = sorted(PARQUET_ROOT.glob("*.parquet"))
 

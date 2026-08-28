@@ -4,12 +4,18 @@ import json
 import pandas as pd
 
 
-PARQUET_ROOT = Path(
-    "data/processed/io_vnbd"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+PARQUET_ROOT = (
+    PROJECT_ROOT / "data" / "processed" / "io_vnbd"
 )
 
-REPORT_PATH = Path(
-    "data/processed/io_vnbd/data_quality_report.json"
+REPORT_PATH = (
+    PROJECT_ROOT
+    / "results"
+    / "reports"
+    / "io_vnbd"
+    / "data_quality_report.json"
 )
 
 

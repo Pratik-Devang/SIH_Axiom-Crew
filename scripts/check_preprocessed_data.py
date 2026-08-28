@@ -5,7 +5,9 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed" / "io_vnbd"
-REPORT_DIR = PROJECT_ROOT / "reports" / "io_vnbd"
+REPORT_DIR = (
+    PROJECT_ROOT / "results" / "reports" / "io_vnbd"
+)
 REPORT_PATH = REPORT_DIR / "data_quality_report.json"
 
 
