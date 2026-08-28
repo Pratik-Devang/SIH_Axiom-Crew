@@ -73,6 +73,24 @@ class PhoneToVehicleTransform:
 
 
 @dataclass
+class ConstraintsConfig:
+    """Configurable parameters for kinematic vehicle constraints (NHC and ZUPT).
+
+    - nhc_std_lateral: Lateral velocity noise standard deviation (m/s)
+    - nhc_std_vertical: Vertical velocity noise standard deviation (m/s)
+    - nhc_nis_confidence: NIS Chi-Square gating confidence level for NHC
+    - zupt_std_velocity: Zero-velocity noise standard deviation (m/s)
+    - zupt_nis_confidence: NIS Chi-Square gating confidence level for ZUPT
+    """
+
+    nhc_std_lateral: float = 0.1
+    nhc_std_vertical: float = 0.1
+    nhc_nis_confidence: float = 0.999
+    zupt_std_velocity: float = 0.01
+    zupt_nis_confidence: float = 0.999
+
+
+@dataclass
 class ValidationResult:
     """Numerical & sensor validation status result."""
 

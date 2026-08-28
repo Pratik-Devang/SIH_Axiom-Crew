@@ -2,9 +2,12 @@
 
 from dataclasses import dataclass, field
 import numpy as np
-from src.navigation.types import NominalState, PhoneToVehicleTransform
+
+from src.navigation.types import NominalState, PhoneToVehicleTransform, ConstraintsConfig
 from src.navigation.ins import quat_to_rotmat, skew_symmetric
 from src.navigation.gnss_update import perform_joseph_update
+
+_DEFAULT_CFG = ConstraintsConfig()
 
 
 @dataclass
@@ -15,8 +18,8 @@ class NhcMeasurement:
     """
 
     timestamp: float
-    std_lateral: float = 0.1
-    std_vertical: float = 0.1
+    std_lateral: float = _DEFAULT_CFG.nhc_std_lateral
+    std_vertical: float = _DEFAULT_CFG.nhc_std_vertical
 
 
 @dataclass
@@ -27,7 +30,7 @@ class ZuptMeasurement:
     """
 
     timestamp: float
-    std_velocity: float = 0.01
+    std_velocity: float = _DEFAULT_CFG.zupt_std_velocity
 
 
 def compute_h_nhc(
@@ -59,7 +62,7 @@ def update_nhc(
     P: np.ndarray,
     measurement: NhcMeasurement,
     phone_to_veh: PhoneToVehicleTransform = PhoneToVehicleTransform(),
-    nis_confidence: float = 0.999,
+    nis_confidence: float = _DEFAULT_CFG.nhc_nis_confidence,
 ) -> tuple[NominalState, np.ndarray, bool, float]:
     """Fuses Non-Holonomic Constraints (NHC) into ESKF."""
     pred_lat_vert, H_nhc = compute_h_nhc(state, phone_to_veh=phone_to_veh)
@@ -75,7 +78,7 @@ def update_zupt(
     state: NominalState,
     P: np.ndarray,
     measurement: ZuptMeasurement,
-    nis_confidence: float = 0.999,
+    nis_confidence: float = _DEFAULT_CFG.zupt_nis_confidence,
 ) -> tuple[NominalState, np.ndarray, bool, float]:
     """Fuses Zero-Velocity Update (ZUPT) into ESKF when vehicle is stationary."""
     # Innovation r = [0, 0, 0] - v_nominal
