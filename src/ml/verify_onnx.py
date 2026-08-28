@@ -11,14 +11,20 @@ import torch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+from src.ml.preprocessing import save_json
 from src.ml.tcn import build_model
 
 ARTIFACTS = ROOT / "artifacts"
+ARTIFACTS_V2 = ROOT / "artifacts" / "v2"
 
 
 def main() -> None:
     tolerance = 1e-4
-    ckpt = torch.load(ARTIFACTS / "tcn_best.pt", map_location="cpu")
+    ckpt_path = ARTIFACTS / "tcn_best.pt"
+    if not ckpt_path.exists():
+        ckpt_path = ARTIFACTS_V2 / "tcn_best.pt"
+
+    ckpt = torch.load(ckpt_path, map_location="cpu")
     config = ckpt["config"]
     model = build_model(config)
     model.load_state_dict(ckpt["model_state_dict"])
@@ -29,7 +35,11 @@ def main() -> None:
     with torch.no_grad():
         torch_out = model(x).cpu().numpy()
 
-    session = ort.InferenceSession(str(ARTIFACTS / "tcn.onnx"), providers=["CPUExecutionProvider"])
+    onnx_file = ARTIFACTS / "tcn.onnx"
+    if not onnx_file.exists():
+        onnx_file = ARTIFACTS_V2 / "tcn.onnx"
+
+    session = ort.InferenceSession(str(onnx_file), providers=["CPUExecutionProvider"])
     input_name = session.get_inputs()[0].name
     onnx_out = session.run(None, {input_name: x.cpu().numpy()})[0]
 
@@ -40,8 +50,10 @@ def main() -> None:
         "tolerance": tolerance,
         "passed": bool(diff.max() <= tolerance),
     }
-    with (ARTIFACTS / "onnx_parity.json").open("w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2)
+    
+    save_json(result, ARTIFACTS / "onnx_parity.json")
+    save_json(result, ARTIFACTS_V2 / "onnx_parity.json")
+    
     print(result)
     print(f"saved: {ARTIFACTS / 'onnx_parity.json'}")
 

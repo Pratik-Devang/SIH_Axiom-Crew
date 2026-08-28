@@ -13,21 +13,12 @@ from src.data.adapters.io_vnbd import (
     read_smartphone_file,
 )
 
-DATA_ROOT = (
-    PROJECT_ROOT
-    / "data"
-    / "raw"
-    / "io_vnbd"
-    / "Synchronised V abd S datasets"
-)
+RAW_DIR = PROJECT_ROOT / "data" / "raw"
+DATA_ROOT = RAW_DIR / "io_vnbd" / "Synchronised V abd S datasets"
+if not DATA_ROOT.exists():
+    DATA_ROOT = RAW_DIR
 
-OUTPUT_ROOT = (
-    PROJECT_ROOT
-    / "data"
-    / "processed"
-    / "io_vnbd"
-    / "trips"
-)
+OUTPUT_ROOT = PROJECT_ROOT / "data" / "processed" / "io_vnbd" / "trips"
 
 
 def read_vehicle_file(path: Path) -> pd.DataFrame:
@@ -38,26 +29,30 @@ def read_vehicle_file(path: Path) -> pd.DataFrame:
 
 def find_trip_ids():
     smartphone_ids = {
-        p.stem[2:]
-        for p in DATA_ROOT.rglob("S-*.csv")
+        p.stem[2:].strip()
+        for p in DATA_ROOT.rglob("S-*")
+        if p.suffix.lower() in {".csv", ".txt"}
     }
 
     vehicle_ids = {
-        p.stem[2:]
-        for p in DATA_ROOT.rglob("V-*.csv")
+        p.stem[2:].strip()
+        for p in DATA_ROOT.rglob("V-*")
+        if p.suffix.lower() in {".csv", ".txt"}
     }
 
     return sorted(smartphone_ids & vehicle_ids)
 
 
 def find_file(prefix: str, trip_id: str) -> Path:
-    matches = list(
-        DATA_ROOT.rglob(f"{prefix}-{trip_id}.csv")
-    )
+    pattern = f"{prefix}-{trip_id}*"
+    matches = [
+        p for p in DATA_ROOT.rglob(pattern)
+        if p.suffix.lower() in {".csv", ".txt"}
+    ]
 
     if not matches:
         raise FileNotFoundError(
-            f"Could not find {prefix}-{trip_id}.csv"
+            f"Could not find {prefix}-{trip_id} file in {DATA_ROOT}"
         )
 
     return matches[0]
@@ -97,10 +92,13 @@ def prepare_trip(trip_id: str) -> pd.DataFrame:
             f"columns: {missing}"
         )
 
-    if "gyroscope_x_rads" not in smartphone.columns:
+    if "gyroscope_x_rads" in smartphone.columns:
+        gx_col, gy_col, gz_col = "gyroscope_x_rads", "gyroscope_y_rads", "gyroscope_z_rads"
+    elif "gyroscope_yaw_rads" in smartphone.columns:
+        gx_col, gy_col, gz_col = "gyroscope_yaw_rads", "gyroscope_pitch_rads", "gyroscope_roll_rads"
+    else:
         raise ValueError(
-            f"{trip_id}: smartphone schema does not "
-            "provide X/Y/Z gyroscope columns."
+            f"{trip_id}: smartphone schema does not provide gyroscope columns."
         )
 
     required_vehicle = [
@@ -168,23 +166,17 @@ def prepare_trip(trip_id: str) -> pd.DataFrame:
             ),
 
             "gyro_x": pd.to_numeric(
-                smartphone[
-                    "gyroscope_x_rads"
-                ],
+                smartphone[gx_col],
                 errors="coerce",
             ),
 
             "gyro_y": pd.to_numeric(
-                smartphone[
-                    "gyroscope_y_rads"
-                ],
+                smartphone[gy_col],
                 errors="coerce",
             ),
 
             "gyro_z": pd.to_numeric(
-                smartphone[
-                    "gyroscope_z_rads"
-                ],
+                smartphone[gz_col],
                 errors="coerce",
             ),
 
