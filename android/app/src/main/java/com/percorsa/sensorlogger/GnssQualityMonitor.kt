@@ -3,75 +3,78 @@ package com.percorsa.sensorlogger
 /**
  * Classifies GPS/GNSS quality from a [SensorSnapshot].
  *
- * Uses accuracy, fix age, and GPS speed consistency to produce a stable
- * [GnssQuality] enum that NavigationController uses to decide:
- * - Whether to trust GNSS for navigation
- * - Whether to fall back to dead-reckoning
- * - How to label GNSS status in the UI
+ * Uses horizontal accuracy, fix age (ms), and provider state to produce a stable,
+ * truthful [GnssQuality] enum:
+ * - GOOD: accuracy ≤ 10m, fix age < 3s
+ * - FAIR: accuracy 10–30m, fix age < 5s
+ * - POOR: accuracy > 30m
+ * - STALE: fix age 3s – 5s
+ * - DENIED: fix age > 5s or no fix
+ * - RECOVERING: GNSS fix returned after outage, blending smoothly back
  */
 class GnssQualityMonitor {
 
-    /** How long (ms) without a new GPS fix before declaring DENIED. */
-    private val GNSS_TIMEOUT_MS = 5_000L
+    private val GNSS_STALE_TIMEOUT_MS = 3_000L
+    private val GNSS_DENIED_TIMEOUT_MS = 5_000L
 
-    /** Accuracy thresholds in metres. */
     private val ACCURACY_GOOD_M = 10f
     private val ACCURACY_FAIR_M = 30f
 
-    // ── State ─────────────────────────────────────────────────────────────────
-    private var lastFixTimeMs: Long = 0L
-    private var lastAccuracyM: Float = Float.MAX_VALUE
+    private var previousQuality: GnssQuality = GnssQuality.DENIED
     private var _currentQuality: GnssQuality = GnssQuality.DENIED
+    private var recoveryStartMs: Long = 0L
 
     val currentQuality: GnssQuality get() = _currentQuality
 
     /**
      * Feed the latest sensor snapshot.
-     * Called on every UI update cycle (~10 Hz from MainActivity's handler).
-     *
-     * @return Updated [GnssQuality]
+     * Called on every UI update cycle (~10 Hz from NavigationController).
      */
     fun update(snapshot: SensorSnapshot): GnssQuality {
-        val nowMs = System.currentTimeMillis()
+        val fixAgeMs = snapshot.gpsFixAgeMs
 
-        if (!snapshot.hasGps || snapshot.latitude == 0.0) {
-            // No fix at all
-            if (nowMs - lastFixTimeMs > GNSS_TIMEOUT_MS) {
-                _currentQuality = GnssQuality.DENIED
-            }
+        // 1. Check fix age timeouts (handles GPS turned OFF or satellite loss)
+        if (fixAgeMs < 0 || fixAgeMs > GNSS_DENIED_TIMEOUT_MS || !snapshot.hasGps || snapshot.latitude == 0.0) {
+            previousQuality = _currentQuality
+            _currentQuality = GnssQuality.DENIED
             return _currentQuality
         }
 
-        // We have a fix — record it
-        lastFixTimeMs = nowMs
-        lastAccuracyM = snapshot.gpsAccuracyM
-
-        _currentQuality = when {
-            snapshot.gpsAccuracyM <= ACCURACY_GOOD_M -> GnssQuality.GOOD
-            snapshot.gpsAccuracyM <= ACCURACY_FAIR_M -> GnssQuality.FAIR
-            else                                      -> GnssQuality.POOR
+        // 2. Handle GNSS Return & Smooth Recovery
+        if (previousQuality == GnssQuality.DENIED) {
+            _currentQuality = GnssQuality.RECOVERING
+            recoveryStartMs = System.currentTimeMillis()
+            previousQuality = GnssQuality.RECOVERING
+            return _currentQuality
         }
 
+        if (_currentQuality == GnssQuality.RECOVERING) {
+            if (System.currentTimeMillis() - recoveryStartMs < 3000L) {
+                return GnssQuality.RECOVERING
+            }
+        }
+
+        // 3. Classify based on fix age and horizontal accuracy
+        val newQuality = when {
+            fixAgeMs > GNSS_STALE_TIMEOUT_MS -> GnssQuality.POOR
+            snapshot.gpsAccuracyM <= ACCURACY_GOOD_M -> GnssQuality.GOOD
+            snapshot.gpsAccuracyM <= ACCURACY_FAIR_M -> GnssQuality.FAIR
+            else -> GnssQuality.POOR
+        }
+
+        previousQuality = _currentQuality
+        _currentQuality = newQuality
         return _currentQuality
     }
 
-    /**
-     * Returns true when GNSS measurements should be used to update navigation state.
-     * Conservative: only GOOD or FAIR quality is trusted.
-     */
     fun shouldUseMeasurement(): Boolean =
         _currentQuality == GnssQuality.GOOD || _currentQuality == GnssQuality.FAIR
 
-    /** Returns true when GNSS has been lost long enough to activate dead-reckoning. */
     fun isGnssDenied(): Boolean = _currentQuality == GnssQuality.DENIED
 
-    /** Returns seconds since last valid GNSS fix. */
-    fun secondsSinceLastFix(): Double =
-        (System.currentTimeMillis() - lastFixTimeMs) / 1000.0
-
     fun reset() {
-        lastFixTimeMs = 0L
-        lastAccuracyM = Float.MAX_VALUE
+        previousQuality = GnssQuality.DENIED
         _currentQuality = GnssQuality.DENIED
+        recoveryStartMs = 0L
     }
 }

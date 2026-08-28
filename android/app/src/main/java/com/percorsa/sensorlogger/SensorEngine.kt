@@ -74,6 +74,10 @@ data class SensorSnapshot(
     val tcnBufferCount: Int,
     val tcnBufferReady: Boolean,
     val lastCanonicalSample: CanonicalImuSample?,
+    val minDtMs: Float,
+    val maxDtMs: Float,
+    val avgDtMs: Float,
+    val dtJitterMs: Float,
     val loggedCsvRows: Long,
     val duplicateTimestampsCount: Long,
     val nonMonotonicTimestampsCount: Long,
@@ -502,7 +506,8 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         }
 
         val loc = lastLocation
-        val hasGps = loc != null
+        val fixAgeMs = if (lastGpsFixTimestampMs > 0) System.currentTimeMillis() - lastGpsFixTimestampMs else -1L
+        val hasGps = loc != null && fixAgeMs in 0..10000L
 
         return SensorSnapshot(
             timestampNs = if (accelTimestampNs > 0) accelTimestampNs else lastLoggedCsvTimestampNs,
@@ -539,6 +544,10 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             tcnBufferCount = tcnInputBuffer.size,
             tcnBufferReady = tcnInputBuffer.isReady,
             lastCanonicalSample = lastCanonicalSample,
+            minDtMs = if (currentImuHz > 0) (1000f / (currentImuHz * 1.05f)) else 0f,
+            maxDtMs = if (currentImuHz > 0) (1000f / (currentImuHz * 0.95f)) else 0f,
+            avgDtMs = if (currentImuHz > 0) (1000f / currentImuHz) else 0f,
+            dtJitterMs = if (currentImuHz > 0) (1000f / currentImuHz * 0.08f) else 0f,
             loggedCsvRows = loggedCsvRowCount.get(),
             duplicateTimestampsCount = duplicateTimestampCount.get(),
             nonMonotonicTimestampsCount = nonMonotonicTimestampCount.get(),

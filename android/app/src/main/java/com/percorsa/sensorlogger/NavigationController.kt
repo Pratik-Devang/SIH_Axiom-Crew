@@ -111,7 +111,7 @@ class NavigationController(private val context: Context) {
                 heading = drPos.heading
                 speed = if (snap.hasGps && hasTrustedGnss) snap.gpsSpeedMps else drPos.speedMps
                 accuracy = drPos.estimatedAccuracyM
-                drActive = !hasTrustedGnss || drPos.gnssBlendFactor < 1f
+                drActive = (gnssQuality == GnssQuality.DENIED || gnssQuality == GnssQuality.RECOVERING)
             }
             snap.hasGps && snap.latitude != 0.0 -> {
                 lat = snap.latitude
