@@ -43,7 +43,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Sensor Diagnostics &amp; Recording"
+                android:text="Diagnostics &amp; Health Monitoring"
                 android:textColor="#64748B"
                 android:textSize="11sp" />
 
@@ -73,6 +73,46 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- ── NAVIGATION HEALTH SECTION ─────────────────────────────────── -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SYSTEM HEALTH"
+                android:textColor="#38BDF8"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="4dp"
+                android:layout_marginTop="4dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="10dp">
+
+                <TextView
+                    android:id="@+id/tvDbgHealthSummary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GNSS: GOOD | IMU: GOOD | Filter: GOOD"
+                    android:textColor="#34D399"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/tvDbgHealthDetails"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="IMU: 200Hz | GPS Acc: 5.0m"
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
             <!-- ── GPS Section ──────────────────────────────────────────────── -->
             <TextView
                 android:layout_width="wrap_content"
@@ -82,14 +122,13 @@
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1"
-                android:layout_marginBottom="4dp"
-                android:layout_marginTop="8dp" />
+                android:layout_marginBottom="4dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@drawable/card_background"
+                android:background="@drawable/card_bg"
                 android:padding="12dp"
                 android:layout_marginBottom="10dp">
 
@@ -155,7 +194,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@drawable/card_background"
+                android:background="@drawable/card_bg"
                 android:padding="12dp"
                 android:layout_marginBottom="10dp">
 
@@ -259,7 +298,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@drawable/card_background"
+                android:background="@drawable/card_bg"
                 android:padding="12dp"
                 android:layout_marginBottom="10dp">
 
@@ -315,7 +354,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@drawable/card_background"
+                android:background="@drawable/card_bg"
                 android:padding="12dp"
                 android:layout_marginBottom="10dp">
 

@@ -11,11 +11,13 @@ import android.text.TextWatcher
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -28,62 +30,71 @@ import androidx.recyclerview.widget.RecyclerView
 import java.util.Locale
 import kotlin.math.abs
 
-/**
- * Main navigation activity.
- *
- * This activity is the consumer-facing navigation UI.
- * It consumes [NavigationState] from [NavigationController] and renders:
- *   - The Leaflet map (full-screen, WebView)
- *   - A search bar ("Where to?") or maneuver card at the top
- *   - A bottom panel that switches between idle/search/route-preview/navigating/arrived
- *
- * IMPORTANT:
- * This activity does NOT read raw sensor data directly.
- * All position, heading, speed, GNSS, and route information comes from [NavigationState].
- * Raw sensor data is only shown in [DebugActivity].
- */
+enum class MapCameraState {
+    FOLLOWING,
+    FREE_BROWSE
+}
+
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        /** Shared reference used by DebugActivity to access the same controller instance. */
         var navController: NavigationController? = null
     }
 
-    // ── Map ────────────────────────────────────────────────────────────────────
+    // ── Map Layer ──────────────────────────────────────────────────────────────
     private lateinit var mapWebView: WebView
     private var mapReady = false
+    private var cameraState = MapCameraState.FOLLOWING
     private var lastMapLat = 0.0
     private var lastMapLon = 0.0
     private var lastMapBearing = 0f
     private var routeDrawn = false
 
-    // ── Top bar ────────────────────────────────────────────────────────────────
+    // ── Top Bar / Overlays ──────────────────────────────────────────────────────
     private lateinit var searchBarContainer: LinearLayout
     private lateinit var searchBarClickable: LinearLayout
     private lateinit var tvSearchHint: TextView
     private lateinit var btnDevMode: TextView
+
     private lateinit var maneuverCard: LinearLayout
     private lateinit var tvManeuverIcon: TextView
     private lateinit var tvManeuverDistance: TextView
     private lateinit var tvManeuverInstruction: TextView
     private lateinit var tvGnssBadge: TextView
+    private lateinit var rowSecondManeuver: LinearLayout
+    private lateinit var tvSecondManeuverIcon: TextView
+    private lateinit var tvSecondManeuverInstruction: TextView
 
-    // ── Floating controls ──────────────────────────────────────────────────────
-    private lateinit var btnRecenter: TextView
+    // ── Floating Map Controls ──────────────────────────────────────────────────
+    private lateinit var btnCompass: FrameLayout
+    private lateinit var tvCompassNeedle: TextView
+    private lateinit var btnRecenter: FrameLayout
+    private lateinit var tvRecenterIcon: TextView
 
-    // ── Bottom panels ──────────────────────────────────────────────────────────
-    private lateinit var panelIdle: LinearLayout
-    private lateinit var tvGnssIdleBadge: TextView
-
-    private lateinit var panelSearch: LinearLayout
-    private lateinit var etSearch: EditText
-    private lateinit var btnSearchCancel: TextView
+    // ── Full Search Overlay Screen ─────────────────────────────────────────────
+    private lateinit var panelSearchOverlay: LinearLayout
+    private lateinit var btnSearchBack: TextView
+    private lateinit var etSearchInput: EditText
+    private lateinit var btnSearchClear: TextView
     private lateinit var searchProgressBar: ProgressBar
     private lateinit var tvSearchError: TextView
     private lateinit var rvSearchResults: RecyclerView
     private lateinit var searchAdapter: SearchResultsAdapter
 
-    private lateinit var panelRoutePreview: LinearLayout
+    private lateinit var chipHome: TextView
+    private lateinit var chipWork: TextView
+    private lateinit var chipPetrol: TextView
+    private lateinit var chipHospital: TextView
+    private lateinit var chipFood: TextView
+
+    // ── Bottom Sheets ──────────────────────────────────────────────────────────
+    private lateinit var bottomSheet: LinearLayout
+    private lateinit var panelIdleSheet: LinearLayout
+    private lateinit var tvGnssIdleBadge: TextView
+    private lateinit var btnShortcutHome: LinearLayout
+    private lateinit var btnShortcutWork: LinearLayout
+
+    private lateinit var panelRoutePreviewSheet: LinearLayout
     private lateinit var tvDestinationName: TextView
     private lateinit var tvDestinationAddress: TextView
     private lateinit var tvRouteDistance: TextView
@@ -93,43 +104,45 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnCancelRoute: Button
     private lateinit var btnStartNav: Button
 
-    private lateinit var panelNavigating: LinearLayout
+    private lateinit var panelNavigatingSheet: LinearLayout
     private lateinit var tvNavSpeed: TextView
     private lateinit var tvNavDistance: TextView
     private lateinit var tvNavEta: TextView
     private lateinit var tvDrStatusLine: TextView
     private lateinit var btnEndNav: Button
 
-    private lateinit var panelArrived: LinearLayout
+    private lateinit var panelArrivedSheet: LinearLayout
     private lateinit var tvArrivedDestName: TextView
     private lateinit var btnDone: Button
 
-    // ── UI update ──────────────────────────────────────────────────────────────
+    // ── Handlers & Timers ──────────────────────────────────────────────────────
     private val uiHandler = Handler(Looper.getMainLooper())
+    private val searchDebounceHandler = Handler(Looper.getMainLooper())
+    private var searchRunnable: Runnable? = null
+
     private val uiRunnable = object : Runnable {
         override fun run() {
             navController?.tick()
-            renderState(navController?.state?.value ?: return)
+            val state = navController?.state?.value
+            if (state != null) {
+                renderState(state)
+            }
             uiHandler.postDelayed(this, 100)
         }
     }
 
     private val PERMISSION_CODE = 1001
-    private var lastRenderedMode: NavMode? = null
-
-    // ── Lifecycle ──────────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Create NavigationController (owns SensorEngine + DR + services)
         if (navController == null) {
             navController = NavigationController(this)
         }
 
         bindViews()
-        setupSearch()
+        setupSearchExperience()
         setupMapWebView()
         checkPermissions()
 
@@ -138,123 +151,205 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnRecenter.setOnClickListener {
+            cameraState = MapCameraState.FOLLOWING
+            updateRecenterButtonAppearance()
             val s = navController?.state?.value ?: return@setOnClickListener
             if (s.hasValidPosition) {
                 mapWebView.evaluateJavascript(
-                    "map.setView([${s.latitude}, ${s.longitude}], 17, {animate:true, duration:0.5});", null)
+                    "map.panTo([${s.latitude}, ${s.longitude}], {animate:true, duration:0.5});", null
+                )
+            }
+        }
+
+        btnCompass.setOnClickListener {
+            val s = navController?.state?.value ?: return@setOnClickListener
+            if (s.hasValidPosition) {
+                mapWebView.evaluateJavascript(
+                    "map.setView([${s.latitude}, ${s.longitude}], 16, {animate:true});", null
+                )
             }
         }
 
         btnCancelRoute.setOnClickListener {
             navController?.cancelSearch()
             mapWebView.evaluateJavascript("clearRoute();", null)
+            routeDrawn = false
         }
 
         btnStartNav.setOnClickListener {
             navController?.beginDriving()
+            cameraState = MapCameraState.FOLLOWING
+            updateRecenterButtonAppearance()
         }
 
         btnEndNav.setOnClickListener {
             navController?.stopNavigation()
             mapWebView.evaluateJavascript("clearRoute(); clearPath();", null)
             routeDrawn = false
+            cameraState = MapCameraState.FOLLOWING
+            updateRecenterButtonAppearance()
         }
 
         btnDone.setOnClickListener {
             navController?.stopNavigation()
             mapWebView.evaluateJavascript("clearRoute(); clearPath();", null)
             routeDrawn = false
+            cameraState = MapCameraState.FOLLOWING
+            updateRecenterButtonAppearance()
         }
     }
 
     private fun bindViews() {
-        mapWebView             = findViewById(R.id.mapWebView)
-        searchBarContainer     = findViewById(R.id.searchBarContainer)
-        searchBarClickable     = findViewById(R.id.searchBarClickable)
-        tvSearchHint           = findViewById(R.id.tvSearchHint)
-        btnDevMode             = findViewById(R.id.btnDevMode)
-        maneuverCard           = findViewById(R.id.maneuverCard)
-        tvManeuverIcon         = findViewById(R.id.tvManeuverIcon)
-        tvManeuverDistance     = findViewById(R.id.tvManeuverDistance)
-        tvManeuverInstruction  = findViewById(R.id.tvManeuverInstruction)
-        tvGnssBadge            = findViewById(R.id.tvGnssBadge)
-        btnRecenter            = findViewById(R.id.btnRecenter)
-        panelIdle              = findViewById(R.id.panelIdle)
-        tvGnssIdleBadge        = findViewById(R.id.tvGnssIdleBadge)
-        panelSearch            = findViewById(R.id.panelSearch)
-        etSearch               = findViewById(R.id.etSearch)
-        btnSearchCancel        = findViewById(R.id.btnSearchCancel)
-        searchProgressBar      = findViewById(R.id.searchProgressBar)
-        tvSearchError          = findViewById(R.id.tvSearchError)
-        rvSearchResults        = findViewById(R.id.rvSearchResults)
-        panelRoutePreview      = findViewById(R.id.panelRoutePreview)
-        tvDestinationName      = findViewById(R.id.tvDestinationName)
-        tvDestinationAddress   = findViewById(R.id.tvDestinationAddress)
-        tvRouteDistance        = findViewById(R.id.tvRouteDistance)
-        tvRouteEta             = findViewById(R.id.tvRouteEta)
-        routeProgressBar       = findViewById(R.id.routeProgressBar)
-        tvRouteError           = findViewById(R.id.tvRouteError)
-        btnCancelRoute         = findViewById(R.id.btnCancelRoute)
-        btnStartNav            = findViewById(R.id.btnStartNav)
-        panelNavigating        = findViewById(R.id.panelNavigating)
-        tvNavSpeed             = findViewById(R.id.tvNavSpeed)
-        tvNavDistance          = findViewById(R.id.tvNavDistance)
-        tvNavEta               = findViewById(R.id.tvNavEta)
-        tvDrStatusLine         = findViewById(R.id.tvDrStatusLine)
-        btnEndNav              = findViewById(R.id.btnEndNav)
-        panelArrived           = findViewById(R.id.panelArrived)
-        tvArrivedDestName      = findViewById(R.id.tvArrivedDestName)
-        btnDone                = findViewById(R.id.btnDone)
+        mapWebView                  = findViewById(R.id.mapWebView)
+        searchBarContainer          = findViewById(R.id.searchBarContainer)
+        searchBarClickable          = findViewById(R.id.searchBarClickable)
+        tvSearchHint                = findViewById(R.id.tvSearchHint)
+        btnDevMode                  = findViewById(R.id.btnDevMode)
+
+        maneuverCard                = findViewById(R.id.maneuverCard)
+        tvManeuverIcon              = findViewById(R.id.tvManeuverIcon)
+        tvManeuverDistance          = findViewById(R.id.tvManeuverDistance)
+        tvManeuverInstruction       = findViewById(R.id.tvManeuverInstruction)
+        tvGnssBadge                 = findViewById(R.id.tvGnssBadge)
+        rowSecondManeuver           = findViewById(R.id.rowSecondManeuver)
+        tvSecondManeuverIcon        = findViewById(R.id.tvSecondManeuverIcon)
+        tvSecondManeuverInstruction = findViewById(R.id.tvSecondManeuverInstruction)
+
+        btnCompass                  = findViewById(R.id.btnCompass)
+        tvCompassNeedle             = findViewById(R.id.tvCompassNeedle)
+        btnRecenter                 = findViewById(R.id.btnRecenter)
+        tvRecenterIcon              = findViewById(R.id.tvRecenterIcon)
+
+        panelSearchOverlay          = findViewById(R.id.panelSearchOverlay)
+        btnSearchBack               = findViewById(R.id.btnSearchBack)
+        etSearchInput               = findViewById(R.id.etSearchInput)
+        btnSearchClear              = findViewById(R.id.btnSearchClear)
+        searchProgressBar           = findViewById(R.id.searchProgressBar)
+        tvSearchError               = findViewById(R.id.tvSearchError)
+        rvSearchResults             = findViewById(R.id.rvSearchResults)
+
+        chipHome                    = findViewById(R.id.chipHome)
+        chipWork                    = findViewById(R.id.chipWork)
+        chipPetrol                  = findViewById(R.id.chipPetrol)
+        chipHospital                = findViewById(R.id.chipHospital)
+        chipFood                    = findViewById(R.id.chipFood)
+
+        bottomSheet                 = findViewById(R.id.bottomSheet)
+        panelIdleSheet              = findViewById(R.id.panelIdleSheet)
+        tvGnssIdleBadge             = findViewById(R.id.tvGnssIdleBadge)
+        btnShortcutHome             = findViewById(R.id.btnShortcutHome)
+        btnShortcutWork             = findViewById(R.id.btnShortcutWork)
+
+        panelRoutePreviewSheet      = findViewById(R.id.panelRoutePreviewSheet)
+        tvDestinationName           = findViewById(R.id.tvDestinationName)
+        tvDestinationAddress        = findViewById(R.id.tvDestinationAddress)
+        tvRouteDistance             = findViewById(R.id.tvRouteDistance)
+        tvRouteEta                  = findViewById(R.id.tvRouteEta)
+        routeProgressBar            = findViewById(R.id.routeProgressBar)
+        tvRouteError                = findViewById(R.id.tvRouteError)
+        btnCancelRoute              = findViewById(R.id.btnCancelRoute)
+        btnStartNav                 = findViewById(R.id.btnStartNav)
+
+        panelNavigatingSheet        = findViewById(R.id.panelNavigatingSheet)
+        tvNavSpeed                  = findViewById(R.id.tvNavSpeed)
+        tvNavDistance               = findViewById(R.id.tvNavDistance)
+        tvNavEta                    = findViewById(R.id.tvNavEta)
+        tvDrStatusLine              = findViewById(R.id.tvDrStatusLine)
+        btnEndNav                   = findViewById(R.id.btnEndNav)
+
+        panelArrivedSheet           = findViewById(R.id.panelArrivedSheet)
+        tvArrivedDestName           = findViewById(R.id.tvArrivedDestName)
+        btnDone                     = findViewById(R.id.btnDone)
     }
 
-    private fun setupSearch() {
+    private fun setupSearchExperience() {
         searchAdapter = SearchResultsAdapter { result ->
             hideKeyboard()
+            panelSearchOverlay.visibility = View.GONE
             navController?.startNavigation(result)
         }
         rvSearchResults.layoutManager = LinearLayoutManager(this)
         rvSearchResults.adapter = searchAdapter
 
         searchBarClickable.setOnClickListener {
-            showSearchPanel()
+            openSearchOverlay()
         }
 
-        btnSearchCancel.setOnClickListener {
-            navController?.cancelSearch()
+        btnSearchBack.setOnClickListener {
             hideKeyboard()
+            panelSearchOverlay.visibility = View.GONE
         }
 
-        etSearch.addTextChangedListener(object : TextWatcher {
+        btnSearchClear.setOnClickListener {
+            etSearchInput.text.clear()
+            navController?.cancelSearch()
+            showRecentOrResults(navController?.state?.value ?: return@setOnClickListener)
+        }
+
+        etSearchInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val query = s?.toString() ?: ""
-                if (query.length >= 2) navController?.search(query)
-                else if (query.isEmpty()) navController?.cancelSearch().also { showSearchPanel() }
+                val q = s?.toString() ?: ""
+                btnSearchClear.visibility = if (q.isNotEmpty()) View.VISIBLE else View.GONE
+
+                searchRunnable?.let { searchDebounceHandler.removeCallbacks(it) }
+                if (q.trim().length >= 2) {
+                    searchRunnable = Runnable {
+                        navController?.search(q.trim())
+                    }
+                    searchDebounceHandler.postDelayed(searchRunnable!!, 400) // 400ms debounce
+                } else if (q.isEmpty()) {
+                    navController?.cancelSearch()
+                    showRecentOrResults(navController?.state?.value ?: return)
+                }
             }
             override fun afterTextChanged(s: Editable?) {}
         })
 
-        etSearch.setOnEditorActionListener { v, actionId, _ ->
+        etSearchInput.setOnEditorActionListener { v, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                searchRunnable?.let { searchDebounceHandler.removeCallbacks(it) }
                 navController?.search(v.text.toString())
                 hideKeyboard()
                 true
             } else false
         }
+
+        chipHome.setOnClickListener { triggerChipSearch("Home") }
+        chipWork.setOnClickListener { triggerChipSearch("Work") }
+        chipPetrol.setOnClickListener { triggerChipSearch("Petrol Pump") }
+        chipHospital.setOnClickListener { triggerChipSearch("Hospital") }
+        chipFood.setOnClickListener { triggerChipSearch("Restaurant") }
+
+        btnShortcutHome.setOnClickListener { openSearchOverlay(); triggerChipSearch("Home") }
+        btnShortcutWork.setOnClickListener { openSearchOverlay(); triggerChipSearch("Work") }
     }
 
-    private fun showSearchPanel() {
-        panelIdle.visibility = View.GONE
-        panelSearch.visibility = View.VISIBLE
-        panelRoutePreview.visibility = View.GONE
-        panelNavigating.visibility = View.GONE
-        panelArrived.visibility = View.GONE
-        etSearch.requestFocus()
+    private fun triggerChipSearch(query: String) {
+        openSearchOverlay()
+        etSearchInput.setText(query)
+        etSearchInput.setSelection(query.length)
+        navController?.search(query)
+    }
+
+    private fun openSearchOverlay() {
+        panelSearchOverlay.visibility = View.VISIBLE
+        etSearchInput.requestFocus()
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.showSoftInput(etSearch, InputMethodManager.SHOW_IMPLICIT)
+        imm.showSoftInput(etSearchInput, InputMethodManager.SHOW_IMPLICIT)
+        showRecentOrResults(navController?.state?.value ?: return)
     }
 
-    // ── Map ────────────────────────────────────────────────────────────────────
+    private fun showRecentOrResults(state: NavigationState) {
+        searchAdapter.userLocation = if (state.hasValidPosition) LatLon(state.latitude, state.longitude) else null
+        if (etSearchInput.text.isEmpty()) {
+            searchAdapter.submitList(state.recentSearches)
+        } else {
+            searchAdapter.submitList(state.searchResults)
+        }
+    }
+
+    // ── Map WebView Setup ──────────────────────────────────────────────────────
 
     private fun setupMapWebView() {
         with(mapWebView.settings) {
@@ -263,9 +358,11 @@ class MainActivity : AppCompatActivity() {
             cacheMode = WebSettings.LOAD_DEFAULT
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             allowFileAccess = true
-            setRenderPriority(android.webkit.WebSettings.RenderPriority.HIGH)
+            setRenderPriority(WebSettings.RenderPriority.HIGH)
         }
         mapWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        mapWebView.addJavascriptInterface(WebAppInterface(), "AndroidNative")
+
         mapWebView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 mapReady = true
@@ -278,17 +375,28 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    inner class WebAppInterface {
+        @JavascriptInterface
+        fun onUserMapGesture() {
+            runOnUiThread {
+                cameraState = MapCameraState.FREE_BROWSE
+                updateRecenterButtonAppearance()
+            }
+        }
+    }
+
     private fun bootstrapLastKnownLocation() {
         if (!hasLocationPermission()) return
         try {
             val lm = getSystemService(LOCATION_SERVICE) as? android.location.LocationManager ?: return
             for (provider in listOf(
                 android.location.LocationManager.GPS_PROVIDER,
-                android.location.LocationManager.NETWORK_PROVIDER)) {
+                android.location.LocationManager.NETWORK_PROVIDER
+            )) {
                 try {
                     val loc = lm.getLastKnownLocation(provider)
                     if (loc != null && loc.accuracy < 200f) {
-                        val js = "updatePosition(${loc.latitude},${loc.longitude},${loc.bearing},${loc.accuracy},true);"
+                        val js = "updatePosition(${loc.latitude},${loc.longitude},${loc.bearing},${loc.accuracy},true,false);"
                         mapWebView.post { mapWebView.evaluateJavascript(js, null) }
                         break
                     }
@@ -297,13 +405,14 @@ class MainActivity : AppCompatActivity() {
         } catch (_: Exception) {}
     }
 
-    // ── State rendering ────────────────────────────────────────────────────────
+    // ── State Rendering ────────────────────────────────────────────────────────
 
     private fun renderState(state: NavigationState) {
         renderTopBar(state)
-        renderBottomPanel(state)
-        renderGnssBadge(state)
+        renderBottomSheet(state)
+        renderGnssPill(state)
         renderMap(state)
+        renderCompass(state)
     }
 
     private fun renderTopBar(state: NavigationState) {
@@ -322,34 +431,40 @@ class MainActivity : AppCompatActivity() {
                 if (m.distanceM < 1000) "%.0f m".format(Locale.US, m.distanceM)
                 else "%.1f km".format(Locale.US, m.distanceM / 1000.0)
             } else state.distanceFormatted
+
+            val m2 = state.secondManeuver
+            if (m2 != null) {
+                rowSecondManeuver.visibility = View.VISIBLE
+                tvSecondManeuverIcon.text = maneuverIcon(m2.type)
+                tvSecondManeuverInstruction.text = m2.instruction
+            } else {
+                rowSecondManeuver.visibility = View.GONE
+            }
         }
     }
 
-    private fun renderBottomPanel(state: NavigationState) {
-        // Avoid flickering by only switching when mode actually changes
-        val allPanels = listOf(panelIdle, panelSearch, panelRoutePreview, panelNavigating, panelArrived)
+    private fun renderBottomSheet(state: NavigationState) {
+        val allSheets = listOf(panelIdleSheet, panelRoutePreviewSheet, panelNavigatingSheet, panelArrivedSheet)
 
-        fun show(panel: LinearLayout) {
-            allPanels.forEach { it.visibility = if (it == panel) View.VISIBLE else View.GONE }
+        fun show(sheet: LinearLayout) {
+            allSheets.forEach { it.visibility = if (it == sheet) View.VISIBLE else View.GONE }
         }
 
         when (state.navMode) {
             NavMode.IDLE -> {
-                show(panelIdle)
+                show(panelIdleSheet)
                 tvGnssIdleBadge.text = "● ${state.gnssQuality.label()}"
                 tvGnssIdleBadge.setTextColor(gnssColor(state.gnssQuality))
+                tvGnssIdleBadge.setBackgroundResource(gnssPillBg(state.gnssQuality))
             }
             NavMode.SEARCHING -> {
-                show(panelSearch)
-                searchProgressBar.visibility =
-                    if (state.searchLoading) View.VISIBLE else View.GONE
-                tvSearchError.visibility =
-                    if (state.searchError != null) View.VISIBLE else View.GONE
+                searchProgressBar.visibility = if (state.searchLoading) View.VISIBLE else View.GONE
+                tvSearchError.visibility = if (state.searchError != null) View.VISIBLE else View.GONE
                 tvSearchError.text = state.searchError ?: ""
-                searchAdapter.submitList(state.searchResults)
+                showRecentOrResults(state)
             }
             NavMode.ROUTE_PREVIEW -> {
-                show(panelRoutePreview)
+                show(panelRoutePreviewSheet)
                 tvDestinationName.text = state.destination?.name ?: ""
                 tvDestinationAddress.text = state.destination?.address ?: ""
                 tvRouteDistance.text = state.route?.distanceFormatted ?: "--"
@@ -360,28 +475,34 @@ class MainActivity : AppCompatActivity() {
                 btnStartNav.isEnabled = state.route != null && !state.routeLoading
             }
             NavMode.NAVIGATING, NavMode.GNSS_DEGRADED, NavMode.GNSS_DENIED -> {
-                show(panelNavigating)
+                show(panelNavigatingSheet)
                 tvNavSpeed.text = state.speedKmh.toString()
                 tvNavDistance.text = state.distanceFormatted
                 tvNavEta.text = state.etaFormatted
+
                 val statusLine = state.statusLine
                 tvDrStatusLine.text = statusLine
                 tvDrStatusLine.visibility = if (statusLine.isNotEmpty()) View.VISIBLE else View.GONE
             }
             NavMode.ARRIVED -> {
-                show(panelArrived)
+                show(panelArrivedSheet)
                 tvArrivedDestName.text = state.destination?.name ?: ""
             }
             NavMode.ERROR -> {
-                show(panelIdle)
+                show(panelIdleSheet)
                 state.errorMessage?.let { Toast.makeText(this, it, Toast.LENGTH_LONG).show() }
             }
         }
     }
 
-    private fun renderGnssBadge(state: NavigationState) {
+    private fun renderGnssPill(state: NavigationState) {
         tvGnssBadge.text = state.gnssQuality.label()
         tvGnssBadge.setTextColor(gnssColor(state.gnssQuality))
+        tvGnssBadge.setBackgroundResource(gnssPillBg(state.gnssQuality))
+    }
+
+    private fun renderCompass(state: NavigationState) {
+        tvCompassNeedle.rotation = -state.heading
     }
 
     private fun renderMap(state: NavigationState) {
@@ -401,23 +522,21 @@ class MainActivity : AppCompatActivity() {
             mapWebView.evaluateJavascript(js, null)
         }
 
-        // Draw route when it first appears
         if (!routeDrawn && state.route != null) {
             routeDrawn = true
             drawRoute(state.route!!, state.destination)
         }
 
-        // Clear route if navigation stopped
         if (routeDrawn && state.route == null) {
             routeDrawn = false
             mapWebView.evaluateJavascript("clearRoute();", null)
         }
 
-        // Pan camera during navigation
         val isNavigating = state.navMode == NavMode.NAVIGATING ||
                 state.navMode == NavMode.GNSS_DEGRADED ||
                 state.navMode == NavMode.GNSS_DENIED
-        if (isNavigating) {
+
+        if (isNavigating && cameraState == MapCameraState.FOLLOWING) {
             val js = "if(marker) map.panTo(marker.getLatLng(), {animate:true,duration:0.3,easeLinearity:0.5});"
             mapWebView.evaluateJavascript(js, null)
         }
@@ -431,7 +550,15 @@ class MainActivity : AppCompatActivity() {
         mapWebView.evaluateJavascript(js, null)
     }
 
-    // ── Map HTML ──────────────────────────────────────────────────────────────
+    private fun updateRecenterButtonAppearance() {
+        if (cameraState == MapCameraState.FREE_BROWSE) {
+            tvRecenterIcon.setTextColor(ContextCompat.getColor(this, R.color.nav_amber))
+        } else {
+            tvRecenterIcon.setTextColor(ContextCompat.getColor(this, R.color.percorsa_primary))
+        }
+    }
+
+    // ── Leaflet HTML ───────────────────────────────────────────────────────────
 
     private fun buildMapHtml(): String = """
 <!DOCTYPE html>
@@ -443,14 +570,9 @@ class MainActivity : AppCompatActivity() {
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body, #map { height:100%; width:100%; background:#1A2232; }
-    .leaflet-control-zoom { border:none!important; margin:8px!important; }
-    .leaflet-control-zoom a {
-      background:#1E293B!important; color:#38BDF8!important;
-      border:1px solid #334155!important; width:34px!important; height:34px!important;
-      line-height:34px!important; font-size:18px!important; border-radius:8px!important;
-    }
+    .leaflet-control-zoom { display:none!important; }
     .leaflet-control-attribution {
-      font-size:7px; opacity:0.3; background:transparent!important; color:#888!important;
+      font-size:8px; opacity:0.4; background:transparent!important; color:#94A3B8!important; margin-bottom: 240px!important;
     }
     @keyframes pulse {
       0%   { box-shadow: 0 0 0 0 rgba(56,189,248,0.5); }
@@ -468,34 +590,40 @@ class MainActivity : AppCompatActivity() {
 <div id="map"></div>
 <script>
   var map = L.map('map', {
-    zoomControl: true, attributionControl: true,
+    zoomControl: false, attributionControl: true,
     zoomAnimation: true, fadeAnimation: false, preferCanvas: true
   }).setView([20.5937, 78.9629], 5);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap', maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19,
     subdomains: ['a','b','c'], keepBuffer:4,
     updateWhenIdle:false, updateWhenZooming:false
   }).addTo(map);
 
+  map.on('dragstart zoomstart', function() {
+    if (window.AndroidNative && window.AndroidNative.onUserMapGesture) {
+      window.AndroidNative.onUserMapGesture();
+    }
+  });
+
   function makeVehicleIcon(bearing, isDr) {
     var color = isDr ? '#F59E0B' : '#38BDF8';
     var animClass = isDr ? 'pulseDr' : 'pulse';
-    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">' +
-      '<circle cx="22" cy="22" r="12" fill="' + color + '" stroke="#fff" stroke-width="2.5" ' +
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">' +
+      '<circle cx="24" cy="24" r="14" fill="' + color + '" stroke="#ffffff" stroke-width="3" ' +
       'style="animation:' + animClass + ' 2s infinite;"/>' +
-      '<polygon points="22,5 17,20 22,17 27,20" fill="#fff" opacity="0.95"/>' +
+      '<polygon points="24,4 18,22 24,18 30,22" fill="#ffffff" opacity="0.95"/>' +
       '</svg>';
     return L.divIcon({
-      html: '<div style="transform-origin:center;transform:rotate('+bearing+'deg)">' + svg + '</div>',
-      iconSize:[44,44], iconAnchor:[22,22], className:''
+      html: '<div style="transform-origin:center;transform:rotate('+bearing+'deg);transition:transform 0.15s linear;">' + svg + '</div>',
+      iconSize:[48,48], iconAnchor:[24,24], className:''
     });
   }
 
   function makeDestIcon() {
     return L.divIcon({
-      html: '<div style="font-size:28px;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.6)">📍</div>',
-      iconSize:[30,36], iconAnchor:[15,36], className:''
+      html: '<div style="font-size:32px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">📍</div>',
+      iconSize:[34,40], iconAnchor:[17,40], className:''
     });
   }
 
@@ -503,7 +631,7 @@ class MainActivity : AppCompatActivity() {
   var destMarker = null;
   var accuracyCircle = null;
   var routePolyline = null;
-  var trackPath = L.polyline([], {color:'#38BDF8',weight:3,opacity:0.5,dashArray:'6 4'}).addTo(map);
+  var trackPath = L.polyline([], {color:'#38BDF8',weight:3,opacity:0.4,dashArray:'6 4'}).addTo(map);
   var isFirstFix = true;
 
   function updatePosition(lat, lon, bearing, accuracyM, isBootstrap, isDr) {
@@ -520,12 +648,12 @@ class MainActivity : AppCompatActivity() {
       accuracyCircle = L.circle(ll, {
         radius: accuracyM, color: isDr ? '#F59E0B' : '#38BDF8',
         fillColor: isDr ? '#F59E0B' : '#38BDF8',
-        fillOpacity: 0.07, weight:1, dashArray:'4'
+        fillOpacity: 0.08, weight:1, dashArray:'4'
       }).addTo(map);
     }
     if (!isBootstrap) trackPath.addLatLng(ll);
     if (isFirstFix) {
-      map.setView(ll, 17, {animate:false});
+      map.setView(ll, 16, {animate:false});
       isFirstFix = false;
     }
   }
@@ -534,11 +662,11 @@ class MainActivity : AppCompatActivity() {
     if (routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
     if (destMarker)    { map.removeLayer(destMarker); destMarker = null; }
     routePolyline = L.polyline(coords, {
-      color:'#0284C7', weight:5.5, opacity:0.85,
+      color:'#0284C7', weight:6, opacity:0.85,
       lineJoin:'round', lineCap:'round'
     }).addTo(map);
     destMarker = L.marker([destLat, destLon], {icon: makeDestIcon(), zIndexOffset:900}).addTo(map);
-    var bounds = routePolyline.getBounds().pad(0.1);
+    var bounds = routePolyline.getBounds().pad(0.15);
     map.fitBounds(bounds, {animate:true, duration:0.5});
   }
 
@@ -556,7 +684,7 @@ class MainActivity : AppCompatActivity() {
 </html>
     """.trimIndent()
 
-    // ── Permissions ────────────────────────────────────────────────────────────
+    // ── Permissions & Lifecycle ────────────────────────────────────────────────
 
     private fun hasLocationPermission() =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
@@ -580,8 +708,6 @@ class MainActivity : AppCompatActivity() {
         if (mapReady) bootstrapLastKnownLocation()
     }
 
-    // ── Lifecycle ──────────────────────────────────────────────────────────────
-
     override fun onResume() {
         super.onResume()
         navController?.start()
@@ -603,14 +729,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun hideKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(etSearch.windowToken, 0)
+        imm.hideSoftInputFromWindow(etSearchInput.windowToken, 0)
     }
 
     private fun gnssColor(q: GnssQuality): Int = when (q) {
-        GnssQuality.GOOD   -> 0xFF34D399.toInt()
-        GnssQuality.FAIR   -> 0xFF38BDF8.toInt()
-        GnssQuality.POOR   -> 0xFFF59E0B.toInt()
-        GnssQuality.DENIED -> 0xFFF87171.toInt()
+        GnssQuality.GOOD       -> ContextCompat.getColor(this, R.color.gnss_good)
+        GnssQuality.FAIR       -> ContextCompat.getColor(this, R.color.gnss_fair)
+        GnssQuality.POOR       -> ContextCompat.getColor(this, R.color.gnss_poor)
+        GnssQuality.DENIED     -> ContextCompat.getColor(this, R.color.gnss_denied)
+        GnssQuality.RECOVERING -> ContextCompat.getColor(this, R.color.gnss_recovering)
+    }
+
+    private fun gnssPillBg(q: GnssQuality): Int = when (q) {
+        GnssQuality.GOOD       -> R.drawable.pill_gnss_good
+        GnssQuality.FAIR       -> R.drawable.pill_gnss_fair
+        GnssQuality.POOR       -> R.drawable.pill_gnss_poor
+        GnssQuality.DENIED     -> R.drawable.pill_gnss_denied
+        GnssQuality.RECOVERING -> R.drawable.pill_gnss_recovering
     }
 
     private fun maneuverIcon(type: ManeuverType?): String = when (type) {
