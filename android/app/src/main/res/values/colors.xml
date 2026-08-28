@@ -1,10 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+    <!-- Legacy Android defaults (keep) -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- ── Percorsa Brand ─────────────────────────────────────────────────── -->
+    <color name="percorsa_primary">#38BDF8</color>
+    <color name="percorsa_primary_dark">#0284C7</color>
+    <color name="percorsa_primary_deep">#0369A1</color>
+
+    <!-- ── Surfaces ───────────────────────────────────────────────────────── -->
+    <color name="surface_deepest">#0B0F1A</color>
+    <color name="surface_deep">#111827</color>
+    <color name="surface_card">#1E293B</color>
+    <color name="surface_elevated">#263348</color>
+
+    <!-- ── Text ───────────────────────────────────────────────────────────── -->
+    <color name="text_primary">#F1F5F9</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="text_tertiary">#475569</color>
+    <color name="text_hint">#334155</color>
+
+    <!-- ── Semantic / GNSS ────────────────────────────────────────────────── -->
+    <color name="gnss_good">#34D399</color>
+    <color name="gnss_fair">#38BDF8</color>
+    <color name="gnss_poor">#F59E0B</color>
+    <color name="gnss_denied">#EF4444</color>
+    <color name="gnss_recovering">#A78BFA</color>
+
+    <!-- ── Navigation semantic ────────────────────────────────────────────── -->
+    <color name="nav_green">#34D399</color>
+    <color name="nav_amber">#F59E0B</color>
+    <color name="nav_red">#EF4444</color>
+    <color name="nav_purple">#A78BFA</color>
+    <color name="nav_blue">#38BDF8</color>
+
+    <!-- ── Dividers ───────────────────────────────────────────────────────── -->
+    <color name="divider">#1E293B</color>
+    <color name="divider_subtle">#141D2B</color>
 </resources>

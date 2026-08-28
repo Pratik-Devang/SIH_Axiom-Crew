@@ -34,13 +34,16 @@ enum class GnssQuality {
     /** accuracy >30m, or stale. */
     POOR,
     /** No fix for more than 5 seconds. */
-    DENIED;
+    DENIED,
+    /** GNSS returned after outage, blending smoothly back. */
+    RECOVERING;
 
     fun label(): String = when (this) {
-        GOOD   -> "GPS"
-        FAIR   -> "GPS • Fair"
-        POOR   -> "GPS • Weak"
-        DENIED -> "GPS unavailable"
+        GOOD       -> "GPS"
+        FAIR       -> "GPS • Fair"
+        POOR       -> "GPS • Weak"
+        DENIED     -> "GPS unavailable"
+        RECOVERING -> "GPS • Recovering"
     }
 }
 
@@ -90,6 +93,9 @@ data class NavigationState(
     val searchResults: List<GeocodingResult> = emptyList(),
     val searchLoading: Boolean = false,
     val searchError: String? = null,
+    val recentSearches: List<GeocodingResult> = emptyList(),
+    val homePlace: GeocodingResult? = null,
+    val workPlace: GeocodingResult? = null,
 
     // ── Route / navigation progress ────────────────────────────────────────────
     val destination: GeocodingResult? = null,
@@ -101,10 +107,17 @@ data class NavigationState(
     /** Estimated seconds to arrival. */
     val etaSeconds: Long = 0L,
     val nextManeuver: Maneuver? = null,
+    val secondManeuver: Maneuver? = null,
+    val offRoute: Boolean = false,
+    val recalculating: Boolean = false,
 
-    // ── Recording (shown only in Debug screen) ─────────────────────────────────
+    // ── UI Controls ───────────────────────────────────────────────────────────
+    val compassBearingDeg: Float = 0f,
+
+    // ── Diagnostics & Health (Developer Mode) ─────────────────────────────────
     val isRecording: Boolean = false,
     val recordedSamples: Long = 0L,
+    val navigationHealth: NavigationHealth = NavigationHealth(),
 
     // ── Error ─────────────────────────────────────────────────────────────────
     val errorMessage: String? = null
@@ -132,10 +145,14 @@ data class NavigationState(
 
     /** Human-readable status line for the bottom sheet sub-title. */
     val statusLine: String get() = when {
+        recalculating ->
+            "Off route • Recalculating..."
         drActive && drProvider == DrProviderType.PERCORSA_ESKF ->
             "GNSS unavailable • Percorsa ESKF active"
         drActive ->
-            "GNSS unavailable • Percorsa DR active"
+            "GNSS unavailable • Continuing with Percorsa"
+        gnssQuality == GnssQuality.RECOVERING ->
+            "GNSS returned • Smoothly fusing position"
         gnssQuality == GnssQuality.POOR ->
             "Weak GPS signal — accuracy reduced"
         else -> ""

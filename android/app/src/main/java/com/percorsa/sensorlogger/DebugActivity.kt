@@ -12,32 +12,17 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import java.io.File
 import java.util.Locale
-import kotlin.math.asin
-import kotlin.math.atan2
 
 /**
  * Developer / Debug screen.
- *
- * This screen is accessible via the ⚙ button on the main navigation screen.
- * Normal users are never directed here.
- *
- * Contains:
- * - Raw sensor data (accel XYZ, gyro XYZ, orientation P/R/Y)
- * - IMU rate and sample counts
- * - GNSS accuracy, status, coordinates
- * - Navigation engine state (DR mode, GNSS quality, accuracy)
- * - Sensor recording controls (REC / STOP)
- * - CSV export
- * - Vehicle frame calibration
- *
- * Accesses [NavigationController] via static reference from [MainActivity].
- * This avoids re-creating SensorEngine (sensors are expensive to re-register).
  */
 class DebugActivity : AppCompatActivity() {
 
     private var lastRecordedFile: File? = null
     private val uiHandler = Handler(Looper.getMainLooper())
 
+    private lateinit var tvDbgHealthSummary: TextView
+    private lateinit var tvDbgHealthDetails: TextView
     private lateinit var tvDbgGpsStatus: TextView
     private lateinit var tvDbgGpsCoords: TextView
     private lateinit var tvDbgGpsAccuracy: TextView
@@ -70,26 +55,28 @@ class DebugActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_debug)
 
-        tvDbgGpsStatus    = findViewById(R.id.tvDbgGpsStatus)
-        tvDbgGpsCoords    = findViewById(R.id.tvDbgGpsCoords)
-        tvDbgGpsAccuracy  = findViewById(R.id.tvDbgGpsAccuracy)
-        tvDbgGpsSpeed     = findViewById(R.id.tvDbgGpsSpeed)
-        tvDbgImuHz        = findViewById(R.id.tvDbgImuHz)
-        tvDbgSamples      = findViewById(R.id.tvDbgSamples)
-        tvDbgAccel        = findViewById(R.id.tvDbgAccel)
-        tvDbgGyro         = findViewById(R.id.tvDbgGyro)
-        tvDbgOrient       = findViewById(R.id.tvDbgOrient)
-        tvDbgNavMode      = findViewById(R.id.tvDbgNavMode)
-        tvDbgDrProvider   = findViewById(R.id.tvDbgDrProvider)
-        tvDbgGnssQuality  = findViewById(R.id.tvDbgGnssQuality)
-        tvDbgAccuracy     = findViewById(R.id.tvDbgAccuracy)
-        tvDbgTripStatus   = findViewById(R.id.tvDbgTripStatus)
-        tvDbgSampleCount  = findViewById(R.id.tvDbgSampleCount)
+        tvDbgHealthSummary  = findViewById(R.id.tvDbgHealthSummary)
+        tvDbgHealthDetails  = findViewById(R.id.tvDbgHealthDetails)
+        tvDbgGpsStatus      = findViewById(R.id.tvDbgGpsStatus)
+        tvDbgGpsCoords      = findViewById(R.id.tvDbgGpsCoords)
+        tvDbgGpsAccuracy    = findViewById(R.id.tvDbgGpsAccuracy)
+        tvDbgGpsSpeed       = findViewById(R.id.tvDbgGpsSpeed)
+        tvDbgImuHz          = findViewById(R.id.tvDbgImuHz)
+        tvDbgSamples        = findViewById(R.id.tvDbgSamples)
+        tvDbgAccel          = findViewById(R.id.tvDbgAccel)
+        tvDbgGyro           = findViewById(R.id.tvDbgGyro)
+        tvDbgOrient         = findViewById(R.id.tvDbgOrient)
+        tvDbgNavMode        = findViewById(R.id.tvDbgNavMode)
+        tvDbgDrProvider     = findViewById(R.id.tvDbgDrProvider)
+        tvDbgGnssQuality    = findViewById(R.id.tvDbgGnssQuality)
+        tvDbgAccuracy       = findViewById(R.id.tvDbgAccuracy)
+        tvDbgTripStatus     = findViewById(R.id.tvDbgTripStatus)
+        tvDbgSampleCount    = findViewById(R.id.tvDbgSampleCount)
         tvDebugRecIndicator = findViewById(R.id.tvDebugRecIndicator)
-        btnDebugRecord    = findViewById(R.id.btnDebugRecord)
-        btnDebugCalibrate = findViewById(R.id.btnDebugCalibrate)
-        btnDebugShare     = findViewById(R.id.btnDebugShare)
-        btnDebugBack      = findViewById(R.id.btnDebugBack)
+        btnDebugRecord      = findViewById(R.id.btnDebugRecord)
+        btnDebugCalibrate   = findViewById(R.id.btnDebugCalibrate)
+        btnDebugShare       = findViewById(R.id.btnDebugShare)
+        btnDebugBack        = findViewById(R.id.btnDebugBack)
 
         btnDebugBack.setOnClickListener { finish() }
 
@@ -143,14 +130,20 @@ class DebugActivity : AppCompatActivity() {
         val nc = MainActivity.navController ?: return
         val snap = nc.sensorEngine.getSnapshot()
         val state = nc.state.value
+        val health = state.navigationHealth
+
+        // ── Health ───────────────────────────────────────────────────────────
+        tvDbgHealthSummary.text = "GNSS: ${health.gnssHealth} | IMU: ${health.accelHealth} | Route: ${health.routeHealth}"
+        tvDbgHealthDetails.text = health.details
 
         // ── GPS ──────────────────────────────────────────────────────────────
         val hasGps = snap.hasGps && snap.latitude != 0.0
         val (gpsLabel, gpsColor) = when (state.gnssQuality) {
-            GnssQuality.GOOD   -> "● GPS EXCELLENT" to 0xFF34D399.toInt()
-            GnssQuality.FAIR   -> "● GPS GOOD"      to 0xFF38BDF8.toInt()
-            GnssQuality.POOR   -> "● GPS WEAK"      to 0xFFF59E0B.toInt()
-            GnssQuality.DENIED -> "● NO FIX"        to 0xFFF87171.toInt()
+            GnssQuality.GOOD       -> "● GPS EXCELLENT" to 0xFF34D399.toInt()
+            GnssQuality.FAIR       -> "● GPS GOOD"      to 0xFF38BDF8.toInt()
+            GnssQuality.POOR       -> "● GPS WEAK"      to 0xFFF59E0B.toInt()
+            GnssQuality.DENIED     -> "● NO FIX"        to 0xFFF87171.toInt()
+            GnssQuality.RECOVERING -> "● RECOVERING"    to 0xFFA78BFA.toInt()
         }
         tvDbgGpsStatus.text = gpsLabel
         tvDbgGpsStatus.setTextColor(gpsColor)
