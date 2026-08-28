@@ -1,0 +1,78 @@
+# ============================================================
+# Role 4 — Maps, Vehicle Constraints & GNSS Integrity Config
+# Percorsa | SIH 2026 PS 26168 | Team Axiom Crew
+# ============================================================
+# ALL thresholds live here. Never hardcode values in logic files.
+# Units are SI unless annotated. Angles are degrees.
+
+gnss_trust:
+  # Maximum age of a GNSS fix before it is considered stale (seconds)
+  max_fix_age_s: 5.0
+  # Horizontal Dilution of Precision: above this → rejected
+  max_hdop: 4.0
+  # Reported accuracy (1-sigma metres): above this → rejected
+  max_accuracy_m: 20.0
+  # Jump-distance sanity check: reject if consecutive fixes are farther
+  # apart than max_speed_m_s * elapsed_time * jump_factor
+  max_speed_m_s: 50.0        # ~180 km/h upper bound for urban vehicle
+  jump_factor: 2.0            # allow 2× headroom over max_speed estimate
+  # Absolute max jump regardless of speed (metres)
+  abs_max_jump_m: 200.0
+  # Minimum number of satellites required for a trusted fix
+  min_satellites: 4
+  # Score weights (must sum to 1.0)
+  weight_hdop: 0.35
+  weight_accuracy: 0.30
+  weight_age: 0.20
+  weight_jump: 0.15
+
+stop_detector:
+  # Speed below which vehicle is considered stopped (m/s)
+  speed_threshold_m_s: 0.5
+  # Variance of speed measurements in window below which we call it stopped
+  variance_threshold: 0.1
+  # Sliding window length (number of samples)
+  window_size: 10
+  # Minimum consecutive stopped samples before emitting ZUPT event
+  min_stationary_samples: 5
+  # Confidence boost per additional stopped sample (capped at 1.0)
+  confidence_per_sample: 0.08
+
+vehicle_constraints:
+  # Non-holonomic constraint: lateral velocity above this → flag NHC violation (m/s)
+  nhc_lateral_threshold_m_s: 0.3
+  # Sliding window for lateral velocity estimation (number of samples)
+  nhc_window_size: 5
+  # Minimum confidence to emit an NHC event
+  nhc_min_confidence: 0.5
+  # Low speed below which NHC is not reliable (m/s) — wheels may slip/pivot
+  nhc_min_speed_m_s: 1.0
+
+map_matching:
+  # Search radius for nearest-road candidates (metres)
+  candidate_radius_m: 50.0
+  # Maximum number of candidates to return per position
+  top_k_candidates: 5
+  # Maximum heading difference between query heading and road heading (degrees)
+  max_heading_diff_deg: 45.0
+  # Minimum distance score weight in candidate ranking
+  distance_weight: 0.6
+  heading_weight: 0.4
+  # HMM transition penalty per metre of edge-to-edge Euclidean gap
+  hmm_transition_penalty: 0.01
+  # HMM emission sigma (metres) — Gaussian around snapped distance
+  hmm_emission_sigma_m: 15.0
+
+coordinate_transform:
+  # WGS84 ellipsoid semi-major axis (metres)
+  wgs84_a: 6378137.0
+  # WGS84 flattening
+  wgs84_f: 0.00335281066475
+  # Default local origin for Chembur test fixture
+  default_origin_lat: 19.051
+  default_origin_lon: 72.894
+
+logging:
+  # Structured log output file for Role 6 (JSONL format, one event per line)
+  event_log_path: "logs/role4_events.jsonl"
+  level: "DEBUG"
