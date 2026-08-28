@@ -18,9 +18,9 @@ enum class OffRouteState {
  */
 class OffRouteDetector {
 
-    private val OFF_ROUTE_DISTANCE_THRESHOLD_M = 75.0 // Meters away from polyline
-    private val PERSISTENCE_REQUIRED_TICKS = 8         // Must be off route for ~0.8s (8 ticks at 10Hz)
-    private val REROUTE_COOLDOWN_MS = 6000L           // 6 seconds between reroute attempts
+    private val OFF_ROUTE_DISTANCE_THRESHOLD_M = 80.0 // Meters away from polyline
+    private val PERSISTENCE_REQUIRED_TICKS = 15        // Must be off route for ~1.5s (15 ticks at 10Hz)
+    private val REROUTE_COOLDOWN_MS = 8000L           // 8 seconds between reroute attempts
 
     private var currentState = OffRouteState.ON_ROUTE
     private var candidateTicks = 0
@@ -41,13 +41,18 @@ class OffRouteDetector {
             return currentState
         }
 
+        // If position accuracy is very poor (>50m), do not trigger off-route
+        if (accuracyM > 50f) {
+            return currentState
+        }
+
         val nowMs = System.currentTimeMillis()
 
         // Calculate minimum distance to any segment on route
         val minDistance = minDistanceToRoute(lat, lon, route.polyline)
 
         // Adjust threshold by accuracy if accuracy is degraded
-        val effectiveThreshold = OFF_ROUTE_DISTANCE_THRESHOLD_M + (accuracyM.coerceIn(0f, 50f) * 0.5)
+        val effectiveThreshold = OFF_ROUTE_DISTANCE_THRESHOLD_M + (accuracyM.coerceIn(0f, 40f) * 0.5)
 
         if (minDistance > effectiveThreshold) {
             candidateTicks++
