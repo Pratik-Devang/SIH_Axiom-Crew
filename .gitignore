@@ -19,10 +19,12 @@ data/raw/**
 data/interim/**
 data/processed/**
 data/external/**
+data/incoming/**
 !data/raw/.gitkeep
 !data/interim/.gitkeep
 !data/processed/.gitkeep
 !data/external/.gitkeep
+!data/incoming/.gitkeep
 
 # artifacts/ is intentionally committed so the team can access the trained TCN
 # and ONNX model without retraining.  Do NOT add blanket ignores for artifacts/.

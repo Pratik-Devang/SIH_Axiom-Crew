@@ -56,11 +56,27 @@ real trip, the committed ONNX TCN estimates speed from 20 IMU samples, the
 planar EKF continues the trajectory through the selected GNSS outage, and the
 evaluation layer compares it with a last-fix baseline.
 
+The dashboard also accepts Android CSV uploads directly. Current IMU-only
+exports open in sensor mode. Uploads containing latitude and longitude unlock
+the controlled-outage journey replay automatically.
+
 For a command-line replay:
 
 ```powershell
 python scripts/run_replay.py data/processed/io_vnbd/trips/A1.csv --start 60 --duration 30
 ```
+
+### Secure Android ingestion API
+
+Generate a temporary API key and start the local server:
+
+```powershell
+$env:PERCORSA_API_KEY = python -c "import secrets; print(secrets.token_urlsafe(32))"
+python scripts/run_api.py
+```
+
+The Android integration contract and security notes are documented in
+`docs/android_ingestion.md`. Never commit the real API key.
 
 ## Data policy
 
