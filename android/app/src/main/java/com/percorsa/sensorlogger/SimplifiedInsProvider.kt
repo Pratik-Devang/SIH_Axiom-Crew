@@ -176,9 +176,9 @@ class SimplifiedInsProvider : DeadReckoningProvider {
 
     override fun getEstimatedPosition(): DrPosition? {
         if (!initialized) return null
-        val blendFactor = if (blendActive)
+        val blendFactor = if (blendActive && blendWindowSeconds > 0)
             (blendElapsedSeconds / blendWindowSeconds).toFloat().coerceIn(0f, 1f)
-        else if (blendElapsedSeconds > 0) 1f else 0f
+        else 1f
         return DrPosition(
             latitude = estimatedLat,
             longitude = estimatedLon,

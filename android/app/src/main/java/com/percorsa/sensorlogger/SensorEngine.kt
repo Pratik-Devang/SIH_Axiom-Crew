@@ -506,7 +506,8 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         }
 
         val loc = lastLocation
-        val hasGps = loc != null
+        val fixAgeMs = if (lastGpsFixTimestampMs > 0) System.currentTimeMillis() - lastGpsFixTimestampMs else -1L
+        val hasGps = loc != null && fixAgeMs in 0..10000L
 
         return SensorSnapshot(
             timestampNs = if (accelTimestampNs > 0) accelTimestampNs else lastLoggedCsvTimestampNs,

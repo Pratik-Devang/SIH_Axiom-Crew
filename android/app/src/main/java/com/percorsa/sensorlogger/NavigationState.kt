@@ -147,9 +147,9 @@ data class NavigationState(
     val statusLine: String get() = when {
         recalculating ->
             "Off route • Recalculating..."
-        drActive && drProvider == DrProviderType.PERCORSA_ESKF ->
+        drActive && gnssQuality == GnssQuality.DENIED && drProvider == DrProviderType.PERCORSA_ESKF ->
             "GNSS unavailable • Percorsa ESKF active"
-        drActive ->
+        drActive && gnssQuality == GnssQuality.DENIED ->
             "GNSS unavailable • Continuing with Percorsa"
         gnssQuality == GnssQuality.RECOVERING ->
             "GNSS returned • Smoothly fusing position"
