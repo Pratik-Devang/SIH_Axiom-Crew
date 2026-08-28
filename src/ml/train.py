@@ -62,6 +62,7 @@ def regression_loss(
 def run_epoch(
     model,
     loader,
+    device,
     optimizer=None,
     uncertainty: bool = False,
     mse_only: bool = False,
@@ -70,6 +71,7 @@ def run_epoch(
     model.train(training)
     losses = []
     for x, y in loader:
+        x, y = x.to(device), y.to(device)
         if training:
             optimizer.zero_grad(set_to_none=True)
         pred = model(x)
@@ -100,20 +102,21 @@ def main() -> None:
     }
 
     train_ds = SpeedWindowDataset(norm_trips["train"], config["data"]["window_samples"], config["data"]["stride"])
-    val_ds = SpeedWindowDataset(norm_trips["validation"], config["data"]["window_samples"], config["data"]["stride"])
+    val_ds = SpeedWindowDataset(norm_trips["validation"], config["data"]["window_samples"], stride=10)
     test_ds = SpeedWindowDataset(norm_trips["test"], config["data"]["window_samples"], config["data"]["stride"])
 
     train_loader = DataLoader(train_ds, batch_size=config["training"]["batch_size"], shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=config["training"]["batch_size"], shuffle=False)
 
-    model = build_model(config)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = build_model(config).to(device)
     uncertainty = config["model"].get("predict_uncertainty", False)
     total_epochs = config["training"]["epochs"]
     
     # Warm-up: first 25% of epochs train purely on MSE so the mean head converges
     # before the log-variance head is allowed to influence gradients.
     warmup_epochs = max(1, total_epochs // 4) if uncertainty else 0
-    print(f"Training: {total_epochs} epochs  |  uncertainty={uncertainty}  |  MSE warm-up={warmup_epochs} epochs")
+    print(f"Training device: {device} | {total_epochs} epochs | uncertainty={uncertainty} | MSE warm-up={warmup_epochs} epochs")
     print(f"Dataset split trips: train={len(split_trips['train'])}, val={len(split_trips['validation'])}, test={len(split_trips['test'])}")
     print(f"Dataset windows: train={len(train_ds)}, val={len(val_ds)}, test={len(test_ds)}")
 
@@ -131,9 +134,9 @@ def main() -> None:
     for epoch in range(1, total_epochs + 1):
         mse_only = uncertainty and (epoch <= warmup_epochs)
         phase = "MSE-warmup" if mse_only else "NLL"
-        train_loss = run_epoch(model, train_loader, optimizer, uncertainty, mse_only=mse_only)
+        train_loss = run_epoch(model, train_loader, device, optimizer, uncertainty, mse_only=mse_only)
         with torch.no_grad():
-            val_loss = run_epoch(model, val_loader, None, uncertainty, mse_only=mse_only)
+            val_loss = run_epoch(model, val_loader, device, None, uncertainty, mse_only=mse_only)
         lr_now = optimizer.param_groups[0]["lr"]
         print(f"epoch {epoch:02d}/{total_epochs} [{phase}] train={train_loss:.6f} val={val_loss:.6f} lr={lr_now:.2e}")
         scheduler.step()
