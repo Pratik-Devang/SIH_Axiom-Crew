@@ -1,0 +1,1158 @@
+{
+  "dataset": "IO-VNBD",
+  "num_trips": 144,
+  "trips": [
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_M (Driver B)_S-M.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\M (Driver B)\\S-M.csv",
+      "schema_variant": "A",
+      "rows": 105974,
+      "start_time": "2019-09-07T09:13:29.506000",
+      "end_time": "2019-09-07T12:10:09.129000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S1_S-S1.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S1\\S-S1.csv",
+      "schema_variant": "A",
+      "rows": 51746,
+      "start_time": "2019-09-08T10:07:49.546000",
+      "end_time": "2019-09-08T11:34:04.045000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S2_S-S2.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S2\\S-S2.csv",
+      "schema_variant": "A",
+      "rows": 93876,
+      "start_time": "2019-09-08T12:03:51.741000",
+      "end_time": "2019-09-08T14:40:20.349000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S3a_S-S3a.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S3a\\S-S3a.csv",
+      "schema_variant": "A",
+      "rows": 24621,
+      "start_time": "2019-09-04T19:21:51.494000",
+      "end_time": "2019-09-04T20:02:53.494000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S3b_S-S3b.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S3b\\S-S3b.csv",
+      "schema_variant": "A",
+      "rows": 6813,
+      "start_time": "2019-09-04T20:03:03.493000",
+      "end_time": "2019-09-04T20:14:29.021000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S3c_S-S3c.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S3c\\S-S3c.csv",
+      "schema_variant": "A",
+      "rows": 37183,
+      "start_time": "2019-09-04T20:14:28.521000",
+      "end_time": "2019-09-04T21:16:26.720000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S4_S-S4.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S4\\S-S4.csv",
+      "schema_variant": "A",
+      "rows": 94600,
+      "start_time": "2019-09-06T18:16:15.111000",
+      "end_time": "2019-09-06T20:59:08.216000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vf (Driver E)_V-Vfa01_S-Vfa01.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vf (Driver E)\\V-Vfa01\\S-Vfa01.csv",
+      "schema_variant": "A",
+      "rows": 11486,
+      "start_time": "2019-11-08T09:20:26.236000",
+      "end_time": "2019-11-08T09:39:34.736000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vf (Driver E)_V-Vfa02_S-Vfa02.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vf (Driver E)\\V-Vfa02\\S-Vfa02.csv",
+      "schema_variant": "A",
+      "rows": 67523,
+      "start_time": "2019-11-08T09:57:17.649000",
+      "end_time": "2019-11-08T11:49:49.850000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta01a_S-Vta1a.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta01a\\S-Vta1a.csv",
+      "schema_variant": "A",
+      "rows": 25676,
+      "start_time": "2019-11-06T10:41:47.363000",
+      "end_time": "2019-11-06T11:24:34.862000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta01b_S-Vta1b.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta01b\\S-Vta1b.csv",
+      "schema_variant": "A",
+      "rows": 954,
+      "start_time": "2019-11-06T11:24:49.463000",
+      "end_time": "2019-11-06T11:26:24.763000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta02_S-Vta2.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta02\\S-Vta2.csv",
+      "schema_variant": "A",
+      "rows": 10991,
+      "start_time": "2019-11-06T11:26:31.265000",
+      "end_time": "2019-11-06T11:44:50.263000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta03_S-Vta3.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta03\\S-Vta3.csv",
+      "schema_variant": "A",
+      "rows": 645,
+      "start_time": "2019-11-06T11:45:53.893000",
+      "end_time": "2019-11-06T11:46:58.293000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta04_S-Vta4.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta04\\S-Vta4.csv",
+      "schema_variant": "A",
+      "rows": 1789,
+      "start_time": "2019-11-06T11:47:27.394000",
+      "end_time": "2019-11-06T11:50:26.193000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta05_S-Vta5.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta05\\S-Vta5.csv",
+      "schema_variant": "A",
+      "rows": 307,
+      "start_time": "2019-11-06T11:50:34.393000",
+      "end_time": "2019-11-06T11:51:04.993000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta06_S-Vta6.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta06\\S-Vta6.csv",
+      "schema_variant": "A",
+      "rows": 1376,
+      "start_time": "2019-11-06T11:51:11.993000",
+      "end_time": "2019-11-06T11:53:29.493000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta07_S-Vta7.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta07\\S-Vta7.csv",
+      "schema_variant": "A",
+      "rows": 840,
+      "start_time": "2019-11-06T11:53:35.293000",
+      "end_time": "2019-11-06T11:54:59.193000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta08_S-Vta8.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta08\\S-Vta8.csv",
+      "schema_variant": "A",
+      "rows": 3676,
+      "start_time": "2019-11-06T11:55:05.293000",
+      "end_time": "2019-11-06T12:01:12.793000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta09_S-Vta9.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta09\\S-Vta9.csv",
+      "schema_variant": "A",
+      "rows": 156,
+      "start_time": "2019-11-06T12:01:23.394000",
+      "end_time": "2019-11-06T12:01:38.892000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta10_S-Vta10.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta10\\S-Vta10.csv",
+      "schema_variant": "A",
+      "rows": 1502,
+      "start_time": "2019-11-06T12:01:50.393000",
+      "end_time": "2019-11-06T12:04:20.493000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta11_S-Vta11.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta11\\S-Vta11.csv",
+      "schema_variant": "A",
+      "rows": 510,
+      "start_time": "2019-11-06T12:04:32.393000",
+      "end_time": "2019-11-06T12:05:23.293000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta12_S-Vta12.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta12\\S-Vta12.csv",
+      "schema_variant": "A",
+      "rows": 610,
+      "start_time": "2019-11-06T12:05:35.393000",
+      "end_time": "2019-11-06T12:06:36.293000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta13_S-Vta13.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta13\\S-Vta13.csv",
+      "schema_variant": "A",
+      "rows": 404,
+      "start_time": "2019-11-06T12:06:47.292000",
+      "end_time": "2019-11-06T12:07:27.593000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta14_S-Vta14.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta14\\S-Vta14.csv",
+      "schema_variant": "A",
+      "rows": 2885,
+      "start_time": "2019-11-06T12:07:32.493000",
+      "end_time": "2019-11-06T12:12:20.893000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta15_S-Vta15.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta15\\S-Vta15.csv",
+      "schema_variant": "A",
+      "rows": 833,
+      "start_time": "2019-11-06T12:12:31.793000",
+      "end_time": "2019-11-06T12:13:54.993000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta16_S-Vta16.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta16\\S-Vta16.csv",
+      "schema_variant": "A",
+      "rows": 11335,
+      "start_time": "2019-11-06T12:14:00.693000",
+      "end_time": "2019-11-06T12:32:54.093000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta17_S-Vta17.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta17\\S-Vta17.csv",
+      "schema_variant": "A",
+      "rows": 4519,
+      "start_time": "2019-11-06T12:33:05.392000",
+      "end_time": "2019-11-06T12:40:38.378000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta19_S-Vta19.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta19\\S-Vta19.csv",
+      "schema_variant": "A",
+      "rows": 292,
+      "start_time": "2019-11-06T12:40:57.377000",
+      "end_time": "2019-11-06T12:41:26.478000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta20_S-Vta20.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta20\\S-Vta20.csv",
+      "schema_variant": "A",
+      "rows": 3223,
+      "start_time": "2019-11-06T12:42:21.722000",
+      "end_time": "2019-11-06T12:47:43.922000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta21_S-Vta21.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta21\\S-Vta21.csv",
+      "schema_variant": "A",
+      "rows": 2079,
+      "start_time": "2019-11-06T12:47:32.022000",
+      "end_time": "2019-11-06T12:50:59.822000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta22_S-Vta22.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta22\\S-Vta22.csv",
+      "schema_variant": "A",
+      "rows": 1564,
+      "start_time": "2019-11-06T12:51:00.822000",
+      "end_time": "2019-11-06T12:53:37.123000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta23_S-Vta23.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta23\\S-Vta23.csv",
+      "schema_variant": "A",
+      "rows": 1110,
+      "start_time": "2019-11-06T12:53:40.023000",
+      "end_time": "2019-11-06T12:55:30.923000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta24_S-Vta24.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta24\\S-Vta24.csv",
+      "schema_variant": "A",
+      "rows": 1171,
+      "start_time": "2019-11-06T12:55:35.922000",
+      "end_time": "2019-11-06T12:57:32.923000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta25_S-Vta25.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta25\\S-Vta25.csv",
+      "schema_variant": "A",
+      "rows": 646,
+      "start_time": "2019-11-06T12:57:36.324000",
+      "end_time": "2019-11-06T12:58:40.822000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta26_S-Vta26.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta26\\S-Vta26.csv",
+      "schema_variant": "A",
+      "rows": 1935,
+      "start_time": "2019-11-06T12:58:48.922000",
+      "end_time": "2019-11-06T13:02:02.322000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta27_S-Vta27.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta27\\S-Vta27.csv",
+      "schema_variant": "A",
+      "rows": 2540,
+      "start_time": "2019-11-06T13:02:09.622000",
+      "end_time": "2019-11-06T13:06:23.522000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta28_S-Vta28.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta28\\S-Vta28.csv",
+      "schema_variant": "A",
+      "rows": 4210,
+      "start_time": "2019-11-06T13:06:54.922000",
+      "end_time": "2019-11-06T13:13:55.822000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta29_S-Vta29.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta29\\S-Vta29.csv",
+      "schema_variant": "A",
+      "rows": 23705,
+      "start_time": "2019-11-06T13:27:20.808000",
+      "end_time": "2019-11-06T14:06:50.586000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta30_S-Vta30.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vta (Driver E)\\Vta30\\S-Vta30.csv",
+      "schema_variant": "A",
+      "rows": 17136,
+      "start_time": "2019-11-06T14:07:03.886000",
+      "end_time": "2019-11-06T14:35:37.386000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb01_S-Vtb1.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb01\\S-Vtb1.csv",
+      "schema_variant": "A",
+      "rows": 32459,
+      "start_time": "2019-11-06T14:57:37.146000",
+      "end_time": "2019-11-06T15:51:42.945000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb02_S-Vtb2.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb02\\S-Vtb2.csv",
+      "schema_variant": "A",
+      "rows": 5712,
+      "start_time": "2019-11-06T16:06:20.476000",
+      "end_time": "2019-11-06T16:15:51.576000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb03_S-Vtb3.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb03\\S-Vtb3.csv",
+      "schema_variant": "A",
+      "rows": 8240,
+      "start_time": "2019-11-06T16:16:01.676000",
+      "end_time": "2019-11-06T16:29:45.576000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb04_S-Vtb4.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb04\\S-Vtb4.csv",
+      "schema_variant": "A",
+      "rows": 556,
+      "start_time": "2019-11-06T16:29:58.376000",
+      "end_time": "2019-11-06T16:30:53.876000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb05_S-Vtb5.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb05\\S-Vtb5.csv",
+      "schema_variant": "A",
+      "rows": 64388,
+      "start_time": "2019-11-06T16:30:53.075000",
+      "end_time": "2019-11-06T18:18:11.776000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb06_S-Vtb6.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb06\\S-Vtb6.csv",
+      "schema_variant": "A",
+      "rows": 498,
+      "start_time": "2019-11-06T18:18:45.376000",
+      "end_time": "2019-11-06T18:19:35.076000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb07_S-Vtb7.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb07\\S-Vtb7.csv",
+      "schema_variant": "A",
+      "rows": 461,
+      "start_time": "2019-11-06T18:19:39.375000",
+      "end_time": "2019-11-06T18:20:25.376000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb08_S-Vtb8.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb08\\S-Vtb8.csv",
+      "schema_variant": "A",
+      "rows": 668,
+      "start_time": "2019-11-06T18:20:33.376000",
+      "end_time": "2019-11-06T18:21:40.076000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb09_S-Vtb9.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb09\\S-Vtb9.csv",
+      "schema_variant": "A",
+      "rows": 452,
+      "start_time": "2019-11-06T18:21:45.377000",
+      "end_time": "2019-11-06T18:22:30.476000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb10_S-Vtb10.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb10\\S-Vtb10.csv",
+      "schema_variant": "A",
+      "rows": 196,
+      "start_time": "2019-11-06T18:22:37.375000",
+      "end_time": "2019-11-06T18:22:56.875000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb11_S-Vtb11.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb11\\S-Vtb11.csv",
+      "schema_variant": "A",
+      "rows": 361,
+      "start_time": "2019-11-06T18:23:06.376000",
+      "end_time": "2019-11-06T18:23:42.376000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb12_S-Vtb12.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vtb (Driver E)\\Vtb12\\S-Vtb12.csv",
+      "schema_variant": "A",
+      "rows": 447,
+      "start_time": "2019-11-06T18:23:51.475000",
+      "end_time": "2019-11-06T18:24:36.076000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw01_S-Vw1.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw01\\S-Vw1.csv",
+      "schema_variant": "A",
+      "rows": 20476,
+      "start_time": "2020-01-08T09:37:55.816000",
+      "end_time": "2020-01-08T10:12:03.316000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw02_S-Vw2.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw02\\S-Vw2.csv",
+      "schema_variant": "A",
+      "rows": 52713,
+      "start_time": "2020-01-08T10:15:46.685000",
+      "end_time": "2020-01-08T11:43:37.884000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw03_S-Vw3.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw03\\S-Vw3.csv",
+      "schema_variant": "A",
+      "rows": 3861,
+      "start_time": "2020-01-08T11:43:59.984000",
+      "end_time": "2020-01-08T11:50:25.985000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw04_S-Vw4.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw04\\S-Vw4.csv",
+      "schema_variant": "A",
+      "rows": 126526,
+      "start_time": "2020-01-08T12:15:27.004000",
+      "end_time": "2020-01-08T15:46:19.504000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw05_S-Vw5.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw05\\S-Vw5.csv",
+      "schema_variant": "A",
+      "rows": 1012,
+      "start_time": "2020-01-08T15:46:36.903000",
+      "end_time": "2020-01-08T15:48:18.004000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw06_S-Vw6.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw06\\S-Vw6.csv",
+      "schema_variant": "A",
+      "rows": 1281,
+      "start_time": "2020-01-08T15:48:22.904000",
+      "end_time": "2020-01-08T15:50:30.904000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw07_S-Vw7.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw07\\S-Vw7.csv",
+      "schema_variant": "A",
+      "rows": 1602,
+      "start_time": "2020-01-08T15:55:09.004000",
+      "end_time": "2020-01-08T15:57:49.103000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw08_S-Vw8.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw08\\S-Vw8.csv",
+      "schema_variant": "A",
+      "rows": 1529,
+      "start_time": "2020-01-08T15:58:09.004000",
+      "end_time": "2020-01-08T16:00:41.804000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw09_S-Vw9.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw09\\S-Vw9.csv",
+      "schema_variant": "A",
+      "rows": 552,
+      "start_time": "2020-01-08T16:04:00.403000",
+      "end_time": "2020-01-08T16:04:55.504000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw10_S-Vw10.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw10\\S-Vw10.csv",
+      "schema_variant": "A",
+      "rows": 652,
+      "start_time": "2020-01-08T16:07:41.904000",
+      "end_time": "2020-01-08T16:08:47.004000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw11_S-Vw11.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw11\\S-Vw11.csv",
+      "schema_variant": "A",
+      "rows": 4909,
+      "start_time": "2020-01-08T16:08:55.504000",
+      "end_time": "2020-01-08T16:17:06.304000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw12_S-Vw12.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw12\\S-Vw12.csv",
+      "schema_variant": "A",
+      "rows": 918,
+      "start_time": "2020-01-08T16:17:20.205000",
+      "end_time": "2020-01-08T16:18:51.905000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw13_S-Vw13.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw13\\S-Vw13.csv",
+      "schema_variant": "A",
+      "rows": 284,
+      "start_time": "2020-01-08T16:20:26.104000",
+      "end_time": "2020-01-08T16:20:54.404000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw14a_S-Vw14a.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw14a\\S-Vw14a.csv",
+      "schema_variant": "A",
+      "rows": 3138,
+      "start_time": "2020-01-08T16:21:14.984000",
+      "end_time": "2020-01-08T16:26:28.684000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw14b_S-Vw14b.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw14b\\S-Vw14b.csv",
+      "schema_variant": "A",
+      "rows": 19588,
+      "start_time": "2020-01-08T16:26:28.983000",
+      "end_time": "2020-01-08T16:59:07.684000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw14c_S-Vw14c.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw14c\\S-Vw14c.csv",
+      "schema_variant": "A",
+      "rows": 15826,
+      "start_time": "2020-01-08T16:59:08.984000",
+      "end_time": "2020-01-08T17:25:31.484000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw15_S-Vw15.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw15\\S-Vw15.csv",
+      "schema_variant": "A",
+      "rows": 1380,
+      "start_time": "2020-01-08T17:29:49.943000",
+      "end_time": "2020-01-08T17:32:07.843000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw16a_S-Vw16a.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw16a\\S-Vw16a.csv",
+      "schema_variant": "A",
+      "rows": 5879,
+      "start_time": "2020-01-08T17:32:13.603000",
+      "end_time": "2020-01-08T17:42:01.402000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw16b_S-Vw16b.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw16b\\S-Vw16b.csv",
+      "schema_variant": "A",
+      "rows": 1126,
+      "start_time": "2020-01-08T17:42:16.002000",
+      "end_time": "2020-01-08T17:44:08.503000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw17_S-Vw17.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vw (Driver E)\\Vw17\\S-Vw17.csv",
+      "schema_variant": "A",
+      "rows": 329,
+      "start_time": "2020-01-08T17:44:14.702000",
+      "end_time": "2020-01-08T17:44:47.503000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Y (Driver D)_Y1_S-Y1.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Y (Driver D)\\Y1\\S-Y1.csv",
+      "schema_variant": "A",
+      "rows": 70285,
+      "start_time": "2019-08-30T18:12:45.703000",
+      "end_time": "2019-08-30T20:15:57.021000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-M.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-M.csv",
+      "schema_variant": "B",
+      "rows": 105974,
+      "start_time": "2019-09-07T09:13:29.506000",
+      "end_time": "2019-09-07T12:10:09.129000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S1.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-S1.csv",
+      "schema_variant": "B",
+      "rows": 51746,
+      "start_time": "2019-09-08T10:07:49.546000",
+      "end_time": "2019-09-08T11:34:04.045000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S2.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-S2.csv",
+      "schema_variant": "B",
+      "rows": 93876,
+      "start_time": "2019-09-08T12:03:51.741000",
+      "end_time": "2019-09-08T14:40:20.349000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S3a.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-S3a.csv",
+      "schema_variant": "B",
+      "rows": 24621,
+      "start_time": "2019-09-04T19:21:51.494000",
+      "end_time": "2019-09-04T20:02:53.494000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S3b.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-S3b.csv",
+      "schema_variant": "B",
+      "rows": 6813,
+      "start_time": "2019-09-04T20:03:03.493000",
+      "end_time": "2019-09-04T20:14:29.021000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S3c.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-S3c.csv",
+      "schema_variant": "B",
+      "rows": 37183,
+      "start_time": "2019-09-04T20:14:28.521000",
+      "end_time": "2019-09-04T21:16:26.720000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S4.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-S4.csv",
+      "schema_variant": "B",
+      "rows": 94600,
+      "start_time": "2019-09-06T18:16:15.111000",
+      "end_time": "2019-09-06T20:59:08.216000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vfa01.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vfa01.csv",
+      "schema_variant": "B",
+      "rows": 11486,
+      "start_time": "2019-11-08T09:20:26.236000",
+      "end_time": "2019-11-08T09:39:34.736000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vfa02.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vfa02.csv",
+      "schema_variant": "B",
+      "rows": 67523,
+      "start_time": "2019-11-08T09:57:17.649000",
+      "end_time": "2019-11-08T11:49:49.850000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta10.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta10.csv",
+      "schema_variant": "B",
+      "rows": 1502,
+      "start_time": "2019-11-06T12:01:50.393000",
+      "end_time": "2019-11-06T12:04:20.493000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta11.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta11.csv",
+      "schema_variant": "B",
+      "rows": 510,
+      "start_time": "2019-11-06T12:04:32.393000",
+      "end_time": "2019-11-06T12:05:23.293000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta12.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta12.csv",
+      "schema_variant": "B",
+      "rows": 610,
+      "start_time": "2019-11-06T12:05:35.393000",
+      "end_time": "2019-11-06T12:06:36.293000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta13.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta13.csv",
+      "schema_variant": "B",
+      "rows": 404,
+      "start_time": "2019-11-06T12:06:47.292000",
+      "end_time": "2019-11-06T12:07:27.593000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta14.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta14.csv",
+      "schema_variant": "B",
+      "rows": 2885,
+      "start_time": "2019-11-06T12:07:32.493000",
+      "end_time": "2019-11-06T12:12:20.893000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta15.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta15.csv",
+      "schema_variant": "B",
+      "rows": 833,
+      "start_time": "2019-11-06T12:12:31.793000",
+      "end_time": "2019-11-06T12:13:54.993000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta16.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta16.csv",
+      "schema_variant": "B",
+      "rows": 11335,
+      "start_time": "2019-11-06T12:14:00.693000",
+      "end_time": "2019-11-06T12:32:54.093000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta17.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta17.csv",
+      "schema_variant": "B",
+      "rows": 4519,
+      "start_time": "2019-11-06T12:33:05.392000",
+      "end_time": "2019-11-06T12:40:38.378000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta19.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta19.csv",
+      "schema_variant": "B",
+      "rows": 292,
+      "start_time": "2019-11-06T12:40:57.377000",
+      "end_time": "2019-11-06T12:41:26.478000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta1a.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta1a.csv",
+      "schema_variant": "B",
+      "rows": 25676,
+      "start_time": "2019-11-06T10:41:47.363000",
+      "end_time": "2019-11-06T11:24:34.862000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta1b.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta1b.csv",
+      "schema_variant": "B",
+      "rows": 954,
+      "start_time": "2019-11-06T11:24:49.463000",
+      "end_time": "2019-11-06T11:26:24.763000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta2.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta2.csv",
+      "schema_variant": "B",
+      "rows": 10991,
+      "start_time": "2019-11-06T11:26:31.265000",
+      "end_time": "2019-11-06T11:44:50.263000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta20.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta20.csv",
+      "schema_variant": "B",
+      "rows": 3223,
+      "start_time": "2019-11-06T12:42:21.722000",
+      "end_time": "2019-11-06T12:47:43.922000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta21.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta21.csv",
+      "schema_variant": "B",
+      "rows": 2079,
+      "start_time": "2019-11-06T12:47:32.022000",
+      "end_time": "2019-11-06T12:50:59.822000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta22.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta22.csv",
+      "schema_variant": "B",
+      "rows": 1564,
+      "start_time": "2019-11-06T12:51:00.822000",
+      "end_time": "2019-11-06T12:53:37.123000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta23.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta23.csv",
+      "schema_variant": "B",
+      "rows": 1110,
+      "start_time": "2019-11-06T12:53:40.023000",
+      "end_time": "2019-11-06T12:55:30.923000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta24.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta24.csv",
+      "schema_variant": "B",
+      "rows": 1171,
+      "start_time": "2019-11-06T12:55:35.922000",
+      "end_time": "2019-11-06T12:57:32.923000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta25.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta25.csv",
+      "schema_variant": "B",
+      "rows": 646,
+      "start_time": "2019-11-06T12:57:36.324000",
+      "end_time": "2019-11-06T12:58:40.822000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta26.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta26.csv",
+      "schema_variant": "B",
+      "rows": 1935,
+      "start_time": "2019-11-06T12:58:48.922000",
+      "end_time": "2019-11-06T13:02:02.322000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta27.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta27.csv",
+      "schema_variant": "B",
+      "rows": 2540,
+      "start_time": "2019-11-06T13:02:09.622000",
+      "end_time": "2019-11-06T13:06:23.522000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta28.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta28.csv",
+      "schema_variant": "B",
+      "rows": 4210,
+      "start_time": "2019-11-06T13:06:54.922000",
+      "end_time": "2019-11-06T13:13:55.822000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta29.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta29.csv",
+      "schema_variant": "B",
+      "rows": 23705,
+      "start_time": "2019-11-06T13:27:20.808000",
+      "end_time": "2019-11-06T14:06:50.586000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta3.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta3.csv",
+      "schema_variant": "B",
+      "rows": 645,
+      "start_time": "2019-11-06T11:45:53.893000",
+      "end_time": "2019-11-06T11:46:58.293000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta30.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta30.csv",
+      "schema_variant": "B",
+      "rows": 17136,
+      "start_time": "2019-11-06T14:07:03.886000",
+      "end_time": "2019-11-06T14:35:37.386000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta4.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta4.csv",
+      "schema_variant": "B",
+      "rows": 1789,
+      "start_time": "2019-11-06T11:47:27.394000",
+      "end_time": "2019-11-06T11:50:26.193000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta5.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta5.csv",
+      "schema_variant": "B",
+      "rows": 307,
+      "start_time": "2019-11-06T11:50:34.393000",
+      "end_time": "2019-11-06T11:51:04.993000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta6.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta6.csv",
+      "schema_variant": "B",
+      "rows": 1376,
+      "start_time": "2019-11-06T11:51:11.993000",
+      "end_time": "2019-11-06T11:53:29.493000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta7.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta7.csv",
+      "schema_variant": "B",
+      "rows": 840,
+      "start_time": "2019-11-06T11:53:35.293000",
+      "end_time": "2019-11-06T11:54:59.193000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta8.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta8.csv",
+      "schema_variant": "B",
+      "rows": 3676,
+      "start_time": "2019-11-06T11:55:05.293000",
+      "end_time": "2019-11-06T12:01:12.793000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta9.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vta9.csv",
+      "schema_variant": "B",
+      "rows": 156,
+      "start_time": "2019-11-06T12:01:23.394000",
+      "end_time": "2019-11-06T12:01:38.892000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb1.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb1.csv",
+      "schema_variant": "B",
+      "rows": 32459,
+      "start_time": "2019-11-06T14:57:37.146000",
+      "end_time": "2019-11-06T15:51:42.945000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb10.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb10.csv",
+      "schema_variant": "B",
+      "rows": 196,
+      "start_time": "2019-11-06T18:22:37.375000",
+      "end_time": "2019-11-06T18:22:56.875000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb11.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb11.csv",
+      "schema_variant": "B",
+      "rows": 361,
+      "start_time": "2019-11-06T18:23:06.376000",
+      "end_time": "2019-11-06T18:23:42.376000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb12.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb12.csv",
+      "schema_variant": "B",
+      "rows": 447,
+      "start_time": "2019-11-06T18:23:51.475000",
+      "end_time": "2019-11-06T18:24:36.076000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb2.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb2.csv",
+      "schema_variant": "B",
+      "rows": 5712,
+      "start_time": "2019-11-06T16:06:20.476000",
+      "end_time": "2019-11-06T16:15:51.576000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb3.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb3.csv",
+      "schema_variant": "B",
+      "rows": 8240,
+      "start_time": "2019-11-06T16:16:01.676000",
+      "end_time": "2019-11-06T16:29:45.576000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb4.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb4.csv",
+      "schema_variant": "B",
+      "rows": 556,
+      "start_time": "2019-11-06T16:29:58.376000",
+      "end_time": "2019-11-06T16:30:53.876000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb5.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb5.csv",
+      "schema_variant": "B",
+      "rows": 64388,
+      "start_time": "2019-11-06T16:30:53.075000",
+      "end_time": "2019-11-06T18:18:11.776000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb6.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb6.csv",
+      "schema_variant": "B",
+      "rows": 498,
+      "start_time": "2019-11-06T18:18:45.376000",
+      "end_time": "2019-11-06T18:19:35.076000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb7.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb7.csv",
+      "schema_variant": "B",
+      "rows": 461,
+      "start_time": "2019-11-06T18:19:39.375000",
+      "end_time": "2019-11-06T18:20:25.376000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb8.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb8.csv",
+      "schema_variant": "B",
+      "rows": 668,
+      "start_time": "2019-11-06T18:20:33.376000",
+      "end_time": "2019-11-06T18:21:40.076000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb9.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vtb9.csv",
+      "schema_variant": "B",
+      "rows": 452,
+      "start_time": "2019-11-06T18:21:45.377000",
+      "end_time": "2019-11-06T18:22:30.476000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw1.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw1.csv",
+      "schema_variant": "B",
+      "rows": 20476,
+      "start_time": "2020-01-08T09:37:55.816000",
+      "end_time": "2020-01-08T10:12:03.316000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw10.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw10.csv",
+      "schema_variant": "B",
+      "rows": 652,
+      "start_time": "2020-01-08T16:07:41.904000",
+      "end_time": "2020-01-08T16:08:47.004000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw11.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw11.csv",
+      "schema_variant": "B",
+      "rows": 4909,
+      "start_time": "2020-01-08T16:08:55.504000",
+      "end_time": "2020-01-08T16:17:06.304000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw12.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw12.csv",
+      "schema_variant": "B",
+      "rows": 918,
+      "start_time": "2020-01-08T16:17:20.205000",
+      "end_time": "2020-01-08T16:18:51.905000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw13.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw13.csv",
+      "schema_variant": "B",
+      "rows": 284,
+      "start_time": "2020-01-08T16:20:26.104000",
+      "end_time": "2020-01-08T16:20:54.404000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw14a.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw14a.csv",
+      "schema_variant": "B",
+      "rows": 3138,
+      "start_time": "2020-01-08T16:21:14.984000",
+      "end_time": "2020-01-08T16:26:28.684000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw14b.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw14b.csv",
+      "schema_variant": "B",
+      "rows": 19588,
+      "start_time": "2020-01-08T16:26:28.983000",
+      "end_time": "2020-01-08T16:59:07.684000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw14c.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw14c.csv",
+      "schema_variant": "B",
+      "rows": 15826,
+      "start_time": "2020-01-08T16:59:08.984000",
+      "end_time": "2020-01-08T17:25:31.484000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw15.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw15.csv",
+      "schema_variant": "B",
+      "rows": 1380,
+      "start_time": "2020-01-08T17:29:49.943000",
+      "end_time": "2020-01-08T17:32:07.843000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw16a.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw16a.csv",
+      "schema_variant": "B",
+      "rows": 5879,
+      "start_time": "2020-01-08T17:32:13.603000",
+      "end_time": "2020-01-08T17:42:01.402000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw16b.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw16b.csv",
+      "schema_variant": "B",
+      "rows": 1126,
+      "start_time": "2020-01-08T17:42:16.002000",
+      "end_time": "2020-01-08T17:44:08.503000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw17.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw17.csv",
+      "schema_variant": "B",
+      "rows": 329,
+      "start_time": "2020-01-08T17:44:14.702000",
+      "end_time": "2020-01-08T17:44:47.503000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw2.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw2.csv",
+      "schema_variant": "B",
+      "rows": 52713,
+      "start_time": "2020-01-08T10:15:46.685000",
+      "end_time": "2020-01-08T11:43:37.884000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw3.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw3.csv",
+      "schema_variant": "B",
+      "rows": 3861,
+      "start_time": "2020-01-08T11:43:59.984000",
+      "end_time": "2020-01-08T11:50:25.985000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw4.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw4.csv",
+      "schema_variant": "B",
+      "rows": 126526,
+      "start_time": "2020-01-08T12:15:27.004000",
+      "end_time": "2020-01-08T15:46:19.504000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw5.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw5.csv",
+      "schema_variant": "B",
+      "rows": 1012,
+      "start_time": "2020-01-08T15:46:36.903000",
+      "end_time": "2020-01-08T15:48:18.004000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw6.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw6.csv",
+      "schema_variant": "B",
+      "rows": 1281,
+      "start_time": "2020-01-08T15:48:22.904000",
+      "end_time": "2020-01-08T15:50:30.904000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw7.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw7.csv",
+      "schema_variant": "B",
+      "rows": 1602,
+      "start_time": "2020-01-08T15:55:09.004000",
+      "end_time": "2020-01-08T15:57:49.103000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw8.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw8.csv",
+      "schema_variant": "B",
+      "rows": 1529,
+      "start_time": "2020-01-08T15:58:09.004000",
+      "end_time": "2020-01-08T16:00:41.804000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw9.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Vw9.csv",
+      "schema_variant": "B",
+      "rows": 552,
+      "start_time": "2020-01-08T16:04:00.403000",
+      "end_time": "2020-01-08T16:04:55.504000"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Y1.parquet",
+      "source_file": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Synchronised V abd S datasets\\Uncategorised IOVNB Dataset\\S-Dataset\\S-Y1.csv",
+      "schema_variant": "B",
+      "rows": 70285,
+      "start_time": "2019-08-30T18:12:45.703000",
+      "end_time": "2019-08-30T20:15:57.021000"
+    }
+  ]
+}
