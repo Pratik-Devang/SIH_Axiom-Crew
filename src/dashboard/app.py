@@ -251,6 +251,7 @@ trip=raw_df; v=validation.as_dict(); trip_id=html.escape(str(v["trip_id"]))
 times=trip["time_since_start_s"].to_numpy(float)
 dt_arr=np.diff(times); sample_rate=1.0/np.median(dt_arr[dt_arr>0]) if len(dt_arr)>0 else 10.0
 duration=float(times[-1]-times[0]); has_gnss=bool(v["replay_ready"])
+filtered_sensor_rows=int(trip["sensor_spike_detected"].sum()) if "sensor_spike_detected" in trip else 0
 speed_src_lbl="TCN ONNX" if(onnx_ok and use_tcn) else "Reference speed"
 
 st.markdown(f"""
@@ -260,6 +261,12 @@ st.markdown(f"""
   <div class='status-item'><div class='dot {"dot-blue" if onnx_ok else "dot-yellow"}'></div>{speed_src_lbl}</div>
   <div class='status-item'><div class='dot dot-green'></div>{int(v["rows"]):,} samples · {sample_rate:.1f} Hz · {duration:.1f}s</div>
 </div>""",unsafe_allow_html=True)
+
+if filtered_sensor_rows:
+    st.warning(
+        f"Noise filter replaced isolated IMU spikes or invalid values in "
+        f"{filtered_sensor_rows} rows for model input. Raw recorded values remain available."
+    )
 
 if not has_gnss:
     c1,c2=st.columns(2)
@@ -369,7 +376,7 @@ with t4:
     with i1: st.plotly_chart(sensor_fig(replay,["accel_x","accel_y","accel_z"],"Acceleration","m/s²"),use_container_width=True)
     with i2: st.plotly_chart(sensor_fig(replay,["gyro_x","gyro_y","gyro_z"],"Gyroscope","rad/s"),use_container_width=True)
 with t5:
-    disp=["time_since_start_s","navigation_mode","active_constraints","gnss_available","gnss_trusted","gnss_trust_score","gnss_trust_reason","stop_detected","nhc_active","nhc_violation","estimated_latitude","estimated_longitude","position_error_m","position_uncertainty_m","estimated_speed_mps"]
+    disp=["time_since_start_s","quality_flags","sensor_spike_detected","filtered_sensor_columns","navigation_mode","active_constraints","gnss_available","gnss_trusted","gnss_trust_score","gnss_trust_reason","stop_detected","nhc_active","nhc_violation","estimated_latitude","estimated_longitude","position_error_m","position_uncertainty_m","estimated_speed_mps"]
     show=[c for c in disp if c in replay.columns]
     numeric_show=[c for c in show if pd.api.types.is_numeric_dtype(replay[c]) and replay[c].dtype != bool]
     st.dataframe(replay[show].style.format({c:"{:.4f}" for c in numeric_show}),use_container_width=True,height=400)
