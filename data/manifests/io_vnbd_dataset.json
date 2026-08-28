@@ -1,0 +1,71 @@
+{
+  "dataset": "IO-VNBD",
+  "source": {
+    "name": "IO-VNBD",
+    "description": "In-Vehicle and smartphone sensor dataset",
+    "source_data": "Synchronised V abd S datasets"
+  },
+  "processing": {
+    "format": "Parquet",
+    "adapter": "data_adapters/io_vnbd.py",
+    "ingestion_script": "scripts/ingest_io_vnbd.py",
+    "validation_script": "preprocessing/validation.py"
+  },
+  "files": {
+    "source_smartphone_files": 144,
+    "processed_parquet_files": 144
+  },
+  "validation": {
+    "files_validated": 144,
+    "total_rows": 2141490,
+    "invalid_timestamps": 0,
+    "duplicate_timestamps": 10920,
+    "backward_timestamp_jumps": 0,
+    "invalid_coordinates": 0
+  },
+  "schema_variants": {
+    "variant_A": "Gyroscope Yaw/Pitch/Roll",
+    "variant_B": "Gyroscope X/Y/Z"
+  },
+  "data_handling": {
+    "raw_data_modified": false,
+    "source_timestamp_modified": false,
+    "notes": [
+      "Two source files contained a malformed DATE column header. The adapter handles the alternate header without modifying the raw files.",
+      "Duplicate timestamps are reported by validation and are not automatically removed."
+    ]
+  },
+  "dataset_scope": {
+    "synchronised_data_processed": true,
+    "unsynchronised_data_processed": true,
+    "unsynchronised_data_note": "Requires separate inspection and handling."
+  },
+  "status": {
+    "io_vnbd_adapter": "complete",
+    "ingestion": "complete",
+    "validation": "complete",
+    "trip_metadata": "complete",
+    "train_validation_test_splits": "complete",
+    "unsynchronised_data": "complete",
+    "ppc_adapter": "pending",
+    "urbannav_adapter": "pending"
+  },
+  "synchronization": {
+    "source": "synchronised V abd S dataset",
+    "timestamp_column": "timestamp",
+    "timestamp_unit": "datetime",
+    "invalid_timestamps": 0,
+    "backward_timestamp_jumps": 0,
+    "duplicate_timestamps": 10920,
+    "timestamp_correction_applied": false,
+    "note": "Source timestamps were validated and retained without artificial shifting or resampling."
+  },
+
+  "license_and_citation": {
+    "license": "CC BY 4.0",
+    "license_scope": "Published IO-VNBD article",
+    "citation": "Onyekpe, U., Palade, V., Kanarachos, S., & Szkolnik, A. (2021). IO-VNBD: Inertial and Odometry benchmark dataset for ground vehicle positioning. Data in Brief, 35, 106885.",
+    "source_repository": "https://github.com/onyekpeu/IO-VNBD",
+    "notes": "The published article is CC BY 4.0. The license for the underlying dataset files should be verified separately from the repository/source terms."
+}
+}
