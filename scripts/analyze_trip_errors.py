@@ -43,11 +43,11 @@ def main() -> None:
 
     for idx, trip_df in enumerate(test_raw_trips):
         trip_id = trip_df["trip_id"].iloc[0] if "trip_id" in trip_df.columns else f"trip_{idx}"
-        
+
         # Apply normalization to this single trip
         norm_trip = apply_normalization(trip_df, ckpt["normalization"])
         trip_ds = SpeedWindowDataset([norm_trip], config["data"]["window_samples"], config["data"]["stride"])
-        
+
         if len(trip_ds) == 0:
             print(f"Trip {trip_id}: Empty dataset after windowing")
             continue
@@ -69,9 +69,9 @@ def main() -> None:
 
         mae_mps = np.mean(np.abs(pred_mps - target_mps))
         mae_kmh = mae_mps * 3.6
-        
+
         print(f"Trip {trip_id:<8} | Samples: {len(pred_mps):<5} | MAE: {mae_mps:.3f} m/s ({mae_kmh:.2f} km/h)")
-        
+
         total_samples += len(pred_mps)
         errors.append(mae_mps)
 
