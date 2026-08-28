@@ -37,7 +37,6 @@ import statistics
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Deque, List, Optional
 
 import yaml
 
@@ -124,20 +123,24 @@ class VehicleConstraintDetector:
     def __init__(
         self,
         config_path: str | Path = "configs/role4.yaml",
-        event_log_path: Optional[str | Path] = None,
+        event_log_path: str | Path | None = None,
+        enable_logging: bool = True,
     ) -> None:
         cfg = _load_config(config_path)
         self._cfg = cfg["vehicle_constraints"]
         self._log_cfg = cfg["logging"]
 
-        log_path = Path(event_log_path or self._log_cfg["event_log_path"])
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        self._event_log = open(log_path, "a", buffering=1)
+        self._event_log = None
+        if enable_logging:
+            log_path = Path(event_log_path or self._log_cfg["event_log_path"])
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            # The detector owns this long-lived handle and closes it in close().
+            self._event_log = open(log_path, "a", buffering=1)  # noqa: SIM115
 
         win = self._cfg["nhc_window_size"]
-        self._speed_window: Deque[float] = deque(maxlen=win)
-        self._heading_window: Deque[float] = deque(maxlen=win)
-        self._time_window: Deque[float] = deque(maxlen=win)
+        self._speed_window: deque[float] = deque(maxlen=win)
+        self._heading_window: deque[float] = deque(maxlen=win)
+        self._time_window: deque[float] = deque(maxlen=win)
 
         logger.debug("VehicleConstraintDetector initialised, window=%d", win)
 
@@ -225,7 +228,7 @@ class VehicleConstraintDetector:
         self._log_event(state)
         return state
 
-    def to_constraint_event(self, state: NHCState) -> Optional[ConstraintEvent]:
+    def to_constraint_event(self, state: NHCState) -> ConstraintEvent | None:
         """Convert NHCState to a ConstraintEvent for Role 3.
 
         Always returns an event (Role 3 uses both the violation flag and the
@@ -257,7 +260,8 @@ class VehicleConstraintDetector:
 
     def close(self) -> None:
         """Flush and close the event log."""
-        self._event_log.close()
+        if self._event_log is not None:
+            self._event_log.close()
 
     # ------------------------------------------------------------------
     # Private helpers
@@ -273,7 +277,8 @@ class VehicleConstraintDetector:
             "speed_m_s": round(state.speed_m_s, 4),
             "heading_rate_deg_s": round(state.heading_rate_deg_s, 3),
         }
-        self._event_log.write(json.dumps(record) + "\n")
+        if self._event_log is not None:
+            self._event_log.write(json.dumps(record) + "\n")
         if state.violation:
             logger.warning(
                 "NHC violation: lateral_v=%.3f m/s conf=%.2f at t=%.2f",

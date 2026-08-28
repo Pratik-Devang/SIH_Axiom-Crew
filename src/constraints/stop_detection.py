@@ -28,9 +28,8 @@ import json
 import logging
 import statistics
 from collections import deque
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Deque, List, Optional
 
 import yaml
 
@@ -138,21 +137,25 @@ class StopDetector:
     def __init__(
         self,
         config_path: str | Path = "configs/role4.yaml",
-        event_log_path: Optional[str | Path] = None,
+        event_log_path: str | Path | None = None,
+        enable_logging: bool = True,
     ) -> None:
         cfg = _load_config(config_path)
         self._cfg = cfg["stop_detector"]
         self._log_cfg = cfg["logging"]
 
-        log_path = Path(event_log_path or self._log_cfg["event_log_path"])
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        self._event_log = open(log_path, "a", buffering=1)
+        self._event_log = None
+        if enable_logging:
+            log_path = Path(event_log_path or self._log_cfg["event_log_path"])
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            # The detector owns this long-lived handle and closes it in close().
+            self._event_log = open(log_path, "a", buffering=1)  # noqa: SIM115
 
         win = self._cfg["window_size"]
-        self._speed_window: Deque[float] = deque(maxlen=win)
-        self._time_window: Deque[float] = deque(maxlen=win)
+        self._speed_window: deque[float] = deque(maxlen=win)
+        self._time_window: deque[float] = deque(maxlen=win)
         self._consecutive_stopped: int = 0
-        self._stop_start_time: Optional[float] = None
+        self._stop_start_time: float | None = None
         self._last_state_stopped: bool = False
 
         logger.debug("StopDetector initialised, window_size=%d", win)
@@ -228,7 +231,7 @@ class StopDetector:
         self._last_state_stopped = is_stopped
         return stop_event
 
-    def to_constraint_event(self, stop_event: StopEvent) -> Optional[ConstraintEvent]:
+    def to_constraint_event(self, stop_event: StopEvent) -> ConstraintEvent | None:
         """Convert a StopEvent to a ConstraintEvent for Role 3.
 
         Returns ``None`` if the vehicle is not stopped (no ZUPT to emit).
@@ -258,7 +261,8 @@ class StopDetector:
 
     def close(self) -> None:
         """Flush and close the event log."""
-        self._event_log.close()
+        if self._event_log is not None:
+            self._event_log.close()
 
     # ------------------------------------------------------------------
     # Private helpers
@@ -273,4 +277,5 @@ class StopDetector:
             "duration_s": round(stop_event.duration_s, 3),
             "mean_speed_m_s": round(stop_event.mean_speed_m_s, 4),
         }
-        self._event_log.write(json.dumps(record) + "\n")
+        if self._event_log is not None:
+            self._event_log.write(json.dumps(record) + "\n")
