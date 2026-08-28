@@ -11,6 +11,17 @@ One time-ordered table per trip using the fields in `src/data/schema.py`.
 - Prediction uncertainty or confidence
 - Optional motion-state label
 
+## IMU filtering contract
+
+- Android and uploaded canonical sensor columns remain raw and are never overwritten.
+- Causal Hampel filtering appends `filtered_accel_x/y/z` and
+  `filtered_gyro_x/y/z` using only current and prior samples.
+- `quality_flags` is a numeric bitmask. Bits 0-5 mark isolated spikes in
+  accel X/Y/Z and gyro X/Y/Z; bits 8-13 mark invalid values in the same order.
+- `sensor_spike_detected` and `filtered_sensor_columns` provide readable row-level diagnostics.
+- TCN inference consumes only the filtered channels resampled to exactly 10 Hz,
+  then aligns its predictions back to the original recording timestamps.
+
 ## Navigation output
 
 - Timestamp

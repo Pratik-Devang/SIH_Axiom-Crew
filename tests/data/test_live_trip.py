@@ -19,6 +19,8 @@ def test_android_aliases_and_relative_time_are_normalized():
     frame, result = normalize_trip_frame(source, "trip 1")
     assert frame["time_since_start_s"].tolist() == pytest.approx([0.0, 0.1])
     assert frame["accel_x"].tolist() == [0, 1]
+    assert "filtered_accel_x" in frame
+    assert "quality_flags" in frame
     assert result.trip_id == "trip_1"
     assert result.replay_ready is False
 

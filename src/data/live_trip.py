@@ -9,6 +9,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.preprocessing.sensor_filter import filter_sensor_spikes
+
 MAX_TRIP_ROWS = 500_000
 SAFE_TRIP_ID = re.compile(r"[^a-zA-Z0-9_-]+")
 SENSOR_COLUMNS = (
@@ -112,9 +114,19 @@ def normalize_trip_frame(
         )
         if values.notna().sum() < 2:
             raise ValueError(f"IMU column {column} has insufficient numeric data")
-        frame[column] = values.interpolate(limit_direction="both")
+        # Preserve the raw values. The causal filtering layer produces separate
+        # ``filtered_*`` columns and records replacements in quality_flags.
+        frame[column] = values
+
+    frame = filter_sensor_spikes(frame)
 
     issues: list[str] = []
+    filtered_rows = int(frame["sensor_spike_detected"].sum())
+    if filtered_rows:
+        issues.append(
+            f"Filtered isolated IMU spikes or invalid values in {filtered_rows} rows; "
+            "raw sensor columns were preserved."
+        )
     has_gnss = {"latitude", "longitude"}.issubset(frame)
     if has_gnss:
         frame["latitude"] = pd.to_numeric(frame["latitude"], errors="coerce")
@@ -135,7 +147,6 @@ def normalize_trip_frame(
         "gps_speed_mps",
         "gps_bearing_deg",
         "satellite_count",
-        "quality_flags",
     )
     for column in numeric_optional:
         if column in frame:

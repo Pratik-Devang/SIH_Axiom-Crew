@@ -9,6 +9,8 @@ import numpy as np
 import onnxruntime as ort
 import pandas as pd
 
+from src.preprocessing.sensor_filter import prepare_filtered_10hz_view
+
 CANONICAL_TO_MODEL = {
     "accel_x": "accel_x",
     "accel_y": "accel_y",
@@ -33,25 +35,32 @@ class OnnxSpeedPredictor:
         self.window_samples = int(shape[-1])
 
     def predict(self, frame: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
-        """Return speed mean and variance aligned to every input row."""
+        """Return speed mean and variance aligned to every raw input row.
+
+        The ONNX model always receives a causal spike-filtered, synchronized
+        10 Hz view. Predictions are interpolated back to the source timestamps
+        for the navigation replay.
+        """
+        model_frame = prepare_filtered_10hz_view(frame)
         signals = []
         missing = []
         for model_name in self.normalization["columns"]:
             canonical = CANONICAL_TO_MODEL.get(model_name, model_name)
-            source = model_name if model_name in frame else canonical
-            if source not in frame:
+            source = model_name if model_name in model_frame else canonical
+            if source not in model_frame:
                 missing.append(source)
                 continue
-            values = pd.to_numeric(frame[source], errors="coerce")
+            values = pd.to_numeric(model_frame[source], errors="coerce")
             values = values.interpolate(limit_direction="both").fillna(0.0)
             mean = self.normalization["mean"][model_name]
             std = self.normalization["std"][model_name]
             signals.append(((values.to_numpy(float) - mean) / std).astype(np.float32))
         if missing:
             raise ValueError(f"TCN input columns are missing: {', '.join(missing)}")
-        if len(frame) < self.window_samples:
+        if len(model_frame) < self.window_samples:
             raise ValueError(
-                f"TCN needs at least {self.window_samples} samples, got {len(frame)}"
+                "TCN needs at least "
+                f"{self.window_samples} filtered 10 Hz samples, got {len(model_frame)}"
             )
 
         channels = np.stack(signals, axis=1)
@@ -66,7 +75,13 @@ class OnnxSpeedPredictor:
             else np.ones_like(mean)
         )
         prefix = self.window_samples - 1
+        model_mean = np.concatenate([np.full(prefix, mean[0]), mean])
+        model_variance = np.concatenate([np.full(prefix, variance[0]), variance])
+        model_time = model_frame["time_since_start_s"].to_numpy(float)
+        source_time = pd.to_numeric(
+            frame["time_since_start_s"], errors="coerce"
+        ).to_numpy(float)
         return (
-            np.concatenate([np.full(prefix, mean[0]), mean]),
-            np.concatenate([np.full(prefix, variance[0]), variance]),
+            np.interp(source_time, model_time, model_mean),
+            np.interp(source_time, model_time, model_variance),
         )
