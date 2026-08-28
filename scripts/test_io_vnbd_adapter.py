@@ -3,8 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from data_adapters.io_vnbd import (
+from src.data.adapters.io_vnbd import (
     find_smartphone_files,
     read_smartphone_file,
 )
