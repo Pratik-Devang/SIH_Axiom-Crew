@@ -18,23 +18,24 @@ sys.path.insert(0, str(ROOT))
 from src.ml.tcn import build_model
 
 
-def run_test_payload(model, name: str, imu_matrix: np.ndarray, mean: dict, std: dict) -> None:
+def run_test_payload(model, name: str, imu_matrix: np.ndarray, mean: list | dict, std: list | dict, window_samples: int) -> None:
     # 1. Normalize the simulated input using our training statistics
     columns = ["accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z"]
     norm_imu = np.zeros_like(imu_matrix, dtype=np.float32)
     
     for idx, col in enumerate(columns):
-        norm_imu[idx, :] = (imu_matrix[idx, :] - mean[col]) / std[col]
+        mean_val = mean[col] if isinstance(mean, dict) else mean[idx]
+        std_val = std[col] if isinstance(std, dict) else std[idx]
+        norm_imu[idx, :] = (imu_matrix[idx, :] - mean_val) / std_val
 
-    # Convert to PyTorch tensor shaped [1, 6, 20] (Batch size 1, 6 channels, 20 samples)
+    # Convert to PyTorch tensor shaped [1, 6, window_samples]
     x = torch.from_numpy(norm_imu).unsqueeze(0)
     
     # 2. Query the model (Inference / POST request)
     with torch.no_grad():
         out = model(x)
-        speed_mean_mps = float(out[0, 0])
-        log_var = float(out[0, 1])
-        predicted_std_mps = float(np.sqrt(np.exp(log_var)))
+        # If output has uncertainty, mean is out[0, 0]. Otherwise, it's out[0]
+        speed_mean_mps = float(out[0, 0]) if out.shape[-1] > 1 else float(out[0])
 
     speed_kmh = speed_mean_mps * 3.6
     print(f"\n>>> SENDING TEST PAYLOAD: {name}")
@@ -44,7 +45,6 @@ def run_test_payload(model, name: str, imu_matrix: np.ndarray, mean: dict, std: 
     print("-" * 55)
     print(f"  BACKEND RESPONSE:")
     print(f"  Predicted Speed       : {speed_mean_mps:.3f} m/s ({speed_kmh:.2f} km/h)")
-    print(f"  Prediction Confidence : ±{predicted_std_mps:.3f} m/s")
     print("=" * 55)
 
 
@@ -54,9 +54,10 @@ def main() -> None:
         ckpt_path = ROOT / "artifacts" / "v2" / "tcn_best.pt"
 
     print(f"Loading checkpoint from: {ckpt_path}")
-    ckpt = torch.load(ckpt_path, map_location="cpu")
+    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     config = ckpt["config"]
     normalization = ckpt["normalization"]
+    window_samples = config["data"]["window_samples"]
 
     # Load model
     model = build_model(config)
@@ -67,7 +68,7 @@ def main() -> None:
     # SIMULATION PAYLOAD 1: Stationary Car
     # Accelerometer feels only gravity (9.8 m/s² down). Gyroscopes are zero.
     # ==================================================================
-    stationary_imu = np.zeros((6, 20), dtype=np.float32)
+    stationary_imu = np.zeros((6, window_samples), dtype=np.float32)
     stationary_imu[2, :] = 9.81  # gravity on Z axis
 
     run_test_payload(
@@ -75,16 +76,17 @@ def main() -> None:
         "STATIONARY CAR (Only Gravity, No Rotation)",
         stationary_imu,
         normalization["mean"],
-        normalization["std"]
+        normalization["std"],
+        window_samples
     )
 
     # ==================================================================
     # SIMULATION PAYLOAD 2: Accelerating Car
     # Dynamic forward acceleration on X axis, plus moderate road vibration on Z.
     # ==================================================================
-    accelerating_imu = np.zeros((6, 20), dtype=np.float32)
+    accelerating_imu = np.zeros((6, window_samples), dtype=np.float32)
     accelerating_imu[0, :] = 2.50   # 2.5 m/s² forward acceleration
-    accelerating_imu[2, :] = 9.81 + np.random.normal(0, 0.5, 20)  # gravity + road noise
+    accelerating_imu[2, :] = 9.81 + np.random.normal(0, 0.5, window_samples)  # gravity + road noise
     accelerating_imu[5, :] = 0.05   # slight yaw rate rotation (gentle curve)
 
     run_test_payload(
@@ -92,7 +94,8 @@ def main() -> None:
         "HIGH ACCELERATION CAR (Moving Forward + Vibration)",
         accelerating_imu,
         normalization["mean"],
-        normalization["std"]
+        normalization["std"],
+        window_samples
     )
 
 
