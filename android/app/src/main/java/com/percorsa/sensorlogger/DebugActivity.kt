@@ -158,7 +158,11 @@ class DebugActivity : AppCompatActivity() {
         val health = state.navigationHealth
 
         // ── 1. Pipeline Flow Visualization ──────────────────────────────────
-        val tcnReadyBadge = if (snap.tcnBufferReady) "[20/20 READY]" else "[${snap.tcnBufferCount}/20 WAITING]"
+        val tcnReadyBadge = if (snap.tcnBufferReady) {
+            "[${snap.tcnBufferCapacity}/${snap.tcnBufferCapacity} READY]"
+        } else {
+            "[${snap.tcnBufferCount}/${snap.tcnBufferCapacity} WAITING]"
+        }
         tvDbgPipelineDiagram.text = "RAW SENSORS (200Hz) → GRAVITY/LINEAR → FILTERING → VEHICLE FRAME → 10Hz CANONICAL → TCN BUFFER $tcnReadyBadge\nRAW GNSS → 1D ADAPTIVE KF → FILTERED GNSS → NAV STATE"
 
         // ── 2. Live Subsystem Health ─────────────────────────────────────────
@@ -238,8 +242,14 @@ class DebugActivity : AppCompatActivity() {
         }
 
         // ── 8. Canonical 10 Hz Stream & TCN Buffer ───────────────────────────
-        val bufferReadyStr = if (snap.tcnBufferReady) "20/20 READY" else "${snap.tcnBufferCount}/20 WAITING"
-        tvDbgTcnStatus.text = "TCN Input Buffer: $bufferReadyStr (2.0s @ 10 Hz canonical stream)"
+        val bufferReadyStr = if (snap.tcnBufferReady) {
+            "${snap.tcnBufferCapacity}/${snap.tcnBufferCapacity} READY"
+        } else {
+            "${snap.tcnBufferCount}/${snap.tcnBufferCapacity} WAITING"
+        }
+        tvDbgTcnStatus.text = "TCN Input Buffer: $bufferReadyStr (%.1fs @ %d Hz canonical stream)".format(
+            Locale.US, snap.tcnWindowSeconds, TcnInputBuffer.SAMPLE_RATE_HZ
+        )
         tvDbgTcnStatus.setTextColor(if (snap.tcnBufferReady) 0xFF34D399.toInt() else 0xFFF59E0B.toInt())
         tvDbgTcnModel.text = "Model Status: NOT ACTIVE (Input buffer ready for downstream feature/ml-speed-tcn)"
         val lastCan = snap.lastCanonicalSample

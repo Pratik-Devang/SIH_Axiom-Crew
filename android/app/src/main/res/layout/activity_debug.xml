@@ -96,7 +96,7 @@
                     android:id="@+id/tvDbgPipelineDiagram"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="RAW SENSORS (200Hz) → GRAVITY/LINEAR → FILTERING → VEHICLE FRAME → 10Hz CANONICAL → TCN BUFFER [20/20 READY]\nRAW GNSS → 1D ADAPTIVE KF → FILTERED GNSS → NAV STATE"
+                    android:text="RAW SENSORS (200Hz) → GRAVITY/LINEAR → FILTERING → VEHICLE FRAME → 10Hz CANONICAL → TCN BUFFER [50/50 READY]\nRAW GNSS → 1D ADAPTIVE KF → FILTERED GNSS → NAV STATE"
                     android:textColor="#34D399"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -519,7 +519,7 @@
                     android:id="@+id/tvDbgTcnStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="TCN Input Buffer: 20/20 READY (2.0s @ 10 Hz canonical stream)"
+                    android:text="TCN Input Buffer: 50/50 READY (5.0s @ 10 Hz canonical stream)"
                     android:textColor="#34D399"
                     android:textSize="12sp"
                     android:textStyle="bold"

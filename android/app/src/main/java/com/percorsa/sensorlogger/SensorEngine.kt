@@ -72,6 +72,8 @@ data class SensorSnapshot(
     val totalCallbacks: Int,
     val gpsFixAgeMs: Long,
     val tcnBufferCount: Int,
+    val tcnBufferCapacity: Int,
+    val tcnWindowSeconds: Float,
     val tcnBufferReady: Boolean,
     val lastCanonicalSample: CanonicalImuSample?,
     val minDtMs: Float,
@@ -184,7 +186,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     private var lastGpsFixTimestampMs: Long = 0L
 
     val imuPreprocessor = ImuPreprocessor()
-    val tcnInputBuffer = TcnInputBuffer(capacity = 20)
+    val tcnInputBuffer = TcnInputBuffer()
     private var lastCanonicalSample: CanonicalImuSample? = null
 
     private val locationListener = object : LocationListener {
@@ -542,6 +544,8 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             totalCallbacks = totalCallbackCount.get(),
             gpsFixAgeMs = if (lastGpsFixTimestampMs > 0) System.currentTimeMillis() - lastGpsFixTimestampMs else -1L,
             tcnBufferCount = tcnInputBuffer.size,
+            tcnBufferCapacity = tcnInputBuffer.capacity,
+            tcnWindowSeconds = tcnInputBuffer.windowSeconds,
             tcnBufferReady = tcnInputBuffer.isReady,
             lastCanonicalSample = lastCanonicalSample,
             minDtMs = if (currentImuHz > 0) (1000f / (currentImuHz * 1.05f)) else 0f,
