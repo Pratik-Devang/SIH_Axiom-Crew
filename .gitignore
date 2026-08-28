@@ -14,7 +14,7 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Local data
+# Local data — raw and processed datasets are not committed
 data/raw/**
 data/interim/**
 data/processed/**
@@ -24,11 +24,8 @@ data/external/**
 !data/processed/.gitkeep
 !data/external/.gitkeep
 
-# Model artifacts
-models/checkpoints/**
-models/exports/**
-!models/checkpoints/.gitkeep
-!models/exports/.gitkeep
+# artifacts/ is intentionally committed so the team can access the trained TCN
+# and ONNX model without retraining.  Do NOT add blanket ignores for artifacts/.
 
 # Results and demo recordings
 results/metrics/**
@@ -40,8 +37,26 @@ demo/recordings/**
 !results/trajectories/.gitkeep
 !demo/recordings/.gitkeep
 
-# Android build outputs and local SDK settings
+# Android local and generated files
 android/.gradle/
+android/.kotlin/
+android/.idea/
 android/local.properties
 android/**/build/
 
+# Accidental root-level Android outputs
+.gradle/
+.kotlin/
+build/
+app/build/
+local.properties
+
+# Generated runtime caches and event logs
+cache/
+logs/
+
+# Generated reports and review renders
+output/
+report_assets/
+tmp/
+a11y_report*.json

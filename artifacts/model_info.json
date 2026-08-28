@@ -1,0 +1,23 @@
+{
+  "model": "SpeedTCN",
+  "parameters": 22626,
+  "input_shape": [
+    null,
+    6,
+    20
+  ],
+  "output": [
+    "speed_mean_mps",
+    "log_variance"
+  ],
+  "train_rows": 17973,
+  "validation_rows": 3851,
+  "test_rows": 3852,
+  "train_windows": 17954,
+  "validation_windows": 3832,
+  "test_windows": 3833,
+  "best_validation_loss": 3.2028597950935365,
+  "warmup_epochs": 7,
+  "target_column": " Indicated Vehicle Speed (km/hr)",
+  "target_unit": "m/s"
+}

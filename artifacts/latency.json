@@ -1,0 +1,11 @@
+{
+  "device": "development_machine_cpu",
+  "batch_size": 1,
+  "mean_latency_ms": 0.7185536663746461,
+  "p50_latency_ms": 0.6723999977111816,
+  "p95_latency_ms": 1.0349000222049654,
+  "p99_latency_ms": 1.257600000826642,
+  "parameters": 22626,
+  "pytorch_file_size_bytes": 100865,
+  "onnx_file_size_bytes": 113969
+}
