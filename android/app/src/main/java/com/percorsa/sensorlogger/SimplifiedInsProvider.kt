@@ -50,8 +50,8 @@ class SimplifiedInsProvider : DeadReckoningProvider {
 
     // ── ZUPT (Zero-Velocity Update) state ──────────────────────────────────────
     private var stationaryAccumSeconds: Double = 0.0
-    private val ZUPT_ACCEL_THRESHOLD = 0.4f   // m/s² — below this → might be stationary
-    private val ZUPT_WINDOW_SECONDS = 0.5     // require 0.5s of low accel before clamping
+    private val ZUPT_ACCEL_THRESHOLD = 0.6f   // m/s² — aligned with deadband
+    private val ZUPT_WINDOW_SECONDS = 0.3     // require 0.3s of low accel before clamping
 
     // ── GNSS blend state ──────────────────────────────────────────────────────
     private var gnssTargetLat: Double = 0.0
@@ -107,12 +107,16 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         }
         val isStationary = stationaryAccumSeconds >= ZUPT_WINDOW_SECONDS
 
-        // 4. Velocity integration (clamp to 0 if ZUPT/shake or low GPS speed)
+        // 4. Velocity integration with velocity damping decay to prevent stationary drift
         if (isStationary || (snapshot.hasGps && snapshot.gpsSpeedMps < 0.3f && snapshot.gpsAccuracyM < 15f)) {
             velocityMps = 0f
         } else if (!isHandShaking) {
-            // Low-pass filtered acceleration step
-            velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, 40f)
+            if (deadbandAccel != 0f) {
+                velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, 40f)
+            } else {
+                // Exponential velocity decay when acceleration is within deadband (friction damping)
+                velocityMps = (velocityMps * 0.90f).let { if (it < 0.05f) 0f else it }
+            }
         }
 
         // 5. Position integration
