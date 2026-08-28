@@ -40,8 +40,17 @@ demo/recordings/**
 !results/trajectories/.gitkeep
 !demo/recordings/.gitkeep
 
-# Android build outputs and local SDK settings
+# Android local and generated files
 android/.gradle/
+android/.kotlin/
+android/.idea/
 android/local.properties
 android/**/build/
+
+# Accidental root-level Android outputs
+.gradle/
+.kotlin/
+build/
+app/build/
+local.properties
 
