@@ -74,7 +74,7 @@ class SpeedWindowDataset(Dataset):
         trip_idx, start = self.index_map[index]
         inputs = self.trips_inputs[trip_idx]
         targets = self.trips_targets[trip_idx]
-        
+
         end = start + self.window_samples
         # PyTorch Conv1D expects [channels, time]: [6, 20]
         x = inputs[start:end].T.copy()

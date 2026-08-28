@@ -6,7 +6,7 @@ This document provides every technical detail, architectural choice, and impleme
 
 ## 📖 1. The Core Concept
 
-Vehicle speed is traditionally measured using GPS or OBD-II wheel speed sensors. However, GPS signal drops in tunnels/urban canyons, and OBD-II is not always accessible. 
+Vehicle speed is traditionally measured using GPS or OBD-II wheel speed sensors. However, GPS signal drops in tunnels/urban canyons, and OBD-II is not always accessible.
 
 This project estimates speed using **only smartphone IMU sensors** (3-axis Accelerometer + 3-axis Gyroscope). The AI learns the relationship between the vehicle's body vibrations (suspension oscillations, pitch dive during braking, yaw rate during turning) and its forward velocity.
 
@@ -176,16 +176,16 @@ dependencies {
 ```
 
 #### Step B: Maintain a 5-Second Rolling Sensor Queue
-You must collect smartphone accelerometer and gyroscope data at **10 Hz** (every 100 ms). 
+You must collect smartphone accelerometer and gyroscope data at **10 Hz** (every 100 ms).
 Keep a rolling queue of the last **50 samples**:
 ```kotlin
 // Each sensor sample has 6 values: [accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z]
-val sensorQueue: Queue<FloatArray> = LinkedList() 
+val sensorQueue: Queue<FloatArray> = LinkedList()
 
 fun onSensorChanged(accel: FloatArray, gyro: FloatArray) {
     val sample = floatArrayOf(accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2])
     sensorQueue.add(sample)
-    
+
     // Keep only the last 5 seconds (50 samples)
     if (sensorQueue.size > 50) {
         sensorQueue.poll()
@@ -194,7 +194,7 @@ fun onSensorChanged(accel: FloatArray, gyro: FloatArray) {
 ```
 
 #### Step C: Prepare the Input Tensor Shape `[1, 6, 50]`
-The input shape is structured as `[Batch, Channels, Time]`. 
+The input shape is structured as `[Batch, Channels, Time]`.
 This means you must group all 50 samples by sensor channel (transposed matrix):
 * Channel 0: 50 samples of Accelerometer X
 * Channel 1: 50 samples of Accelerometer Y
@@ -207,7 +207,7 @@ This means you must group all 50 samples by sensor channel (transposed matrix):
 fun prepareTensorInput(): FloatArray {
     val flatInput = FloatArray(1 * 6 * 50)
     val list = sensorQueue.toList()
-    
+
     for (channel in 0..5) {
         for (timeStep in 0..49) {
             val index = channel * 50 + timeStep
@@ -232,10 +232,10 @@ fun predictSpeed(): Float {
     val inputData = prepareTensorInput()
     val inputShape = longArrayOf(1, 6, 50)
     val inputTensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(inputData), inputShape)
-    
+
     val results = session.run(mapOf("input" to inputTensor))
     val outputTensor = results[0].value as Array<FloatArray>
-    
+
     val speedMps = outputTensor[0][0] // Speed in meters per second
     return speedMps * 3.6f // Convert to km/h for the UI speedometer
 }
