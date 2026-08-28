@@ -31,6 +31,15 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    // The new XML-based sensor logger replaces the earlier Compose prototype.
+    // Keep the legacy files in Git for reference, but do not compile them with
+    // this app because this build intentionally has no Compose dependencies.
+    sourceSets {
+        getByName("main").java.exclude("com/percorsa/navigation/**")
+        getByName("test").java.exclude("com/percorsa/navigation/**")
+        getByName("androidTest").java.exclude("com/percorsa/navigation/**")
+    }
 }
 
 dependencies {
