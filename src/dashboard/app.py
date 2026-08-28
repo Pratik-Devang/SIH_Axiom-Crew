@@ -284,13 +284,18 @@ speed_pred=speed_var=None; speed_status="Reference speed"
 if onnx_ok and use_tcn:
     try:
         predictor=OnnxSpeedPredictor(ONNX_PATH,NORM_PATH); speed_pred,speed_var=predictor.predict(trip); speed_status="TCN ONNX"
-    except Exception: speed_status="Reference speed (TCN failed)"
+    except Exception as exc:
+        speed_status="TCN unavailable — GNSS speed withheld in outage"
+        st.warning(f"TCN inference failed: {exc}. Reference speed will not enter the estimator during the outage.")
 
 with st.spinner("🔄 Running GNSS-denied replay…"):
     replay,metrics=run_outage_replay(trip,outage_start,outage_dur,speed_pred,speed_var)
 
 distance_km=float(np.hypot(np.diff(replay["east"].to_numpy()),np.diff(replay["north"].to_numpy())).sum()/1000.0)
 summary=metrics["percorsa"]; baseline=metrics["last_fix"]
+mode_counts=replay["navigation_mode"].value_counts()
+trusted_fixes=int(replay["gnss_trusted"].sum())
+rejected_fixes=int((replay["gnss_available"] & ~replay["gnss_trusted"]).sum())
 
 # ── KPIs ──
 st.markdown("<br>",unsafe_allow_html=True)
@@ -335,6 +340,16 @@ with state_col:
             ("Final 2σ uncertainty",float(replay["position_uncertainty_m"].iloc[-1]),"m","#94a3b8"),
         ]:
             st.markdown(f"<div style='margin-bottom:10px;'><div style='font-size:0.7rem;color:#475569;text-transform:uppercase;'>{label}</div><div style='font-size:1.4rem;font-weight:700;color:{color};'>{val:.1f} <span style='font-size:0.9rem;font-weight:400;'>{unit}</span></div></div>",unsafe_allow_html=True)
+        st.caption(
+            f"Modes — GNSS: {mode_counts.get('GNSS', 0)}, "
+            f"dead reckoning: {mode_counts.get('dead_reckoning', 0)}, "
+            f"recovery: {mode_counts.get('recovery', 0)}"
+        )
+        st.caption(
+            f"Trust gate — {trusted_fixes} accepted, {rejected_fixes} rejected · "
+            f"ZUPT: {int(replay['stop_detected'].sum())} samples · "
+            f"NHC: {int(replay['nhc_active'].sum())} samples"
+        )
         st.download_button("⬇️ Download evaluated CSV",replay.to_csv(index=False),
                            f"{v['trip_id']}_evaluated.csv","text/csv",use_container_width=True)
 
@@ -354,8 +369,9 @@ with t4:
     with i1: st.plotly_chart(sensor_fig(replay,["accel_x","accel_y","accel_z"],"Acceleration","m/s²"),use_container_width=True)
     with i2: st.plotly_chart(sensor_fig(replay,["gyro_x","gyro_y","gyro_z"],"Gyroscope","rad/s"),use_container_width=True)
 with t5:
-    disp=["time_since_start_s","estimated_latitude","estimated_longitude","position_error_m","position_uncertainty_m","estimated_speed_mps","gnss_available"]
+    disp=["time_since_start_s","navigation_mode","active_constraints","gnss_available","gnss_trusted","gnss_trust_score","gnss_trust_reason","stop_detected","nhc_active","nhc_violation","estimated_latitude","estimated_longitude","position_error_m","position_uncertainty_m","estimated_speed_mps"]
     show=[c for c in disp if c in replay.columns]
-    st.dataframe(replay[show].style.format({c:"{:.4f}" for c in show if c!="gnss_available"}),use_container_width=True,height=400)
+    numeric_show=[c for c in show if pd.api.types.is_numeric_dtype(replay[c]) and replay[c].dtype != bool]
+    st.dataframe(replay[show].style.format({c:"{:.4f}" for c in numeric_show}),use_container_width=True,height=400)
 
 st.markdown("<div class='footer'>Percorsa · Axiom Crew · GNSS-denied resilient vehicle navigation · Dashboard v2.0</div>",unsafe_allow_html=True)
