@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import pytest
+torch = pytest.importorskip("torch")
 import numpy as np
 import pandas as pd
-import torch
 
 from src.ml.dataset import SpeedWindowDataset, make_window_arrays
 from src.ml.preprocessing import INPUT_COLUMNS, fit_normalization, apply_normalization, standardize_trip_dataframe
@@ -26,7 +27,6 @@ def test_standardize_trip_dataframe():
 
 
 def test_speed_window_dataset_no_cross_trip_leakage():
-    # 2 trips of 25 samples each
     df1 = pd.DataFrame({col: np.random.randn(25) for col in INPUT_COLUMNS})
     df1["speed_mps"] = np.float32(10.0)
     
@@ -35,16 +35,15 @@ def test_speed_window_dataset_no_cross_trip_leakage():
 
     dataset = SpeedWindowDataset([df1, df2], window_samples=20, stride=1)
     
-    # 25 samples with window 20 -> 6 windows per trip, 12 windows total
     assert len(dataset) == 12
     
     x0, y0 = dataset[0]
-    x5, y5 = dataset[5]   # last window of trip 1
-    x6, y6 = dataset[6]   # first window of trip 2
+    x5, y5 = dataset[5]
+    x6, y6 = dataset[6]
     
     assert tuple(x0.shape) == (6, 20)
     assert float(y5) == 10.0
-    assert float(y6) == 20.0  # clean separation between trips
+    assert float(y6) == 20.0
 
 
 def test_normalization_fitting():
