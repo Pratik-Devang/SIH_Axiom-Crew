@@ -21,6 +21,10 @@ from src.ml.tcn import build_model
 def run_test_payload(model, name: str, imu_matrix: np.ndarray, mean: list | dict, std: list | dict, window_samples: int) -> None:
     # 1. Normalize the simulated input using our training statistics
     columns = ["accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z"]
+    if imu_matrix.shape != (len(columns), window_samples):
+        raise ValueError(
+            f"Expected IMU payload shape {(len(columns), window_samples)}, got {imu_matrix.shape}"
+        )
     norm_imu = np.zeros_like(imu_matrix, dtype=np.float32)
 
     for idx, col in enumerate(columns):
@@ -28,7 +32,11 @@ def run_test_payload(model, name: str, imu_matrix: np.ndarray, mean: list | dict
         std_val = std[col] if isinstance(std, dict) else std[idx]
         norm_imu[idx, :] = (imu_matrix[idx, :] - mean_val) / std_val
 
+<<<<<<< HEAD
     # Convert to PyTorch tensor shaped [1, 6, window_samples]
+=======
+    # Convert to a PyTorch tensor shaped [batch, channels, time].
+>>>>>>> e1ee86a3b0f2f6630467a4fd9d784b05208c5d2d
     x = torch.from_numpy(norm_imu).unsqueeze(0)
 
     # 2. Query the model (Inference / POST request)

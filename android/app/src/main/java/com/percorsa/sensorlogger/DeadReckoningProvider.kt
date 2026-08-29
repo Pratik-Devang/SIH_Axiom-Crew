@@ -14,7 +14,7 @@ package com.percorsa.sensorlogger
  *       └── PercorsaEskfProvider    — future slot for real TCN + ESKF engine
  *
  * To replace SimplifiedInsProvider with the real Percorsa algorithm:
- *   1. Complete PercorsaEskfProvider (port TCN + ESKF from Python)
+ *   1. Complete PercorsaEskfProvider (port the ESKF from Python)
  *   2. In NavigationController, change:
  *        drProvider = SimplifiedInsProvider()
  *      to:
@@ -39,6 +39,9 @@ interface DeadReckoningProvider {
      * @param dtSeconds Time delta since last call, in seconds
      */
     fun update(snapshot: SensorSnapshot, dtSeconds: Double)
+
+    /** Inject a trusted TCN forward-speed estimate when GNSS is unavailable. */
+    fun injectSpeedEstimate(speedMps: Float)
 
     /**
      * Inject a confirmed GNSS position to reset or correct the DR estimate.

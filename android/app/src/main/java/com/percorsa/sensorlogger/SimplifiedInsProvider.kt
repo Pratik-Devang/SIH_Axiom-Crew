@@ -42,6 +42,7 @@ class SimplifiedInsProvider : DeadReckoningProvider {
     private var estimatedLon: Double = 0.0
     private var headingDeg: Float = 0f
     private var velocityMps: Float = 0f
+    private var pendingTcnSpeedMps: Float? = null
     private var initialized: Boolean = false
 
     // Estimated accuracy degrades over time without GNSS
@@ -97,8 +98,11 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         )
         val gyroMag = snapshot.gyroMag
 
-        // Rapid gyro changes or high 3D accel variance indicates hand shaking, not vehicle motion
-        val isHandShaking = gyroMag > 2.5f || (accelMag > 6.0f && snapshot.gpsSpeedMps < 1.0f)
+        // Use conservative shake thresholds here. A stale low-speed GNSS fix
+        // must not classify the vehicle as a pedestrian during an outage and
+        // cap an otherwise valid TCN prediction at 3 m/s.
+        val isHandShaking = gyroMag > 2.5f ||
+            (accelMag > 6.0f && snapshot.hasGps && snapshot.gpsSpeedMps < 1.0f)
 
         if (accelMag < ZUPT_ACCEL_THRESHOLD || isHandShaking) {
             stationaryAccumSeconds += dtSeconds
@@ -110,9 +114,16 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         // 4. Velocity integration (clamp to 0 if ZUPT/shake or low GPS speed)
         if (isStationary || (snapshot.hasGps && snapshot.gpsSpeedMps < 0.3f && snapshot.gpsAccuracyM < 15f)) {
             velocityMps = 0f
+            pendingTcnSpeedMps = null
         } else if (!isHandShaking) {
-            // Low-pass filtered acceleration step
+            // The TCN output is already causally smoothed and rate-limited.
+            // Blend it strongly enough to correct inertial drift while keeping
+            // acceleration integration as the dominant short-term signal.
             velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, 40f)
+            pendingTcnSpeedMps?.let { tcnSpeed ->
+                velocityMps = (0.75f * velocityMps + 0.25f * tcnSpeed).coerceIn(0f, 40f)
+            }
+            pendingTcnSpeedMps = null
         }
 
         // 5. Position integration
@@ -174,6 +185,12 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         if (bearingDeg > 0f) headingDeg = bearingDeg
     }
 
+    override fun injectSpeedEstimate(speedMps: Float) {
+        if (speedMps.isFinite() && speedMps >= 0f) {
+            pendingTcnSpeedMps = speedMps.coerceAtMost(40f)
+        }
+    }
+
     override fun getEstimatedPosition(): DrPosition? {
         if (!initialized) return null
         val blendFactor = if (blendActive && blendWindowSeconds > 0)
@@ -197,6 +214,7 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         estimatedAccuracyM = 5f
         initialized = false
         stationaryAccumSeconds = 0.0
+        pendingTcnSpeedMps = null
         blendActive = false
         blendElapsedSeconds = 0.0
     }

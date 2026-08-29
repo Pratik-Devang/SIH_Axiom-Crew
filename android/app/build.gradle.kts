@@ -11,8 +11,8 @@ android {
         applicationId = "com.percorsa.sensorlogger"
         minSdk = 21
         targetSdk = 34
-        versionCode = 3
-        versionName = "2.0"
+        versionCode = 4
+        versionName = "2.1-ml"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -43,6 +43,37 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    // Keep the deployed TCN contract in the APK. ONNX models are already
+    // compressed binary files, so storing them uncompressed also avoids an
+    // unnecessary decompression/copy step during model initialization.
+    sourceSets {
+        getByName("main") {
+            assets.srcDir("src/main/assets")
+        }
+    }
+    androidResources {
+        noCompress += "onnx"
+    }
+}
+
+val verifyTcnAssets by tasks.registering {
+    val model = layout.projectDirectory.file("src/main/assets/tcn.onnx")
+    val normalization = layout.projectDirectory.file("src/main/assets/normalization.json")
+    inputs.files(model, normalization)
+
+    doLast {
+        require(model.asFile.isFile && model.asFile.length() > 0L) {
+            "Missing or empty Android TCN model: ${model.asFile}"
+        }
+        require(normalization.asFile.isFile && normalization.asFile.length() > 0L) {
+            "Missing or empty Android TCN normalization data: ${normalization.asFile}"
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(verifyTcnAssets)
 }
 
 dependencies {
@@ -67,6 +98,9 @@ dependencies {
 
     // JSON parsing — for Nominatim/OSRM response parsing
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // On-device TCN speed inference
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.20.0")
 
     testImplementation("junit:junit:4.13.2")
 }

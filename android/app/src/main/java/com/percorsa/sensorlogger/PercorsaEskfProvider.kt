@@ -30,11 +30,10 @@ import android.util.Log
  *   DrPosition
  *
  * Integration steps required to activate this provider:
- * 1. Load the TCN ONNX model via Android ML Kit or OnnxRuntime
- * 2. Port the Python ESKF from /src/navigation/eskf.py to Kotlin
- * 3. Port the vehicle constraints from /src/navigation/constraints.py
- * 4. Wire sensor snapshots through the TCN inference pipeline
- * 5. In NavigationController, replace:
+ * 1. Port the Python ESKF from /src/navigation/eskf.py to Kotlin
+ * 2. Port the vehicle constraints from /src/navigation/constraints.py
+ * 3. Consume the already available TCN speed through injectSpeedEstimate()
+ * 4. In NavigationController, replace:
  *       val drEngine: DeadReckoningProvider = SimplifiedInsProvider()
  *    with:
  *       val drEngine: DeadReckoningProvider = PercorsaEskfProvider(context)
@@ -74,6 +73,10 @@ class PercorsaEskfProvider : DeadReckoningProvider {
     override fun getEstimatedPosition(): DrPosition? {
         // Not yet available
         return null
+    }
+
+    override fun injectSpeedEstimate(speedMps: Float) {
+        Log.w("PercorsaESKF", "TCN speed received but ESKF measurement update is not yet implemented")
     }
 
     override fun reset() {

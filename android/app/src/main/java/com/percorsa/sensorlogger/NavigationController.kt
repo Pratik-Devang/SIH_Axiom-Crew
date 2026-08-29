@@ -82,6 +82,7 @@ class NavigationController(private val context: Context) {
         val current = _state.value
 
         val hasTrustedGnss = gnssMonitor.shouldUseMeasurement() && snap.hasGps && snap.latitude != 0.0
+        val usingMlSpeed = !hasTrustedGnss && snap.tcnInferenceActive
         if (hasTrustedGnss) {
             val blendWindow = if (gnssMonitor.isGnssDenied()) 0.0 else GNSS_BLEND_SECONDS
             drEngine.injectGnssCorrection(
@@ -92,6 +93,8 @@ class NavigationController(private val context: Context) {
                 bearingDeg = snap.gpsBearingDeg,
                 blendWindowSeconds = blendWindow
             )
+        } else if (usingMlSpeed) {
+            drEngine.injectSpeedEstimate(snap.tcnPredictedSpeedMps)
         }
 
         drEngine.update(snap, dtSeconds)
@@ -126,6 +129,12 @@ class NavigationController(private val context: Context) {
                     gnssQuality = gnssQuality,
                     isRecording = sensorEngine.isRecording,
                     recordedSamples = snap.loggedCsvRows,
+                    mlModelLoaded = snap.tcnModelLoaded,
+                    mlBufferReady = snap.tcnBufferReady,
+                    mlInferenceActive = snap.tcnInferenceActive,
+                    mlSpeedMps = snap.tcnPredictedSpeedMps,
+                    mlLatencyMs = snap.tcnInferenceLatencyMs,
+                    mlError = snap.tcnInferenceError,
                     navigationHealth = computeHealth(snap, gnssQuality)
                 ))
                 return
@@ -210,8 +219,14 @@ class NavigationController(private val context: Context) {
             positionAccuracy = accuracy,
             navMode = newMode,
             gnssQuality = gnssQuality,
-            drActive = drActive,
-            drProvider = if (drActive) drEngine.providerType else DrProviderType.NONE,
+            drActive = drActive || usingMlSpeed,
+            drProvider = if (drActive || usingMlSpeed) drEngine.providerType else DrProviderType.NONE,
+            mlModelLoaded = snap.tcnModelLoaded,
+            mlBufferReady = snap.tcnBufferReady,
+            mlInferenceActive = snap.tcnInferenceActive,
+            mlSpeedMps = snap.tcnPredictedSpeedMps,
+            mlLatencyMs = snap.tcnInferenceLatencyMs,
+            mlError = snap.tcnInferenceError,
             distanceRemainingM = distRemaining,
             etaSeconds = etaSec,
             nextManeuver = nextManeuver,
@@ -316,6 +331,12 @@ class NavigationController(private val context: Context) {
             heading = _state.value.heading,
             speed = _state.value.speed,
             gnssQuality = _state.value.gnssQuality,
+            mlModelLoaded = _state.value.mlModelLoaded,
+            mlBufferReady = _state.value.mlBufferReady,
+            mlInferenceActive = _state.value.mlInferenceActive,
+            mlSpeedMps = _state.value.mlSpeedMps,
+            mlLatencyMs = _state.value.mlLatencyMs,
+            mlError = _state.value.mlError,
             isRecording = _state.value.isRecording,
             recordedSamples = _state.value.recordedSamples,
             recentSearches = preferencesRepo.getRecentSearches(),
@@ -422,15 +443,33 @@ class NavigationController(private val context: Context) {
             else -> HealthStatus.FAILED
         }
         val imuStatus = if (snap.imuHz > 50) HealthStatus.GOOD else HealthStatus.DEGRADED
+        val tcnStatus = when {
+            snap.tcnInferenceActive -> HealthStatus.GOOD
+            snap.tcnInferenceError != null -> HealthStatus.FAILED
+            snap.tcnModelLoaded && snap.tcnBufferReady -> HealthStatus.DEGRADED
+            else -> HealthStatus.UNKNOWN
+        }
         return NavigationHealth(
             gnssHealth = gStatus,
             accelHealth = imuStatus,
             gyroHealth = imuStatus,
             rotationVectorHealth = imuStatus,
             filterHealth = HealthStatus.GOOD,
-            tcnHealth = HealthStatus.GOOD,
+            tcnHealth = tcnStatus,
             routeHealth = if (_state.value.offRoute) HealthStatus.DEGRADED else HealthStatus.GOOD,
-            details = "IMU: %.0fHz | GPS Acc: %.1fm | FixAge: %dms".format(snap.imuHz, snap.gpsAccuracyM, snap.gpsFixAgeMs)
+            details = "IMU: %.0fHz | GPS Acc: %.1fm | FixAge: %dms | TCN: %s".format(
+                snap.imuHz,
+                snap.gpsAccuracyM,
+                snap.gpsFixAgeMs,
+                if (snap.tcnInferenceActive) {
+                    "%.2fm/s (%.2fms)".format(
+                        snap.tcnPredictedSpeedMps,
+                        snap.tcnInferenceLatencyMs
+                    )
+                } else {
+                    "inactive"
+                }
+            )
         )
     }
 
