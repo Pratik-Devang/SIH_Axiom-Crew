@@ -98,8 +98,10 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         )
         val gyroMag = snapshot.gyroMag
 
-        // Rapid gyro changes or high 3D accel variance indicates hand shaking, not vehicle motion
-        val isHandShaking = gyroMag > 2.5f || (accelMag > 6.0f && snapshot.gpsSpeedMps < 1.0f)
+        // Rapid gyro changes or accel variance indicates hand shaking / walking steps, not vehicle cruising
+        val isHandShaking = gyroMag > 1.2f || (accelMag > 3.0f && snapshot.gpsSpeedMps < 1.0f)
+        val isPedestrianOrWalking = isHandShaking || (snapshot.hasGps && snapshot.gpsSpeedMps < 2.5f)
+        val maxAllowedSpeedMps = if (isPedestrianOrWalking) 3.0f else 40.0f
 
         if (accelMag < ZUPT_ACCEL_THRESHOLD || isHandShaking) {
             stationaryAccumSeconds += dtSeconds
@@ -112,11 +114,12 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         if (isStationary || (snapshot.hasGps && snapshot.gpsSpeedMps < 0.3f && snapshot.gpsAccuracyM < 15f)) {
             velocityMps = 0f
             pendingTcnSpeedMps = null
-        } else if (!isHandShaking) {
-            // Low-pass filtered acceleration step
-            velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, 40f)
+        } else {
+            // Low-pass filtered acceleration step with pedestrian speed capping
+            velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, maxAllowedSpeedMps)
             pendingTcnSpeedMps?.let { tcnSpeed ->
-                velocityMps = (0.75f * velocityMps + 0.25f * tcnSpeed).coerceIn(0f, 40f)
+                val clampedTcn = tcnSpeed.coerceAtMost(maxAllowedSpeedMps)
+                velocityMps = (0.90f * velocityMps + 0.10f * clampedTcn).coerceIn(0f, maxAllowedSpeedMps)
             }
             pendingTcnSpeedMps = null
         }

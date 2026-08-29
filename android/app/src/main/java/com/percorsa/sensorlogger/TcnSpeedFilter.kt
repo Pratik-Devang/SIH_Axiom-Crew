@@ -55,8 +55,8 @@ class TcnSpeedFilter(
     }
 
     companion object {
-        const val DEFAULT_SMOOTHING_ALPHA = 0.25f
-        const val DEFAULT_MAX_ACCELERATION_MPS2 = 8f
+        const val DEFAULT_SMOOTHING_ALPHA = 0.10f
+        const val DEFAULT_MAX_ACCELERATION_MPS2 = 1.8f
         private const val MIN_DT_SECONDS = 0.05f
         private const val MAX_DT_SECONDS = 0.5f
     }
