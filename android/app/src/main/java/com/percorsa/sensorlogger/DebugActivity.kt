@@ -250,16 +250,22 @@ class DebugActivity : AppCompatActivity() {
         tvDbgTcnStatus.text = "TCN Input Buffer: $bufferReadyStr (%.1fs @ %d Hz canonical stream)".format(
             Locale.US, snap.tcnWindowSeconds, TcnInputBuffer.SAMPLE_RATE_HZ
         )
-        tvDbgTcnStatus.setTextColor(if (snap.tcnBufferReady) 0xFF34D399.toInt() else 0xFFF59E0B.toInt())
+        tvDbgTcnStatus.setTextColor(if (snap.tcnInferenceActive) 0xFF34D399.toInt() else 0xFFF59E0B.toInt())
         tvDbgTcnModel.text = when {
-            snap.tcnInferenceActive -> "Model Status: ACTIVE | Speed: %.2f m/s (%.1f km/h) | Age: %d ms".format(
+            snap.tcnInferenceActive -> "Model Status: ACTIVE | Raw: %.2f m/s | Filtered: %.2f m/s (%.1f km/h) | Age: %d ms | Inference: %.2f ms | Rate limited: %s | Rejected: %d".format(
                 Locale.US,
+                snap.tcnRawSpeedMps,
                 snap.tcnPredictedSpeedMps,
                 snap.tcnPredictedSpeedMps * 3.6f,
-                snap.tcnInferenceAgeMs
+                snap.tcnInferenceAgeMs,
+                snap.tcnInferenceLatencyMs,
+                if (snap.tcnPredictionRateLimited) "YES" else "NO",
+                snap.tcnRejectedPredictionCount
             )
             snap.tcnInferenceError != null -> "Model Status: ERROR | ${snap.tcnInferenceError}"
-            snap.tcnBufferReady -> "Model Status: LOADED | Waiting for first inference"
+            snap.tcnInferenceInFlight -> "Model Status: RUNNING FIRST INFERENCE"
+            snap.tcnModelLoaded && snap.tcnBufferReady -> "Model Status: LOADED | Waiting for first inference"
+            !snap.tcnModelLoaded -> "Model Status: LOADING ONNX MODEL"
             else -> "Model Status: WARMING UP | Collecting 5-second IMU window"
         }
         val lastCan = snap.lastCanonicalSample

@@ -427,7 +427,7 @@ class NavigationController(private val context: Context) {
         val tcnStatus = when {
             snap.tcnInferenceActive -> HealthStatus.GOOD
             snap.tcnInferenceError != null -> HealthStatus.FAILED
-            snap.tcnBufferReady -> HealthStatus.DEGRADED
+            snap.tcnModelLoaded && snap.tcnBufferReady -> HealthStatus.DEGRADED
             else -> HealthStatus.UNKNOWN
         }
         return NavigationHealth(
@@ -442,7 +442,14 @@ class NavigationController(private val context: Context) {
                 snap.imuHz,
                 snap.gpsAccuracyM,
                 snap.gpsFixAgeMs,
-                if (snap.tcnInferenceActive) "%.2fm/s".format(snap.tcnPredictedSpeedMps) else "inactive"
+                if (snap.tcnInferenceActive) {
+                    "%.2fm/s (%.2fms)".format(
+                        snap.tcnPredictedSpeedMps,
+                        snap.tcnInferenceLatencyMs
+                    )
+                } else {
+                    "inactive"
+                }
             )
         )
     }

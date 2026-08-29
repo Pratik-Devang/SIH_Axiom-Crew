@@ -1,8 +1,10 @@
 package com.percorsa.sensorlogger
 
+import ai.onnxruntime.OnnxJavaType
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
+import ai.onnxruntime.TensorInfo
 import android.content.Context
 import org.json.JSONObject
 import java.nio.FloatBuffer
@@ -18,11 +20,23 @@ class TcnSpeedPredictor(context: Context) : AutoCloseable {
 
     init {
         val modelBytes = context.assets.open(MODEL_ASSET).use { it.readBytes() }
-        session = environment.createSession(modelBytes, OrtSession.SessionOptions())
+        session = OrtSession.SessionOptions().use { options ->
+            environment.createSession(modelBytes, options)
+        }
         inputName = session.inputNames.first()
+        validateModelContract()
 
         val normalization = context.assets.open(NORMALIZATION_ASSET).bufferedReader().use {
             JSONObject(it.readText())
+        }
+        val columns = normalization.getJSONArray("columns")
+        require(columns.length() == FEATURE_NAMES.size) {
+            "Expected ${FEATURE_NAMES.size} normalization columns, got ${columns.length()}"
+        }
+        FEATURE_NAMES.forEachIndexed { index, expected ->
+            require(columns.getString(index) == expected) {
+                "Normalization column $index must be $expected, got ${columns.getString(index)}"
+            }
         }
         means = normalization.getJSONArray("mean").toFloatArray()
         standardDeviations = normalization.getJSONArray("std").toFloatArray()
@@ -87,10 +101,37 @@ class TcnSpeedPredictor(context: Context) : AutoCloseable {
         session.close()
     }
 
+    private fun validateModelContract() {
+        require(session.inputNames.size == 1) { "TCN must expose exactly one input" }
+        require(session.outputNames.size == 1) { "TCN must expose exactly one output" }
+
+        val inputInfo = session.inputInfo[inputName]?.info as? TensorInfo
+            ?: error("TCN input must be a tensor")
+        val shape = inputInfo.shape
+        require(inputInfo.type == OnnxJavaType.FLOAT) { "TCN input must use Float32" }
+        require(
+            shape.size == 3 &&
+                shape[1] == TcnInputBuffer.FEATURE_COUNT.toLong() &&
+                shape[2] == TcnInputBuffer.DEFAULT_CAPACITY.toLong()
+        ) {
+            "TCN input must be [batch, ${TcnInputBuffer.FEATURE_COUNT}, ${TcnInputBuffer.DEFAULT_CAPACITY}], got ${shape.contentToString()}"
+        }
+
+        val outputInfo = session.outputInfo.values.single().info as? TensorInfo
+            ?: error("TCN output must be a tensor")
+        require(outputInfo.type == OnnxJavaType.FLOAT) { "TCN output must use Float32" }
+        require(outputInfo.shape.size == 1) {
+            "Deterministic TCN output must be [batch], got ${outputInfo.shape.contentToString()}"
+        }
+    }
+
     private fun org.json.JSONArray.toFloatArray(): FloatArray =
         FloatArray(length()) { index -> getDouble(index).toFloat() }
 
     companion object {
+        private val FEATURE_NAMES = listOf(
+            "accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z"
+        )
         private const val MODEL_ASSET = "tcn.onnx"
         private const val NORMALIZATION_ASSET = "normalization.json"
         private const val MIN_SPEED_MPS = 0f

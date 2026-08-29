@@ -80,10 +80,12 @@ The current implementation logs high-frequency motion data:
 
 The app bundles `tcn.onnx` and its training normalization values. `SensorEngine`
 creates a canonical `[1, 6, 50]` tensor after the initial five-second warm-up,
-runs deterministic ONNX inference at 10 Hz, and injects valid forward-speed
-estimates into the fallback dead-reckoning provider while GNSS is untrusted.
-Developer Mode reports buffer readiness, inference age, predicted speed, and
-model-loading errors.
+runs deterministic ONNX inference on a dedicated worker, and injects valid
+forward-speed estimates into the fallback dead-reckoning provider while GNSS is
+untrusted. A causal output filter limits implausible speed jumps before they
+reach navigation. Developer Mode reports model loading, buffer readiness, raw
+and filtered speed, inference latency, rate limiting, rejected predictions, and
+errors.
 
 ## Known Incomplete Features
 
