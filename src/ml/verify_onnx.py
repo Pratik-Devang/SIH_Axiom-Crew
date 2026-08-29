@@ -24,7 +24,7 @@ def main() -> None:
     if not ckpt_path.exists():
         ckpt_path = ARTIFACTS_V2 / "tcn_best.pt"
 
-    ckpt = torch.load(ckpt_path, map_location="cpu")
+    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     config = ckpt["config"]
     model = build_model(config)
     model.load_state_dict(ckpt["model_state_dict"])
