@@ -93,8 +93,15 @@ def main() -> None:
     _, meta = load_standardized_trip(config)
     
     stats = fit_normalization(split_trips["train"], INPUT_COLUMNS)
-    save_json(stats, ARTIFACTS / "normalization.json")
-    save_json(stats, ARTIFACTS_V2 / "normalization.json")
+    
+    # Save list-based format for Android TcnSpeedPredictor.kt compatibility
+    android_stats = {
+        "mean": [stats["mean"][col] for col in INPUT_COLUMNS],
+        "std": [stats["std"][col] for col in INPUT_COLUMNS],
+        "columns": INPUT_COLUMNS
+    }
+    save_json(android_stats, ARTIFACTS / "normalization.json")
+    save_json(android_stats, ARTIFACTS_V2 / "normalization.json")
 
     norm_trips = {
         name: [apply_normalization(frame, stats) for frame in frames]

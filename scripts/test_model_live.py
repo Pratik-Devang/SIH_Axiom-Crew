@@ -18,15 +18,17 @@ sys.path.insert(0, str(ROOT))
 from src.ml.tcn import build_model
 
 
-def run_test_payload(model, name: str, imu_matrix: np.ndarray, mean: dict, std: dict) -> None:
+def run_test_payload(model, name: str, imu_matrix: np.ndarray, mean: list | dict, std: list | dict, window_samples: int) -> None:
     # 1. Normalize the simulated input using our training statistics
     columns = ["accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z"]
     norm_imu = np.zeros_like(imu_matrix, dtype=np.float32)
 
     for idx, col in enumerate(columns):
-        norm_imu[idx, :] = (imu_matrix[idx, :] - mean[col]) / std[col]
+        mean_val = mean[col] if isinstance(mean, dict) else mean[idx]
+        std_val = std[col] if isinstance(std, dict) else std[idx]
+        norm_imu[idx, :] = (imu_matrix[idx, :] - mean_val) / std_val
 
-    # Convert to a PyTorch tensor shaped [batch, channels, time].
+    # Convert to PyTorch tensor shaped [1, 6, window_samples]
     x = torch.from_numpy(norm_imu).unsqueeze(0)
 
     # 2. Query the model (Inference / POST request)
@@ -58,15 +60,15 @@ def main() -> None:
         ckpt_path = ROOT / "artifacts" / "v2" / "tcn_best.pt"
 
     print(f"Loading checkpoint from: {ckpt_path}")
-    ckpt = torch.load(ckpt_path, map_location="cpu")
+    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     config = ckpt["config"]
     normalization = ckpt["normalization"]
+    window_samples = int(config["data"]["window_samples"])
 
     # Load model
     model = build_model(config)
     model.load_state_dict(ckpt["model_state_dict"])
     model.eval()
-    window_samples = int(config["data"]["window_samples"])
 
     # ==================================================================
     # SIMULATION PAYLOAD 1: Stationary Car
@@ -80,7 +82,8 @@ def main() -> None:
         "STATIONARY CAR (Only Gravity, No Rotation)",
         stationary_imu,
         normalization["mean"],
-        normalization["std"]
+        normalization["std"],
+        window_samples
     )
 
     # ==================================================================
@@ -99,7 +102,8 @@ def main() -> None:
         "HIGH ACCELERATION CAR (Moving Forward + Vibration)",
         accelerating_imu,
         normalization["mean"],
-        normalization["std"]
+        normalization["std"],
+        window_samples
     )
 
 

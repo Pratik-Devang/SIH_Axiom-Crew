@@ -251,8 +251,10 @@ def fit_normalization(train_frames: pd.DataFrame | list[pd.DataFrame], columns: 
 
 def apply_normalization(df: pd.DataFrame, stats: dict[str, Any]) -> pd.DataFrame:
     out = df.copy()
-    for col in stats["columns"]:
-        out[col] = (out[col] - stats["mean"][col]) / stats["std"][col]
+    for idx, col in enumerate(stats["columns"]):
+        mean_val = stats["mean"][col] if isinstance(stats["mean"], dict) else stats["mean"][idx]
+        std_val = stats["std"][col] if isinstance(stats["std"], dict) else stats["std"][idx]
+        out[col] = (out[col] - mean_val) / std_val
     return out
 
 
