@@ -82,7 +82,9 @@ class NavigationController(private val context: Context) {
         val current = _state.value
 
         val hasTrustedGnss = gnssMonitor.shouldUseMeasurement() && snap.hasGps && snap.latitude != 0.0
-        val usingMlSpeed = !hasTrustedGnss && snap.tcnInferenceActive
+        val usingMlSpeed = !hasTrustedGnss &&
+                snap.tcnInferenceActive &&
+                drEngine.acceptsTcnSpeedEstimate
         if (hasTrustedGnss) {
             val blendWindow = if (gnssMonitor.isGnssDenied()) 0.0 else GNSS_BLEND_SECONDS
             drEngine.injectGnssCorrection(
@@ -131,8 +133,8 @@ class NavigationController(private val context: Context) {
                     recordedSamples = snap.loggedCsvRows,
                     mlModelLoaded = snap.tcnModelLoaded,
                     mlBufferReady = snap.tcnBufferReady,
-                    mlInferenceActive = snap.tcnInferenceActive,
-                    mlSpeedMps = snap.tcnPredictedSpeedMps,
+                    mlInferenceActive = usingMlSpeed,
+                    mlSpeedMps = if (usingMlSpeed) snap.tcnPredictedSpeedMps else 0f,
                     mlLatencyMs = snap.tcnInferenceLatencyMs,
                     mlError = snap.tcnInferenceError,
                     navigationHealth = computeHealth(snap, gnssQuality)
@@ -223,8 +225,8 @@ class NavigationController(private val context: Context) {
             drProvider = if (drActive || usingMlSpeed) drEngine.providerType else DrProviderType.NONE,
             mlModelLoaded = snap.tcnModelLoaded,
             mlBufferReady = snap.tcnBufferReady,
-            mlInferenceActive = snap.tcnInferenceActive,
-            mlSpeedMps = snap.tcnPredictedSpeedMps,
+            mlInferenceActive = usingMlSpeed,
+            mlSpeedMps = if (usingMlSpeed) snap.tcnPredictedSpeedMps else 0f,
             mlLatencyMs = snap.tcnInferenceLatencyMs,
             mlError = snap.tcnInferenceError,
             distanceRemainingM = distRemaining,

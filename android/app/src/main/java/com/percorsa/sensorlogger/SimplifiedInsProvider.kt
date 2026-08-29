@@ -45,6 +45,19 @@ class SimplifiedInsProvider : DeadReckoningProvider {
     private var pendingTcnSpeedMps: Float? = null
     private var initialized: Boolean = false
 
+    // The deployed TCN is vehicle-only. Do not let walking vibration become a
+    // vehicle-speed measurement until trusted GNSS has demonstrated vehicle motion.
+    private var vehicleMotionObserved: Boolean = false
+    override val acceptsTcnSpeedEstimate: Boolean get() = vehicleMotionObserved
+
+    // Android rotation-vector yaw is phone-relative and uses the opposite turn
+    // sign from compass bearing. Anchor relative yaw changes to the last moving
+    // GNSS bearing instead of treating phone yaw as an absolute road heading.
+    private var hasHeadingAnchor: Boolean = false
+    private var headingAnchorPending: Boolean = false
+    private var deviceYawAnchorDeg: Float = 0f
+    private var gnssHeadingAnchorDeg: Float = 0f
+
     // Estimated accuracy degrades over time without GNSS
     private var estimatedAccuracyM: Float = 5f
     private val DR_ACCURACY_GROWTH_RATE = 2f  // metres per second of DR
@@ -77,9 +90,15 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         val q2 = snapshot.quatY.toDouble()
         val q3 = snapshot.quatZ.toDouble()
         val yawRad = atan2(2.0 * (q0 * q3 + q1 * q2), 1.0 - 2.0 * (q2 * q2 + q3 * q3))
-        headingDeg = Math.toDegrees(yawRad).toFloat().let {
-            if (it < 0f) it + 360f else it
+        val deviceYawDeg = normalizeHeading(Math.toDegrees(yawRad).toFloat())
+        if (!hasHeadingAnchor || headingAnchorPending) {
+            deviceYawAnchorDeg = deviceYawDeg
+            gnssHeadingAnchorDeg = headingDeg
+            hasHeadingAnchor = true
+            headingAnchorPending = false
         }
+        val relativePhoneTurnDeg = shortestSignedAngle(deviceYawAnchorDeg, deviceYawDeg)
+        headingDeg = normalizeHeading(gnssHeadingAnchorDeg - relativePhoneTurnDeg)
 
         // 2. Forward acceleration from calibrated vehicle frame with deadband & low-pass filtering
         val rawForwardAccel = if (snapshot.isCalibrated)
@@ -111,6 +130,11 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         }
         val isStationary = stationaryAccumSeconds >= ZUPT_WINDOW_SECONDS
 
+        // Walking recordings are outside the vehicle TCN's training domain.
+        // Keep pedestrian fallback physically bounded and ignore TCN output
+        // until trusted GNSS has shown clear vehicle motion.
+        val speedLimitMps = if (vehicleMotionObserved) VEHICLE_MAX_SPEED_MPS else PEDESTRIAN_MAX_SPEED_MPS
+
         // 4. Velocity integration (clamp to 0 if ZUPT/shake or low GPS speed)
         if (isStationary || (snapshot.hasGps && snapshot.gpsSpeedMps < 0.3f && snapshot.gpsAccuracyM < 15f)) {
             velocityMps = 0f
@@ -119,9 +143,12 @@ class SimplifiedInsProvider : DeadReckoningProvider {
             // The TCN output is already causally smoothed and rate-limited.
             // Blend it strongly enough to correct inertial drift while keeping
             // acceleration integration as the dominant short-term signal.
-            velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, 40f)
+            velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, speedLimitMps)
             pendingTcnSpeedMps?.let { tcnSpeed ->
-                velocityMps = (0.75f * velocityMps + 0.25f * tcnSpeed).coerceIn(0f, 40f)
+                if (vehicleMotionObserved) {
+                    velocityMps = (0.75f * velocityMps + 0.25f * tcnSpeed)
+                        .coerceIn(0f, VEHICLE_MAX_SPEED_MPS)
+                }
             }
             pendingTcnSpeedMps = null
         }
@@ -161,8 +188,13 @@ class SimplifiedInsProvider : DeadReckoningProvider {
             // First fix — initialise directly with no blend
             estimatedLat = lat
             estimatedLon = lon
-            headingDeg = bearingDeg
+            if (speedMps >= MIN_BEARING_SPEED_MPS && bearingDeg.isFinite()) {
+                headingDeg = normalizeHeading(bearingDeg)
+                headingAnchorPending = true
+            }
             velocityMps = speedMps
+            vehicleMotionObserved =
+                speedMps >= VEHICLE_MOTION_THRESHOLD_MPS && accuracyM <= VEHICLE_EVIDENCE_MAX_ACCURACY_M
             estimatedAccuracyM = accuracyM
             initialized = true
             return
@@ -182,12 +214,20 @@ class SimplifiedInsProvider : DeadReckoningProvider {
 
         // Update speed from GNSS if moving
         if (speedMps > 0.5f) velocityMps = speedMps
-        if (bearingDeg > 0f) headingDeg = bearingDeg
+        if (speedMps >= VEHICLE_MOTION_THRESHOLD_MPS && accuracyM <= VEHICLE_EVIDENCE_MAX_ACCURACY_M) {
+            vehicleMotionObserved = true
+        }
+        if (speedMps >= MIN_BEARING_SPEED_MPS && bearingDeg.isFinite()) {
+            headingDeg = normalizeHeading(bearingDeg)
+            headingAnchorPending = true
+        }
     }
 
     override fun injectSpeedEstimate(speedMps: Float) {
-        if (speedMps.isFinite() && speedMps >= 0f) {
-            pendingTcnSpeedMps = speedMps.coerceAtMost(40f)
+        if (vehicleMotionObserved && speedMps.isFinite() && speedMps >= 0f) {
+            pendingTcnSpeedMps = speedMps.coerceAtMost(VEHICLE_MAX_SPEED_MPS)
+        } else {
+            pendingTcnSpeedMps = null
         }
     }
 
@@ -213,9 +253,28 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         velocityMps = 0f
         estimatedAccuracyM = 5f
         initialized = false
+        vehicleMotionObserved = false
+        hasHeadingAnchor = false
+        headingAnchorPending = false
+        deviceYawAnchorDeg = 0f
+        gnssHeadingAnchorDeg = 0f
         stationaryAccumSeconds = 0.0
         pendingTcnSpeedMps = null
         blendActive = false
         blendElapsedSeconds = 0.0
+    }
+
+    private fun normalizeHeading(valueDeg: Float): Float =
+        ((valueDeg % 360f) + 360f) % 360f
+
+    private fun shortestSignedAngle(fromDeg: Float, toDeg: Float): Float =
+        ((toDeg - fromDeg + 540f) % 360f) - 180f
+
+    companion object {
+        private const val MIN_BEARING_SPEED_MPS = 0.8f
+        private const val VEHICLE_MOTION_THRESHOLD_MPS = 4.0f
+        private const val VEHICLE_EVIDENCE_MAX_ACCURACY_M = 15f
+        private const val PEDESTRIAN_MAX_SPEED_MPS = 2.5f
+        private const val VEHICLE_MAX_SPEED_MPS = 40f
     }
 }

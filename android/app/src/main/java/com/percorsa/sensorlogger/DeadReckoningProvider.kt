@@ -44,6 +44,13 @@ interface DeadReckoningProvider {
     fun injectSpeedEstimate(speedMps: Float)
 
     /**
+     * Whether the current motion history is inside the deployed TCN's domain.
+     * Providers may reject vehicle-trained speed estimates for pedestrian or
+     * otherwise unsupported motion while continuing inertial fallback.
+     */
+    val acceptsTcnSpeedEstimate: Boolean get() = true
+
+    /**
      * Inject a confirmed GNSS position to reset or correct the DR estimate.
      *
      * Called by [NavigationController] whenever a trusted GNSS fix arrives.
