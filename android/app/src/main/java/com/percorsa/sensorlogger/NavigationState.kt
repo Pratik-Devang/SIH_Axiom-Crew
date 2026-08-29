@@ -39,11 +39,11 @@ enum class GnssQuality {
     RECOVERING;
 
     fun label(): String = when (this) {
-        GOOD       -> "GPS"
-        FAIR       -> "GPS • Fair"
-        POOR       -> "GPS • Weak"
-        DENIED     -> "GPS unavailable"
-        RECOVERING -> "GPS • Recovering"
+        GOOD       -> "GPS Locked"
+        FAIR       -> "GPS Fair"
+        POOR       -> "GPS Weak"
+        DENIED     -> "Tracking on sensors"
+        RECOVERING -> "GPS Recovering"
     }
 }
 

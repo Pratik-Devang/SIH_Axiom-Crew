@@ -16,67 +16,157 @@
         android:background="#1A2232" />
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         TOP OVERLAY 1: FLOATING SEARCH BAR (Idle mode)
+         TOP INSTRUMENT HUD BAR (always visible)
          ═══════════════════════════════════════════════════════════════════════ -->
     <LinearLayout
-        android:id="@+id/searchBarContainer"
+        android:id="@+id/topHudBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="16dp"
         android:gravity="center_vertical"
-        android:elevation="8dp">
+        android:paddingStart="14dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:background="#CC141B2E"
+        android:elevation="10dp">
 
+        <!-- ─ Left: Wordmark ─ -->
         <LinearLayout
-            android:id="@+id/searchBarClickable"
             android:layout_width="0dp"
-            android:layout_height="@dimen/search_bar_height"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="horizontal"
-            android:background="@drawable/search_bar_bg"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:gravity="center_vertical"
-            android:elevation="4dp">
+            android:orientation="vertical">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔍"
-                android:textSize="18sp"
-                android:layout_marginEnd="12dp" />
+                android:text="PERCORSA"
+                android:textColor="@color/percorsa_primary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.12"
+                android:fontFamily="monospace" />
 
             <TextView
-                android:id="@+id/tvSearchHint"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Where to?"
-                android:textColor="@color/text_secondary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:text="RESILIENT NAV"
+                android:textColor="@color/text_tertiary"
+                android:textSize="9sp"
+                android:letterSpacing="0.10"
+                android:fontFamily="monospace" />
 
         </LinearLayout>
 
-        <!-- Developer Mode button -->
-        <TextView
-            android:id="@+id/btnDevMode"
-            android:layout_width="@dimen/search_bar_height"
-            android:layout_height="@dimen/search_bar_height"
-            android:layout_marginStart="10dp"
-            android:text="⚙"
-            android:textSize="22sp"
-            android:textColor="@color/percorsa_primary"
-            android:gravity="center"
-            android:background="@drawable/search_bar_bg"
-            android:elevation="4dp" />
+        <!-- ─ Center: GPS badge + lat/lon ─ -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.8"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/tvHudGnssBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="● GNSS LOCK"
+                android:textColor="@color/gnss_good"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.06" />
+
+            <TextView
+                android:id="@+id/tvHudLatLon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-- ° N  -- ° E  ±-- m"
+                android:textColor="@color/text_secondary"
+                android:textSize="9sp"
+                android:fontFamily="monospace"
+                android:layout_marginTop="2dp" />
+
+        </LinearLayout>
+
+        <!-- ─ Right: Speed + REC + CAL + Settings ─ -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:id="@+id/tvHudSpeed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/percorsa_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="km/h"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="8sp"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/btnHudRec"
+                android:layout_width="38dp"
+                android:layout_height="28dp"
+                android:text="REC"
+                android:textColor="@color/text_tertiary"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@drawable/card_bg"
+                android:fontFamily="monospace"
+                android:layout_marginEnd="6dp" />
+
+            <TextView
+                android:id="@+id/btnHudCal"
+                android:layout_width="38dp"
+                android:layout_height="28dp"
+                android:text="CAL"
+                android:textColor="@color/text_secondary"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@drawable/card_bg"
+                android:fontFamily="monospace"
+                android:layout_marginEnd="6dp" />
+
+            <TextView
+                android:id="@+id/btnDevMode"
+                android:layout_width="36dp"
+                android:layout_height="28dp"
+                android:text="⚙"
+                android:textSize="16sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="@drawable/card_bg" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         TOP OVERLAY 2: MANEUVER CARD (Active Navigation)
+         MANEUVER CARD (Active Navigation only — hidden by default)
          ═══════════════════════════════════════════════════════════════════════ -->
     <LinearLayout
         android:id="@+id/maneuverCard"
@@ -85,7 +175,7 @@
         android:orientation="vertical"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="80dp"
         android:background="@drawable/card_bg"
         android:padding="16dp"
         android:elevation="10dp"
@@ -202,7 +292,7 @@
     </LinearLayout>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         FLOATING MAP CONTROLS (Compass & Recenter)
+         FLOATING MAP CONTROLS (Recenter — right side mid-screen)
          ═══════════════════════════════════════════════════════════════════════ -->
     <LinearLayout
         android:layout_width="wrap_content"
@@ -211,7 +301,7 @@
         android:layout_gravity="end|center_vertical"
         android:layout_marginEnd="14dp">
 
-        <!-- Floating Compass Button -->
+        <!-- Compass (north-up) — visible but minimal; long-press recenter resets bearing -->
         <FrameLayout
             android:id="@+id/btnCompass"
             android:layout_width="@dimen/fab_size"
@@ -226,13 +316,13 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:text="N"
-                android:textColor="@color/percorsa_primary"
-                android:textSize="18sp"
+                android:textColor="@color/text_tertiary"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
         </FrameLayout>
 
-        <!-- Floating Recenter Location Button -->
+        <!-- Recenter — neutral slate color always -->
         <FrameLayout
             android:id="@+id/btnRecenter"
             android:layout_width="@dimen/fab_size"
@@ -246,7 +336,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:text="⊙"
-                android:textColor="@color/percorsa_primary"
+                android:textColor="@color/text_secondary"
                 android:textSize="22sp" />
 
         </FrameLayout>
@@ -254,7 +344,7 @@
     </LinearLayout>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         DEDICATED FULL SEARCH OVERLAY SCREEN
+         DEDICATED FULL SEARCH OVERLAY SCREEN (accessed via Navigate button)
          ═══════════════════════════════════════════════════════════════════════ -->
     <LinearLayout
         android:id="@+id/panelSearchOverlay"
@@ -351,7 +441,7 @@
                     android:id="@+id/chipHome"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🏠 Home"
+                    android:text="Home"
                     android:textColor="@color/text_primary"
                     android:textSize="13sp"
                     android:background="@drawable/card_bg"
@@ -365,7 +455,7 @@
                     android:id="@+id/chipWork"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="💼 Work"
+                    android:text="Work"
                     android:textColor="@color/text_primary"
                     android:textSize="13sp"
                     android:background="@drawable/card_bg"
@@ -379,7 +469,7 @@
                     android:id="@+id/chipPetrol"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="⛽ Petrol"
+                    android:text="Petrol"
                     android:textColor="@color/text_primary"
                     android:textSize="13sp"
                     android:background="@drawable/card_bg"
@@ -393,7 +483,7 @@
                     android:id="@+id/chipHospital"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🏥 Hospital"
+                    android:text="Hospital"
                     android:textColor="@color/text_primary"
                     android:textSize="13sp"
                     android:background="@drawable/card_bg"
@@ -407,7 +497,7 @@
                     android:id="@+id/chipFood"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🍽 Food"
+                    android:text="Food"
                     android:textColor="@color/text_primary"
                     android:textSize="13sp"
                     android:background="@drawable/card_bg"
@@ -430,7 +520,7 @@
     </LinearLayout>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         MODERN NAVIGATION BOTTOM SHEET
+         BOTTOM SHEET — switches between instrument panel, route preview, nav, arrived
          ═══════════════════════════════════════════════════════════════════════ -->
     <LinearLayout
         android:id="@+id/bottomSheet"
@@ -439,10 +529,10 @@
         android:orientation="vertical"
         android:background="@drawable/bottom_sheet_bg"
         android:layout_gravity="bottom"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="24dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="20dp"
         android:elevation="@dimen/elevation_sheet">
 
         <!-- Drag Handle -->
@@ -451,9 +541,11 @@
             android:layout_height="@dimen/sheet_handle_height"
             android:background="@drawable/drag_handle_bg"
             android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="14dp" />
+            android:layout_marginBottom="10dp" />
 
-        <!-- ── STATE 1: IDLE BOTTOM SHEET ───────────────────────────────────── -->
+        <!-- ═══════════════════════════════════════════════════════════════
+             STATE 0: INSTRUMENT PANEL (replaces idle sheet)
+             ═══════════════════════════════════════════════════════════════ -->
         <LinearLayout
             android:id="@+id/panelIdleSheet"
             android:layout_width="match_parent"
@@ -461,93 +553,349 @@
             android:orientation="vertical"
             android:visibility="visible">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Quick Destinations"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.05"
-                android:layout_marginBottom="10dp" />
-
-            <!-- Idle Shortcuts -->
+            <!-- Row 1 — 4 live metric cards -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="12dp">
+                android:layout_marginBottom="8dp">
 
+                <!-- SPEED card -->
                 <LinearLayout
-                    android:id="@+id/btnShortcutHome"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="64dp"
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:background="@drawable/card_bg"
-                    android:padding="12dp"
                     android:gravity="center"
-                    android:layout_marginEnd="8dp">
+                    android:layout_marginEnd="6dp">
 
                     <TextView
+                        android:id="@+id/tvMetricSpeed"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🏠"
-                        android:textSize="20sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Home"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
+                        android:text="0"
+                        android:textColor="@color/percorsa_primary"
+                        android:textSize="22sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="4dp" />
+                        android:fontFamily="monospace"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="km/h"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="9sp"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.08" />
 
                 </LinearLayout>
 
+                <!-- IMU Hz card -->
                 <LinearLayout
-                    android:id="@+id/btnShortcutWork"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="64dp"
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:background="@drawable/card_bg"
-                    android:padding="12dp"
+                    android:gravity="center"
+                    android:layout_marginEnd="6dp">
+
+                    <TextView
+                        android:id="@+id/tvMetricImuHz"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:fontFamily="monospace"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="IMU Hz"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="9sp"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.08" />
+
+                </LinearLayout>
+
+                <!-- GPS Accuracy card -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="64dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg"
+                    android:gravity="center"
+                    android:layout_marginEnd="6dp">
+
+                    <TextView
+                        android:id="@+id/tvMetricGpsAcc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="--"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:fontFamily="monospace"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="GPS Acc m"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="9sp"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.08" />
+
+                </LinearLayout>
+
+                <!-- Samples card -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="64dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg"
                     android:gravity="center">
 
                     <TextView
+                        android:id="@+id/tvMetricSamples"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="💼"
-                        android:textSize="20sp" />
+                        android:text="0"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:fontFamily="monospace"
+                        android:includeFontPadding="false" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Work"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginTop="4dp" />
+                        android:text="Samples"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="9sp"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.08" />
 
                 </LinearLayout>
 
             </LinearLayout>
 
-            <!-- Subtle GNSS status pill -->
-            <TextView
-                android:id="@+id/tvGnssIdleBadge"
-                android:layout_width="wrap_content"
+            <!-- Row 2 — Accelerometer Ax / Ay / Az -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="● GPS"
-                android:textColor="@color/gnss_good"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_marginBottom="6dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ACCEL"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.10"
+                    android:layout_marginEnd="12dp" />
+
+                <TextView
+                    android:id="@+id/tvAccelX"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Ax  +0.00"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:gravity="center" />
+
+                <TextView
+                    android:id="@+id/tvAccelY"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Ay  +0.00"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:gravity="center" />
+
+                <TextView
+                    android:id="@+id/tvAccelZ"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Az  +0.00"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:gravity="center" />
+
+            </LinearLayout>
+
+            <!-- Row 3 — Orientation Pitch / Roll / Yaw -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@drawable/card_bg"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_marginBottom="6dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ORIENT"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.10"
+                    android:layout_marginEnd="12dp" />
+
+                <TextView
+                    android:id="@+id/tvOrientPitch"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="P  +0.0°"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:gravity="center" />
+
+                <TextView
+                    android:id="@+id/tvOrientRoll"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="R  +0.0°"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:gravity="center" />
+
+                <TextView
+                    android:id="@+id/tvOrientYaw"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Y  +0.0°"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:gravity="center" />
+
+            </LinearLayout>
+
+            <!-- Row 4 — Trip status bar -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/tvTripMode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="● GNSS LOCK"
+                    android:textColor="@color/gnss_good"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace"
+                    android:layout_marginEnd="10dp" />
+
+                <TextView
+                    android:id="@+id/tvTripDrDistance"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="DR path: 0 m"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace" />
+
+                <TextView
+                    android:id="@+id/tvTripDuration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="00:00"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+
+            <!-- Action row — Clear Path + Export CSV + Navigate -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnClearPath"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="CLEAR PATH"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/card_bg"
+                    android:fontFamily="monospace"
+                    android:layout_marginEnd="6dp" />
+
+                <Button
+                    android:id="@+id/btnExportCsv"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="EXPORT CSV"
+                    android:textColor="@color/percorsa_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/card_bg"
+                    android:fontFamily="monospace"
+                    android:layout_marginEnd="6dp" />
+
+                <Button
+                    android:id="@+id/btnNavigate"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="NAVIGATE ▶"
+                    android:textColor="@color/white"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/btn_primary_bg"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
-        <!-- ── STATE 2: ROUTE PREVIEW SHEET ──────────────────────────────────── -->
+        <!-- ═══════════════════════════════════════════════════════════════
+             STATE 2: ROUTE PREVIEW SHEET
+             ═══════════════════════════════════════════════════════════════ -->
         <LinearLayout
             android:id="@+id/panelRoutePreviewSheet"
             android:layout_width="match_parent"
@@ -692,7 +1040,9 @@
 
         </LinearLayout>
 
-        <!-- ── STATE 3: ACTIVE NAVIGATION SHEET ─────────────────────────────── -->
+        <!-- ═══════════════════════════════════════════════════════════════
+             STATE 3: ACTIVE NAVIGATION SHEET
+             ═══════════════════════════════════════════════════════════════ -->
         <LinearLayout
             android:id="@+id/panelNavigatingSheet"
             android:layout_width="match_parent"
@@ -707,7 +1057,7 @@
                 android:orientation="horizontal"
                 android:layout_marginBottom="12dp">
 
-                <!-- ETA (Most Important) -->
+                <!-- ETA -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="76dp"
@@ -795,7 +1145,7 @@
 
             </LinearLayout>
 
-            <!-- Percorsa DR / Status Line Banner (Shown when DR active or recalculating) -->
+            <!-- Percorsa DR / Status Line Banner -->
             <TextView
                 android:id="@+id/tvDrStatusLine"
                 android:layout_width="match_parent"
@@ -822,7 +1172,9 @@
 
         </LinearLayout>
 
-        <!-- ── STATE 4: ARRIVED SHEET ────────────────────────────────────────── -->
+        <!-- ═══════════════════════════════════════════════════════════════
+             STATE 4: ARRIVED SHEET
+             ═══════════════════════════════════════════════════════════════ -->
         <LinearLayout
             android:id="@+id/panelArrivedSheet"
             android:layout_width="match_parent"
