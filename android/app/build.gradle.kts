@@ -43,6 +43,37 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    // Keep the deployed TCN contract in the APK. ONNX models are already
+    // compressed binary files, so storing them uncompressed also avoids an
+    // unnecessary decompression/copy step during model initialization.
+    sourceSets {
+        getByName("main") {
+            assets.srcDir("src/main/assets")
+        }
+    }
+    androidResources {
+        noCompress += "onnx"
+    }
+}
+
+val verifyTcnAssets by tasks.registering {
+    val model = layout.projectDirectory.file("src/main/assets/tcn.onnx")
+    val normalization = layout.projectDirectory.file("src/main/assets/normalization.json")
+    inputs.files(model, normalization)
+
+    doLast {
+        require(model.asFile.isFile && model.asFile.length() > 0L) {
+            "Missing or empty Android TCN model: ${model.asFile}"
+        }
+        require(normalization.asFile.isFile && normalization.asFile.length() > 0L) {
+            "Missing or empty Android TCN normalization data: ${normalization.asFile}"
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(verifyTcnAssets)
 }
 
 dependencies {

@@ -98,10 +98,11 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         )
         val gyroMag = snapshot.gyroMag
 
-        // Rapid gyro changes or accel variance indicates hand shaking / walking steps, not vehicle cruising
-        val isHandShaking = gyroMag > 1.2f || (accelMag > 3.0f && snapshot.gpsSpeedMps < 1.0f)
-        val isPedestrianOrWalking = isHandShaking || (snapshot.hasGps && snapshot.gpsSpeedMps < 2.5f)
-        val maxAllowedSpeedMps = if (isPedestrianOrWalking) 3.0f else 40.0f
+        // Use conservative shake thresholds here. A stale low-speed GNSS fix
+        // must not classify the vehicle as a pedestrian during an outage and
+        // cap an otherwise valid TCN prediction at 3 m/s.
+        val isHandShaking = gyroMag > 2.5f ||
+            (accelMag > 6.0f && snapshot.hasGps && snapshot.gpsSpeedMps < 1.0f)
 
         if (accelMag < ZUPT_ACCEL_THRESHOLD || isHandShaking) {
             stationaryAccumSeconds += dtSeconds
@@ -114,12 +115,13 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         if (isStationary || (snapshot.hasGps && snapshot.gpsSpeedMps < 0.3f && snapshot.gpsAccuracyM < 15f)) {
             velocityMps = 0f
             pendingTcnSpeedMps = null
-        } else {
-            // Low-pass filtered acceleration step with pedestrian speed capping
-            velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, maxAllowedSpeedMps)
+        } else if (!isHandShaking) {
+            // The TCN output is already causally smoothed and rate-limited.
+            // Blend it strongly enough to correct inertial drift while keeping
+            // acceleration integration as the dominant short-term signal.
+            velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, 40f)
             pendingTcnSpeedMps?.let { tcnSpeed ->
-                val clampedTcn = tcnSpeed.coerceAtMost(maxAllowedSpeedMps)
-                velocityMps = (0.90f * velocityMps + 0.10f * clampedTcn).coerceIn(0f, maxAllowedSpeedMps)
+                velocityMps = (0.75f * velocityMps + 0.25f * tcnSpeed).coerceIn(0f, 40f)
             }
             pendingTcnSpeedMps = null
         }

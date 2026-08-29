@@ -55,8 +55,11 @@ class TcnSpeedFilter(
     }
 
     companion object {
-        const val DEFAULT_SMOOTHING_ALPHA = 0.10f
-        const val DEFAULT_MAX_ACCELERATION_MPS2 = 1.8f
+        // At 10 Hz these values allow the filtered prediction to change by at
+        // most 0.2 m/s per update. This blocks isolated spikes without making
+        // ordinary acceleration take tens of seconds to reach navigation.
+        const val DEFAULT_SMOOTHING_ALPHA = 0.25f
+        const val DEFAULT_MAX_ACCELERATION_MPS2 = 8f
         private const val MIN_DT_SECONDS = 0.05f
         private const val MAX_DT_SECONDS = 0.5f
     }
