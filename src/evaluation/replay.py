@@ -188,12 +188,24 @@ def run_outage_replay(
             constraints: list[str] = []
             gnss_is_available = bool(replay["gnss_available"].iloc[i])
 
-            # TCN speed is independent of GNSS and remains valid in an outage.
-            # Dataset/GNSS reference speed is evaluation-only during an outage.
-            speed_update_allowed = has_independent_speed or gnss_is_available
-            if speed_update_allowed and np.isfinite(speed_mps[i]):
+            # Prefer the receiver's own speed while GNSS is available. The TCN
+            # is an outage measurement, not a reason to reject otherwise valid
+            # GNSS before the outage when the model is outside its training
+            # domain (for example, a walking recording).
+            gnss_speed = (
+                _optional_number(replay, gnss_speed_col, i)
+                if gnss_is_available
+                else None
+            )
+            if gnss_speed is not None and gnss_speed >= 0.0:
+                ekf.update_speed(gnss_speed)
+                constraints.append("GNSS_SPEED")
+            elif has_independent_speed and np.isfinite(speed_mps[i]):
                 ekf.update_speed(speed_mps[i])
-                constraints.append("TCN_SPEED" if has_independent_speed else "REFERENCE_SPEED")
+                constraints.append("TCN_SPEED")
+            elif gnss_is_available and np.isfinite(speed_mps[i]):
+                ekf.update_speed(speed_mps[i])
+                constraints.append("REFERENCE_SPEED")
 
             if stop_detector is not None:
                 stop_event = stop_detector.update(times[i], float(ekf.state[2]))
