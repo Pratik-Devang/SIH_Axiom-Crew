@@ -31,6 +31,8 @@
     <color name="nav_green">#3DD6F5</color>
     <color name="nav_purple">#A78BFA</color>
     <color name="nav_blue">#3DD6F5</color>
+    <color name="ml_active">#22C55E</color>
+    <color name="ml_ready">#F59E0B</color>
 
     <!-- ── Text ──────────────────────────────────────────────────────────── -->
     <!-- Primary text: off-white #EDF1F7, secondary text: slate #8A93A6 -->

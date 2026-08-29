@@ -32,7 +32,11 @@ def run_test_payload(model, name: str, imu_matrix: np.ndarray, mean: list | dict
         std_val = std[col] if isinstance(std, dict) else std[idx]
         norm_imu[idx, :] = (imu_matrix[idx, :] - mean_val) / std_val
 
+<<<<<<< HEAD
+    # Convert to PyTorch tensor shaped [1, 6, window_samples]
+=======
     # Convert to a PyTorch tensor shaped [batch, channels, time].
+>>>>>>> e1ee86a3b0f2f6630467a4fd9d784b05208c5d2d
     x = torch.from_numpy(norm_imu).unsqueeze(0)
 
     # 2. Query the model (Inference / POST request)

@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity() {
 
     // ── Top Instrument HUD ──────────────────────────────────────────────────────
     private lateinit var tvHudGnssBadge: TextView
+    private lateinit var tvHudMlBadge: TextView
     private lateinit var tvHudLatLon: TextView
     private lateinit var tvHudSpeed: TextView
     private lateinit var btnHudRec: TextView
@@ -240,6 +241,7 @@ class MainActivity : AppCompatActivity() {
 
         // Top HUD
         tvHudGnssBadge              = findViewById(R.id.tvHudGnssBadge)
+        tvHudMlBadge                = findViewById(R.id.tvHudMlBadge)
         tvHudLatLon                 = findViewById(R.id.tvHudLatLon)
         tvHudSpeed                  = findViewById(R.id.tvHudSpeed)
         btnHudRec                   = findViewById(R.id.btnHudRec)
@@ -581,6 +583,8 @@ class MainActivity : AppCompatActivity() {
         val gnssHudColor = gnssColor(state.gnssQuality)
         tvHudGnssBadge.text = gnssLabel
         tvHudGnssBadge.setTextColor(gnssHudColor)
+        tvHudMlBadge.text = state.mlStatusLabel
+        tvHudMlBadge.setTextColor(mlColor(state))
 
         // REC button state sync
         val isRec = state.isRecording
@@ -994,6 +998,16 @@ class MainActivity : AppCompatActivity() {
         GnssQuality.DENIED     -> R.drawable.pill_gnss_poor   // amber pill for DENIED (not red)
         GnssQuality.RECOVERING -> R.drawable.pill_gnss_recovering
     }
+
+    private fun mlColor(state: NavigationState): Int = ContextCompat.getColor(
+        this,
+        when {
+            state.mlInferenceActive -> R.color.ml_active
+            state.mlError != null -> R.color.nav_red
+            state.mlModelLoaded -> R.color.ml_ready
+            else -> R.color.text_tertiary
+        }
+    )
 
     private fun maneuverIcon(type: ManeuverType?): String = when (type) {
         ManeuverType.TURN_LEFT    -> "←"

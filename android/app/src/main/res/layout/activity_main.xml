@@ -79,6 +79,17 @@
                 android:letterSpacing="0.06" />
 
             <TextView
+                android:id="@+id/tvHudMlBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ML LOADING"
+                android:textColor="@color/ml_ready"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace"
+                android:layout_marginTop="2dp" />
+
+            <TextView
                 android:id="@+id/tvHudLatLon"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

@@ -11,8 +11,8 @@ android {
         applicationId = "com.percorsa.sensorlogger"
         minSdk = 21
         targetSdk = 34
-        versionCode = 3
-        versionName = "2.0"
+        versionCode = 4
+        versionName = "2.1-ml"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

@@ -82,6 +82,7 @@ class NavigationController(private val context: Context) {
         val current = _state.value
 
         val hasTrustedGnss = gnssMonitor.shouldUseMeasurement() && snap.hasGps && snap.latitude != 0.0
+        val usingMlSpeed = !hasTrustedGnss && snap.tcnInferenceActive
         if (hasTrustedGnss) {
             val blendWindow = if (gnssMonitor.isGnssDenied()) 0.0 else GNSS_BLEND_SECONDS
             drEngine.injectGnssCorrection(
@@ -92,7 +93,7 @@ class NavigationController(private val context: Context) {
                 bearingDeg = snap.gpsBearingDeg,
                 blendWindowSeconds = blendWindow
             )
-        } else if (snap.tcnInferenceActive) {
+        } else if (usingMlSpeed) {
             drEngine.injectSpeedEstimate(snap.tcnPredictedSpeedMps)
         }
 
@@ -128,6 +129,12 @@ class NavigationController(private val context: Context) {
                     gnssQuality = gnssQuality,
                     isRecording = sensorEngine.isRecording,
                     recordedSamples = snap.loggedCsvRows,
+                    mlModelLoaded = snap.tcnModelLoaded,
+                    mlBufferReady = snap.tcnBufferReady,
+                    mlInferenceActive = snap.tcnInferenceActive,
+                    mlSpeedMps = snap.tcnPredictedSpeedMps,
+                    mlLatencyMs = snap.tcnInferenceLatencyMs,
+                    mlError = snap.tcnInferenceError,
                     navigationHealth = computeHealth(snap, gnssQuality)
                 ))
                 return
@@ -212,8 +219,14 @@ class NavigationController(private val context: Context) {
             positionAccuracy = accuracy,
             navMode = newMode,
             gnssQuality = gnssQuality,
-            drActive = drActive,
-            drProvider = if (drActive) drEngine.providerType else DrProviderType.NONE,
+            drActive = drActive || usingMlSpeed,
+            drProvider = if (drActive || usingMlSpeed) drEngine.providerType else DrProviderType.NONE,
+            mlModelLoaded = snap.tcnModelLoaded,
+            mlBufferReady = snap.tcnBufferReady,
+            mlInferenceActive = snap.tcnInferenceActive,
+            mlSpeedMps = snap.tcnPredictedSpeedMps,
+            mlLatencyMs = snap.tcnInferenceLatencyMs,
+            mlError = snap.tcnInferenceError,
             distanceRemainingM = distRemaining,
             etaSeconds = etaSec,
             nextManeuver = nextManeuver,
@@ -318,6 +331,12 @@ class NavigationController(private val context: Context) {
             heading = _state.value.heading,
             speed = _state.value.speed,
             gnssQuality = _state.value.gnssQuality,
+            mlModelLoaded = _state.value.mlModelLoaded,
+            mlBufferReady = _state.value.mlBufferReady,
+            mlInferenceActive = _state.value.mlInferenceActive,
+            mlSpeedMps = _state.value.mlSpeedMps,
+            mlLatencyMs = _state.value.mlLatencyMs,
+            mlError = _state.value.mlError,
             isRecording = _state.value.isRecording,
             recordedSamples = _state.value.recordedSamples,
             recentSearches = preferencesRepo.getRecentSearches(),
