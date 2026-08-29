@@ -27,11 +27,9 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -81,10 +79,10 @@ class GNSSFix:
     timestamp: float
     lat: float
     lon: float
-    hdop: Optional[float] = None
-    accuracy_m: Optional[float] = None
-    num_satellites: Optional[int] = None
-    speed_m_s: Optional[float] = None
+    hdop: float | None = None
+    accuracy_m: float | None = None
+    num_satellites: int | None = None
+    speed_m_s: float | None = None
 
 
 @dataclass
@@ -146,17 +144,21 @@ class GNSSTrustManager:
     def __init__(
         self,
         config_path: str | Path = "configs/role4.yaml",
-        event_log_path: Optional[str | Path] = None,
+        event_log_path: str | Path | None = None,
+        enable_logging: bool = True,
     ) -> None:
         cfg = _load_config(config_path)
         self._cfg = cfg["gnss_trust"]
         self._log_cfg = cfg["logging"]
 
-        log_path = Path(event_log_path or self._log_cfg["event_log_path"])
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        self._event_log = open(log_path, "a", buffering=1)  # line-buffered
+        self._event_log = None
+        if enable_logging:
+            log_path = Path(event_log_path or self._log_cfg["event_log_path"])
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            # The manager owns this long-lived handle and closes it in close().
+            self._event_log = open(log_path, "a", buffering=1)  # noqa: SIM115
 
-        self._last_accepted_fix: Optional[GNSSFix] = None
+        self._last_accepted_fix: GNSSFix | None = None
 
         logger.debug("GNSSTrustManager initialised with config from %s", config_path)
 
@@ -164,7 +166,7 @@ class GNSSTrustManager:
     # Public API
     # ------------------------------------------------------------------
 
-    def evaluate(self, fix: GNSSFix) -> TrustDecision:
+    def evaluate(self, fix: GNSSFix, now: float | None = None) -> TrustDecision:
         """Evaluate a GNSS fix and return a TrustDecision.
 
         Runs the following checks in order (first failure short-circuits
@@ -190,13 +192,15 @@ class GNSSTrustManager:
             Accept/reject decision with score and reason.
         """
         checks_passed: list[str] = []
-        checks_failed: list[str] = []
         partial_scores: dict[str, float] = {}
 
-        now = time.time()
+        # Live callers use wall-clock time. Replay callers pass the current
+        # trip timestamp so relative ``time_since_start_s`` fixes are not
+        # incorrectly rejected as decades old.
+        current_time = time.time() if now is None else float(now)
 
         # --- 1. Fix age ---
-        age_s = now - fix.timestamp
+        age_s = max(0.0, current_time - fix.timestamp)
         max_age = self._cfg["max_fix_age_s"]
         if age_s > max_age:
             reason = f"Fix too stale: age={age_s:.1f}s > max={max_age}s"
@@ -278,7 +282,8 @@ class GNSSTrustManager:
 
     def close(self) -> None:
         """Flush and close the event log file."""
-        self._event_log.close()
+        if self._event_log is not None:
+            self._event_log.close()
 
     # ------------------------------------------------------------------
     # Private helpers
@@ -320,6 +325,7 @@ class GNSSTrustManager:
             "accuracy_m": decision.fix.accuracy_m,
             "num_satellites": decision.fix.num_satellites,
         }
-        self._event_log.write(json.dumps(record) + "\n")
+        if self._event_log is not None:
+            self._event_log.write(json.dumps(record) + "\n")
         logger.debug("GNSSTrust %s score=%.3f reason=%s",
                      event_type, decision.score, decision.reason)

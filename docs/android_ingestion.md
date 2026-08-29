@@ -11,6 +11,9 @@ timestamp_ns,ax,ay,az,gx,gy,gz,quality_flags
 
 This is normalized into `time_since_start_s`, `accel_x/y/z` and `gyro_x/y/z`.
 It can be inspected in the dashboard, but it is not labelled replay-ready.
+The raw IMU values remain intact. During ingestion, Percorsa adds causal
+`filtered_*` sensor columns and a numeric `quality_flags` bitmask; only that
+filtered view is resampled to 10 Hz for TCN inference.
 
 ## Future replay-ready additions
 

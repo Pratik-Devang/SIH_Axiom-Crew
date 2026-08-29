@@ -18,7 +18,7 @@ class CausalConv1d(nn.Module):
     """Conv1D that cannot look into the future.
 
     Input shape is [batch, channels, time]. A channel is one signal, such as
-    accel_x. The time dimension is the 20-sample history. Dilation skips over
+    accel_x. The time dimension is the 50-sample history. Dilation skips over
     time steps to let the model see farther back without becoming large.
     """
 

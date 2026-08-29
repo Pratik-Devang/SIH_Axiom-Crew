@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Corner radii -->
+    <dimen name="radius_xs">4dp</dimen>
+    <dimen name="radius_sm">8dp</dimen>
+    <dimen name="radius_md">14dp</dimen>
+    <dimen name="radius_lg">20dp</dimen>
+    <dimen name="radius_xl">28dp</dimen>
+    <dimen name="radius_full">100dp</dimen>
+
+    <!-- Spacing -->
+    <dimen name="space_xs">4dp</dimen>
+    <dimen name="space_sm">8dp</dimen>
+    <dimen name="space_md">16dp</dimen>
+    <dimen name="space_lg">24dp</dimen>
+    <dimen name="space_xl">32dp</dimen>
+
+    <!-- Touch targets -->
+    <dimen name="touch_min">48dp</dimen>
+    <dimen name="touch_lg">56dp</dimen>
+
+    <!-- Card / sheet -->
+    <dimen name="card_padding">16dp</dimen>
+    <dimen name="sheet_padding_h">20dp</dimen>
+    <dimen name="elevation_card">4dp</dimen>
+    <dimen name="elevation_sheet">12dp</dimen>
+    <dimen name="elevation_fab">6dp</dimen>
+
+    <!-- Floating map buttons -->
+    <dimen name="fab_size">48dp</dimen>
+    <dimen name="fab_size_lg">56dp</dimen>
+    <dimen name="fab_margin">12dp</dimen>
+
+    <!-- Maneuver card -->
+    <dimen name="maneuver_icon_size">56dp</dimen>
+    <dimen name="maneuver_distance_text">36sp</dimen>
+    <dimen name="maneuver_instruction_text">16sp</dimen>
+
+    <!-- Typography -->
+    <dimen name="text_h1">32sp</dimen>
+    <dimen name="text_h2">22sp</dimen>
+    <dimen name="text_h3">17sp</dimen>
+    <dimen name="text_body">14sp</dimen>
+    <dimen name="text_caption">11sp</dimen>
+    <dimen name="text_micro">10sp</dimen>
+
+    <!-- Bottom sheet -->
+    <dimen name="sheet_handle_width">36dp</dimen>
+    <dimen name="sheet_handle_height">4dp</dimen>
+    <dimen name="sheet_top_radius">22dp</dimen>
+
+    <!-- Search bar -->
+    <dimen name="search_bar_height">52dp</dimen>
+    <dimen name="search_margin_top">12dp</dimen>
+</resources>

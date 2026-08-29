@@ -1,0 +1,27 @@
+{
+  "model": "SpeedTCN",
+  "version": "v2",
+  "parameters": 22626,
+  "input_shape": [
+    null,
+    6,
+    20
+  ],
+  "output": [
+    "speed_mean_mps",
+    "log_variance"
+  ],
+  "train_trips": 18,
+  "validation_trips": 4,
+  "test_trips": 5,
+  "train_rows": 293363,
+  "validation_rows": 183428,
+  "test_rows": 5976,
+  "train_windows": 293021,
+  "validation_windows": 183352,
+  "test_windows": 5881,
+  "best_validation_loss": 2.9945465223909213,
+  "warmup_epochs": 7,
+  "target_column": "vehicle_speed",
+  "target_unit": "m/s"
+}

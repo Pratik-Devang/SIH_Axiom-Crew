@@ -14,9 +14,9 @@ from src.ml.dataset import SpeedWindowDataset
 from src.ml.preprocessing import (
     INPUT_COLUMNS,
     apply_normalization,
-    chronological_split,
     fit_normalization,
     load_config,
+    load_split_trips,
     load_standardized_trip,
     save_json,
     set_seed,
@@ -25,6 +25,7 @@ from src.ml.tcn import build_model, count_parameters
 
 
 ARTIFACTS = ROOT / "artifacts"
+ARTIFACTS_V2 = ROOT / "artifacts" / "v2"
 
 # log_var is clamped tightly so the model cannot escape to high-variance collapse.
 _LOG_VAR_MIN = -4.0  # std ≈ 0.14 m/s floor
@@ -61,6 +62,7 @@ def regression_loss(
 def run_epoch(
     model,
     loader,
+    device,
     optimizer=None,
     uncertainty: bool = False,
     mse_only: bool = False,
@@ -69,6 +71,7 @@ def run_epoch(
     model.train(training)
     losses = []
     for x, y in loader:
+        x, y = x.to(device), y.to(device)
         if training:
             optimizer.zero_grad(set_to_none=True)
         pred = model(x)
@@ -84,27 +87,45 @@ def main() -> None:
     config = load_config()
     set_seed(config["training"]["seed"])
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
+    ARTIFACTS_V2.mkdir(parents=True, exist_ok=True)
 
-    trip, meta = load_standardized_trip(config)
-    splits = chronological_split(trip, config["data"]["train_fraction"], config["data"]["validation_fraction"])
-    stats = fit_normalization(splits["train"], INPUT_COLUMNS)
-    save_json(stats, ARTIFACTS / "normalization.json")
+    split_trips = load_split_trips(config)
+    _, meta = load_standardized_trip(config)
+    
+    stats = fit_normalization(split_trips["train"], INPUT_COLUMNS)
+    
+    # Save list-based format for Android TcnSpeedPredictor.kt compatibility
+    android_stats = {
+        "mean": [stats["mean"][col] for col in INPUT_COLUMNS],
+        "std": [stats["std"][col] for col in INPUT_COLUMNS],
+        "columns": INPUT_COLUMNS
+    }
+    save_json(android_stats, ARTIFACTS / "normalization.json")
+    save_json(android_stats, ARTIFACTS_V2 / "normalization.json")
 
-    norm = {name: apply_normalization(frame, stats) for name, frame in splits.items()}
-    train_ds = SpeedWindowDataset(norm["train"], config["data"]["window_samples"], config["data"]["stride"])
-    val_ds = SpeedWindowDataset(norm["validation"], config["data"]["window_samples"], config["data"]["stride"])
-    test_ds = SpeedWindowDataset(norm["test"], config["data"]["window_samples"], config["data"]["stride"])
+    norm_trips = {
+        name: [apply_normalization(frame, stats) for frame in frames]
+        for name, frames in split_trips.items()
+    }
+
+    train_ds = SpeedWindowDataset(norm_trips["train"], config["data"]["window_samples"], config["data"]["stride"])
+    val_ds = SpeedWindowDataset(norm_trips["validation"], config["data"]["window_samples"], stride=10)
+    test_ds = SpeedWindowDataset(norm_trips["test"], config["data"]["window_samples"], config["data"]["stride"])
 
     train_loader = DataLoader(train_ds, batch_size=config["training"]["batch_size"], shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=config["training"]["batch_size"], shuffle=False)
 
-    model = build_model(config)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = build_model(config).to(device)
     uncertainty = config["model"].get("predict_uncertainty", False)
     total_epochs = config["training"]["epochs"]
+    
     # Warm-up: first 25% of epochs train purely on MSE so the mean head converges
     # before the log-variance head is allowed to influence gradients.
     warmup_epochs = max(1, total_epochs // 4) if uncertainty else 0
-    print(f"Training: {total_epochs} epochs  |  uncertainty={uncertainty}  |  MSE warm-up={warmup_epochs} epochs")
+    print(f"Training device: {device} | {total_epochs} epochs | uncertainty={uncertainty} | MSE warm-up={warmup_epochs} epochs")
+    print(f"Dataset split trips: train={len(split_trips['train'])}, val={len(split_trips['validation'])}, test={len(split_trips['test'])}")
+    print(f"Dataset windows: train={len(train_ds)}, val={len(val_ds)}, test={len(test_ds)}")
 
     optimizer = torch.optim.Adam(
         model.parameters(),
@@ -120,34 +141,41 @@ def main() -> None:
     for epoch in range(1, total_epochs + 1):
         mse_only = uncertainty and (epoch <= warmup_epochs)
         phase = "MSE-warmup" if mse_only else "NLL"
-        train_loss = run_epoch(model, train_loader, optimizer, uncertainty, mse_only=mse_only)
+        train_loss = run_epoch(model, train_loader, device, optimizer, uncertainty, mse_only=mse_only)
         with torch.no_grad():
-            val_loss = run_epoch(model, val_loader, None, uncertainty, mse_only=mse_only)
+            val_loss = run_epoch(model, val_loader, device, None, uncertainty, mse_only=mse_only)
         lr_now = optimizer.param_groups[0]["lr"]
         print(f"epoch {epoch:02d}/{total_epochs} [{phase}] train={train_loss:.6f} val={val_loss:.6f} lr={lr_now:.2e}")
         scheduler.step()
         if val_loss < best_val:
             best_val = val_loss
-            torch.save(
-                {
-                    "model_state_dict": model.state_dict(),
-                    "config": config,
-                    "normalization": stats,
-                    "metadata": meta,
-                    "best_validation_loss": best_val,
-                    "best_epoch": epoch,
-                },
-                ARTIFACTS / "tcn_best.pt",
-            )
+            ckpt_dict = {
+                "model_state_dict": model.state_dict(),
+                "config": config,
+                "normalization": stats,
+                "metadata": meta,
+                "best_validation_loss": best_val,
+                "best_epoch": epoch,
+            }
+            torch.save(ckpt_dict, ARTIFACTS / "tcn_best.pt")
+            torch.save(ckpt_dict, ARTIFACTS_V2 / "tcn_best.pt")
+
+    total_train_rows = sum(len(f) for f in split_trips["train"])
+    total_val_rows = sum(len(f) for f in split_trips["validation"])
+    total_test_rows = sum(len(f) for f in split_trips["test"])
 
     info = {
         "model": "SpeedTCN",
+        "version": "v2",
         "parameters": count_parameters(model),
         "input_shape": [None, config["model"]["input_channels"], config["data"]["window_samples"]],
         "output": "speed_mps" if not uncertainty else ["speed_mean_mps", "log_variance"],
-        "train_rows": len(splits["train"]),
-        "validation_rows": len(splits["validation"]),
-        "test_rows": len(splits["test"]),
+        "train_trips": len(split_trips["train"]),
+        "validation_trips": len(split_trips["validation"]),
+        "test_trips": len(split_trips["test"]),
+        "train_rows": total_train_rows,
+        "validation_rows": total_val_rows,
+        "test_rows": total_test_rows,
         "train_windows": len(train_ds),
         "validation_windows": len(val_ds),
         "test_windows": len(test_ds),
@@ -157,6 +185,7 @@ def main() -> None:
         "target_unit": "m/s",
     }
     save_json(info, ARTIFACTS / "model_info.json")
+    save_json(info, ARTIFACTS_V2 / "model_info.json")
     print(f"saved: {ARTIFACTS / 'tcn_best.pt'}")
     print(f"saved: {ARTIFACTS / 'normalization.json'}")
     print(f"saved: {ARTIFACTS / 'model_info.json'}")
