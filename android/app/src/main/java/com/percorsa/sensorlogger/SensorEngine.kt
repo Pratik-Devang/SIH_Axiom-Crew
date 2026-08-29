@@ -178,7 +178,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
 
     // Recording & Diagnostics
     var isRecording: Boolean = false; private set
-    private var csvRecorder: CsvRecorder? = null
+    var csvRecorder: CsvRecorder? = null; private set
 
     private val totalCallbackCount = AtomicInteger(0)
     private val primaryImuSampleCount = AtomicInteger(0)
