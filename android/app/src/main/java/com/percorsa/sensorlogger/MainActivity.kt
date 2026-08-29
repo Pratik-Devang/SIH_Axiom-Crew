@@ -192,7 +192,8 @@ class MainActivity : AppCompatActivity() {
 
         // Long-press recenter = reset bearing to north
         btnRecenter.setOnLongClickListener {
-            mapWebView.evaluateJavascript("map.setBearing(0);", null)
+            // Leaflet is north-up; reset the focused camera instead of calling a MapLibre API.
+            mapWebView.evaluateJavascript("if(marker) map.setView(marker.getLatLng(), map.getZoom(), {animate:true});", null)
             true
         }
 
@@ -712,7 +713,7 @@ class MainActivity : AppCompatActivity() {
         tvTripMode.text = modeLabel
         tvTripMode.setTextColor(gnssColor(state.gnssQuality))
 
-        tvTripDrDistance.text = "DR path: %.0f m".format(Locale.US, drPathDistanceM)
+        tvTripDrDistance.text = "Trip: %.0f m".format(Locale.US, drPathDistanceM)
 
         if (tripStartMs > 0L) {
             val elapsedS = (System.currentTimeMillis() - tripStartMs) / 1000L
@@ -802,7 +803,16 @@ class MainActivity : AppCompatActivity() {
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body, #map { height:100%; width:100%; background:#0B1220; }
-    .leaflet-control-zoom { display:none!important; }
+    .leaflet-control-zoom {
+      display:block!important; border:1px solid rgba(61,214,245,.28)!important;
+      border-radius:14px!important; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.34)!important;
+    }
+    .leaflet-control-zoom a {
+      width:42px!important; height:42px!important; line-height:40px!important;
+      color:#EDF1F7!important; background:rgba(11,18,32,.94)!important;
+      border-color:#232D42!important; font-size:24px!important;
+    }
+    .leaflet-control-zoom a:hover { background:#182238!important; color:#3DD6F5!important; }
     .leaflet-control-attribution {
       font-size:8px; opacity:0.3; background:transparent!important; color:#8A93A6!important; margin-bottom: 260px!important;
     }
@@ -822,7 +832,7 @@ class MainActivity : AppCompatActivity() {
 <script>
   // Bootstrap at street-city zoom (15), not subcontinent (5)
   var map = L.map('map', {
-    zoomControl: false, attributionControl: true,
+    zoomControl: true, attributionControl: true,
     zoomAnimation: true, fadeAnimation: false, preferCanvas: true
   }).setView([20.5937, 78.9629], 15);
 
@@ -875,9 +885,18 @@ class MainActivity : AppCompatActivity() {
     });
   }
 
+  function makeStartIcon() {
+    return L.divIcon({
+      html: '<div style="width:16px;height:16px;background:#0B1220;border:3px solid #EDF1F7;border-radius:50%;box-shadow:0 1px 8px rgba(0,0,0,.55)"></div>',
+      iconSize:[16,16], iconAnchor:[8,8], className:''
+    });
+  }
+
   var marker = null;
+  var startMarker = null;
   var destMarker = null;
   var accuracyCircle = null;
+  var routeCasing = null;
   var routePolyline = null;
   var trackPath = L.polyline([], {color:'#3DD6F5',weight:3.5,opacity:0.65,dashArray:'4 3'}).addTo(map);
   var isFirstFix = true;
@@ -907,19 +926,29 @@ class MainActivity : AppCompatActivity() {
   }
 
   function drawRoute(coords, destLat, destLon) {
+    if (!coords || coords.length < 2) return;
+    if (routeCasing) { map.removeLayer(routeCasing); routeCasing = null; }
     if (routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
+    if (startMarker)   { map.removeLayer(startMarker); startMarker = null; }
     if (destMarker)    { map.removeLayer(destMarker); destMarker = null; }
-    routePolyline = L.polyline(coords, {
-      color:'#3DD6F5', weight:6, opacity:0.9,
+    routeCasing = L.polyline(coords, {
+      color:'#07101C', weight:10, opacity:0.78,
       lineJoin:'round', lineCap:'round'
     }).addTo(map);
+    routePolyline = L.polyline(coords, {
+      color:'#3DD6F5', weight:5.5, opacity:0.95,
+      lineJoin:'round', lineCap:'round'
+    }).addTo(map);
+    startMarker = L.marker(coords[0], {icon: makeStartIcon(), interactive:false, zIndexOffset:850}).addTo(map);
     destMarker = L.marker([destLat, destLon], {icon: makeDestIcon(), zIndexOffset:900}).addTo(map);
-    var bounds = routePolyline.getBounds().pad(0.15);
+    var bounds = routePolyline.getBounds().pad(0.18);
     map.fitBounds(bounds, {animate:true, duration:0.5});
   }
 
   function clearRoute() {
+    if (routeCasing) { map.removeLayer(routeCasing); routeCasing = null; }
     if (routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
+    if (startMarker)   { map.removeLayer(startMarker); startMarker = null; }
     if (destMarker)    { map.removeLayer(destMarker); destMarker = null; }
   }
 

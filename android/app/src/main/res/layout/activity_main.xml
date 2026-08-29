@@ -24,11 +24,11 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingStart="14dp"
-        android:paddingEnd="10dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp"
-        android:background="#CC141B2E"
+        android:paddingStart="18dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:background="#E80B1220"
         android:elevation="10dp">
 
         <!-- ─ Left: Wordmark ─ -->
@@ -51,7 +51,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="RESILIENT NAV"
+                android:text="VEHICLE NAVIGATION"
                 android:textColor="@color/text_tertiary"
                 android:textSize="9sp"
                 android:letterSpacing="0.10"
@@ -71,7 +71,7 @@
                 android:id="@+id/tvHudGnssBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="● GNSS LOCK"
+                android:text="● POSITIONING"
                 android:textColor="@color/gnss_good"
                 android:textSize="11sp"
                 android:textStyle="bold"
@@ -93,7 +93,7 @@
                 android:id="@+id/tvHudLatLon"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="-- ° N  -- ° E  ±-- m"
+                android:text="Acquiring location"
                 android:textColor="@color/text_secondary"
                 android:textSize="9sp"
                 android:fontFamily="monospace"
@@ -121,7 +121,7 @@
                     android:layout_height="wrap_content"
                     android:text="0"
                     android:textColor="@color/percorsa_primary"
-                    android:textSize="18sp"
+                    android:textSize="22sp"
                     android:textStyle="bold"
                     android:fontFamily="monospace"
                     android:includeFontPadding="false" />
@@ -138,8 +138,8 @@
 
             <TextView
                 android:id="@+id/btnHudRec"
-                android:layout_width="38dp"
-                android:layout_height="28dp"
+                android:layout_width="42dp"
+                android:layout_height="32dp"
                 android:text="REC"
                 android:textColor="@color/text_tertiary"
                 android:textSize="9sp"
@@ -151,8 +151,8 @@
 
             <TextView
                 android:id="@+id/btnHudCal"
-                android:layout_width="38dp"
-                android:layout_height="28dp"
+                android:layout_width="42dp"
+                android:layout_height="32dp"
                 android:text="CAL"
                 android:textColor="@color/text_secondary"
                 android:textSize="9sp"
@@ -164,8 +164,8 @@
 
             <TextView
                 android:id="@+id/btnDevMode"
-                android:layout_width="36dp"
-                android:layout_height="28dp"
+                android:layout_width="40dp"
+                android:layout_height="32dp"
                 android:text="⚙"
                 android:textSize="16sp"
                 android:textColor="@color/text_secondary"
@@ -186,9 +186,9 @@
         android:orientation="vertical"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
-        android:layout_marginTop="80dp"
+        android:layout_marginTop="88dp"
         android:background="@drawable/card_bg"
-        android:padding="16dp"
+        android:padding="14dp"
         android:elevation="10dp"
         android:visibility="gone">
 
@@ -264,7 +264,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
             android:paddingTop="10dp"
             android:background="@drawable/card_bg"
             android:visibility="gone">
@@ -540,10 +540,10 @@
         android:orientation="vertical"
         android:background="@drawable/bottom_sheet_bg"
         android:layout_gravity="bottom"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
         android:paddingTop="10dp"
-        android:paddingBottom="20dp"
+        android:paddingBottom="18dp"
         android:elevation="@dimen/elevation_sheet">
 
         <!-- Drag Handle -->
@@ -564,7 +564,7 @@
             android:orientation="vertical"
             android:visibility="visible">
 
-            <!-- Row 1 — 4 live metric cards -->
+            <!-- Primary driving metrics. Detailed IMU telemetry remains available in Developer Mode. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -574,8 +574,8 @@
                 <!-- SPEED card -->
                 <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="64dp"
-                    android:layout_weight="1"
+                    android:layout_height="72dp"
+                    android:layout_weight="1.5"
                     android:orientation="vertical"
                     android:background="@drawable/card_bg"
                     android:gravity="center"
@@ -587,7 +587,7 @@
                         android:layout_height="wrap_content"
                         android:text="0"
                         android:textColor="@color/percorsa_primary"
-                        android:textSize="22sp"
+                        android:textSize="30sp"
                         android:textStyle="bold"
                         android:fontFamily="monospace"
                         android:includeFontPadding="false" />
@@ -603,42 +603,10 @@
 
                 </LinearLayout>
 
-                <!-- IMU Hz card -->
+                <!-- GPS accuracy -->
                 <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="64dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:background="@drawable/card_bg"
-                    android:gravity="center"
-                    android:layout_marginEnd="6dp">
-
-                    <TextView
-                        android:id="@+id/tvMetricImuHz"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="@color/text_primary"
-                        android:textSize="22sp"
-                        android:textStyle="bold"
-                        android:fontFamily="monospace"
-                        android:includeFontPadding="false" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="IMU Hz"
-                        android:textColor="@color/text_tertiary"
-                        android:textSize="9sp"
-                        android:fontFamily="monospace"
-                        android:letterSpacing="0.08" />
-
-                </LinearLayout>
-
-                <!-- GPS Accuracy card -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="64dp"
+                    android:layout_height="72dp"
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:background="@drawable/card_bg"
@@ -659,7 +627,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="GPS Acc m"
+                        android:text="GPS ACC · m"
                         android:textColor="@color/text_tertiary"
                         android:textSize="9sp"
                         android:fontFamily="monospace"
@@ -667,17 +635,50 @@
 
                 </LinearLayout>
 
-                <!-- Samples card -->
+                <!-- Sampling count is retained for recording feedback. -->
                 <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="64dp"
+                    android:layout_height="72dp"
                     android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="@drawable/card_bg"
+                    android:gravity="center"
+                    android:layout_marginEnd="6dp">
+
+                    <TextView
+                        android:id="@+id/tvMetricSamples"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:fontFamily="monospace"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SAMPLES"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="9sp"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.08" />
+
+                </LinearLayout>
+
+                <!-- Bound for compatibility; hidden from the driving view. -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="0"
+                    android:visibility="gone"
                     android:orientation="vertical"
                     android:background="@drawable/card_bg"
                     android:gravity="center">
 
                     <TextView
-                        android:id="@+id/tvMetricSamples"
+                        android:id="@+id/tvMetricImuHz"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0"
@@ -700,10 +701,11 @@
 
             </LinearLayout>
 
-            <!-- Row 2 — Accelerometer Ax / Ay / Az -->
+            <!-- Secondary sensor detail is intentionally suppressed in the map-first driving UI. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:visibility="gone"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
                 android:paddingStart="12dp"
@@ -758,10 +760,11 @@
 
             </LinearLayout>
 
-            <!-- Row 3 — Orientation Pitch / Roll / Yaw -->
+            <!-- Secondary orientation detail. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:visibility="gone"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
                 android:paddingStart="12dp"
@@ -840,7 +843,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="DR path: 0 m"
+                    android:text="Trip: 0 m"
                     android:textColor="@color/text_tertiary"
                     android:textSize="10sp"
                     android:fontFamily="monospace" />
@@ -865,9 +868,9 @@
                 <Button
                     android:id="@+id/btnClearPath"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="CLEAR PATH"
+                    android:layout_height="48dp"
+                    android:layout_weight="0.9"
+                    android:text="CLEAR"
                     android:textColor="@color/text_secondary"
                     android:textSize="11sp"
                     android:textStyle="bold"
@@ -878,9 +881,9 @@
                 <Button
                     android:id="@+id/btnExportCsv"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
+                    android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:text="EXPORT CSV"
+                    android:text="EXPORT"
                     android:textColor="@color/percorsa_primary"
                     android:textSize="11sp"
                     android:textStyle="bold"
@@ -891,9 +894,9 @@
                 <Button
                     android:id="@+id/btnNavigate"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="NAVIGATE ▶"
+                    android:layout_height="48dp"
+                    android:layout_weight="1.4"
+                    android:text="NAVIGATE  ›"
                     android:textColor="@color/white"
                     android:textSize="11sp"
                     android:textStyle="bold"
