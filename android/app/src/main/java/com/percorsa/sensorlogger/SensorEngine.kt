@@ -75,6 +75,10 @@ data class SensorSnapshot(
     val tcnBufferCapacity: Int,
     val tcnWindowSeconds: Float,
     val tcnBufferReady: Boolean,
+    val tcnInferenceActive: Boolean,
+    val tcnPredictedSpeedMps: Float,
+    val tcnInferenceAgeMs: Long,
+    val tcnInferenceError: String?,
     val lastCanonicalSample: CanonicalImuSample?,
     val minDtMs: Float,
     val maxDtMs: Float,
@@ -188,6 +192,10 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     val imuPreprocessor = ImuPreprocessor()
     val tcnInputBuffer = TcnInputBuffer()
     private var lastCanonicalSample: CanonicalImuSample? = null
+    private var tcnPredictor: TcnSpeedPredictor? = null
+    private var tcnPredictedSpeedMps: Float = 0f
+    private var lastTcnInferenceTimestampNs: Long = 0L
+    private var tcnInferenceError: String? = null
 
     private val locationListener = object : LocationListener {
         override fun onLocationChanged(loc: Location) {
@@ -211,6 +219,11 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     }
 
     init {
+        context?.applicationContext?.let { appContext ->
+            runCatching { TcnSpeedPredictor(appContext) }
+                .onSuccess { tcnPredictor = it }
+                .onFailure { tcnInferenceError = it.message ?: it.javaClass.simpleName }
+        }
         context?.let { ctx ->
             sensorManager = ctx.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
             locationManager = ctx.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
@@ -314,6 +327,18 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
                 if (canonical != null) {
                     lastCanonicalSample = canonical
                     tcnInputBuffer.push(canonical)
+                    val predictor = tcnPredictor
+                    if (tcnInputBuffer.isReady && predictor != null) {
+                        runCatching {
+                            predictor.predictSpeedMps(tcnInputBuffer.getFeatureMatrix())
+                        }.onSuccess { speedMps ->
+                            tcnPredictedSpeedMps = speedMps
+                            lastTcnInferenceTimestampNs = canonical.timestampNs
+                            tcnInferenceError = null
+                        }.onFailure { error ->
+                            tcnInferenceError = error.message ?: error.javaClass.simpleName
+                        }
+                    }
                 }
 
                 if (isRecording) {
@@ -511,6 +536,12 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         val fixAgeMs = if (lastGpsFixTimestampMs > 0) System.currentTimeMillis() - lastGpsFixTimestampMs else -1L
         val hasGps = loc != null && fixAgeMs in 0..10000L
 
+        val tcnAgeMs = if (lastTcnInferenceTimestampNs > 0L) {
+            (System.nanoTime() - lastTcnInferenceTimestampNs).coerceAtLeast(0L) / 1_000_000L
+        } else {
+            -1L
+        }
+
         return SensorSnapshot(
             timestampNs = if (accelTimestampNs > 0) accelTimestampNs else lastLoggedCsvTimestampNs,
             hasAccel = hasAccel,
@@ -547,6 +578,10 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             tcnBufferCapacity = tcnInputBuffer.capacity,
             tcnWindowSeconds = tcnInputBuffer.windowSeconds,
             tcnBufferReady = tcnInputBuffer.isReady,
+            tcnInferenceActive = tcnPredictor != null && tcnAgeMs in 0L..1_000L && tcnInferenceError == null,
+            tcnPredictedSpeedMps = tcnPredictedSpeedMps,
+            tcnInferenceAgeMs = tcnAgeMs,
+            tcnInferenceError = tcnInferenceError,
             lastCanonicalSample = lastCanonicalSample,
             minDtMs = if (currentImuHz > 0) (1000f / (currentImuHz * 1.05f)) else 0f,
             maxDtMs = if (currentImuHz > 0) (1000f / (currentImuHz * 0.95f)) else 0f,

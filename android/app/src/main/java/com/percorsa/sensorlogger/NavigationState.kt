@@ -55,7 +55,7 @@ enum class DrProviderType {
     /** Temporary simplified INS (linear accel integration + rotation vector heading). */
     SIMPLIFIED_INS,
     /**
-     * Placeholder for the real Percorsa ESKF + TCN navigation stack.
+     * Placeholder for the full Percorsa ESKF navigation stack.
      * Will replace SIMPLIFIED_INS once ported from Python.
      */
     PERCORSA_ESKF,

@@ -92,6 +92,8 @@ class NavigationController(private val context: Context) {
                 bearingDeg = snap.gpsBearingDeg,
                 blendWindowSeconds = blendWindow
             )
+        } else if (snap.tcnInferenceActive) {
+            drEngine.injectSpeedEstimate(snap.tcnPredictedSpeedMps)
         }
 
         drEngine.update(snap, dtSeconds)
@@ -422,15 +424,26 @@ class NavigationController(private val context: Context) {
             else -> HealthStatus.FAILED
         }
         val imuStatus = if (snap.imuHz > 50) HealthStatus.GOOD else HealthStatus.DEGRADED
+        val tcnStatus = when {
+            snap.tcnInferenceActive -> HealthStatus.GOOD
+            snap.tcnInferenceError != null -> HealthStatus.FAILED
+            snap.tcnBufferReady -> HealthStatus.DEGRADED
+            else -> HealthStatus.UNKNOWN
+        }
         return NavigationHealth(
             gnssHealth = gStatus,
             accelHealth = imuStatus,
             gyroHealth = imuStatus,
             rotationVectorHealth = imuStatus,
             filterHealth = HealthStatus.GOOD,
-            tcnHealth = HealthStatus.GOOD,
+            tcnHealth = tcnStatus,
             routeHealth = if (_state.value.offRoute) HealthStatus.DEGRADED else HealthStatus.GOOD,
-            details = "IMU: %.0fHz | GPS Acc: %.1fm | FixAge: %dms".format(snap.imuHz, snap.gpsAccuracyM, snap.gpsFixAgeMs)
+            details = "IMU: %.0fHz | GPS Acc: %.1fm | FixAge: %dms | TCN: %s".format(
+                snap.imuHz,
+                snap.gpsAccuracyM,
+                snap.gpsFixAgeMs,
+                if (snap.tcnInferenceActive) "%.2fm/s".format(snap.tcnPredictedSpeedMps) else "inactive"
+            )
         )
     }
 

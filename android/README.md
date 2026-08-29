@@ -1,10 +1,10 @@
 # Android Client
 
-The Android workstream will eventually contain:
+The Android client contains:
 
 - Timestamped accelerometer, gyroscope, magnetometer and GNSS logging.
 - Foreground sensor service and ring buffers.
-- ONNX Runtime speed-model inference.
+- ONNX Runtime speed-model inference from a normalized 5-second, 10 Hz IMU window.
 - Navigation state and confidence display.
 - Offline map and route replay.
 
@@ -76,10 +76,20 @@ The current implementation logs high-frequency motion data:
 
 ---
 
+## TCN speed inference
+
+The app bundles `tcn.onnx` and its training normalization values. `SensorEngine`
+creates a canonical `[1, 6, 50]` tensor after the initial five-second warm-up,
+runs deterministic ONNX inference at 10 Hz, and injects valid forward-speed
+estimates into the fallback dead-reckoning provider while GNSS is untrusted.
+Developer Mode reports buffer readiness, inference age, predicted speed, and
+model-loading errors.
+
 ## Known Incomplete Features
 
 - GNSS / GPS location stream integration.
 - 3-axis Magnetometer logging.
-- ONNX Runtime integration for real-time speed model inference.
+- Full ESKF fusion of the TCN speed measurement; the current app applies it to
+  `SimplifiedInsProvider` while the ESKF provider remains a stub.
 - Offline map rendering and live route replay display.
 
