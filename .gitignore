@@ -14,11 +14,13 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Local data — raw and processed datasets are not committed
+# Local data — raw and processed datasets are committed for the ML pipeline
 # data/raw/**
 # data/interim/**
 # data/processed/**
 # data/external/**
+data/incoming/**
+!data/incoming/.gitkeep
 # !data/raw/.gitkeep
 # !data/interim/.gitkeep
 # !data/processed/.gitkeep
@@ -37,7 +39,26 @@ demo/recordings/**
 !results/trajectories/.gitkeep
 !demo/recordings/.gitkeep
 
-# Android build outputs and local SDK settings
+# Android local and generated files
 android/.gradle/
+android/.kotlin/
+android/.idea/
 android/local.properties
 android/**/build/
+
+# Accidental root-level Android outputs
+.gradle/
+.kotlin/
+build/
+app/build/
+local.properties
+
+# Generated runtime caches and event logs
+cache/
+logs/
+
+# Generated reports and review renders
+output/
+report_assets/
+tmp/
+a11y_report*.json

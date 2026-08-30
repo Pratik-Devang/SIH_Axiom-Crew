@@ -1,6 +1,6 @@
 """Interactive Black-Box Verification of the Speed TCN Model.
 
-Simulates two different vehicle states (Stationary vs Accelerating) and sends 
+Simulates two different vehicle states (Stationary vs Accelerating) and sends
 them to the TCN model, just like testing a backend REST API with different payloads.
 """
 
@@ -21,21 +21,31 @@ from src.ml.tcn import build_model
 def run_test_payload(model, name: str, imu_matrix: np.ndarray, mean: list | dict, std: list | dict, window_samples: int) -> None:
     # 1. Normalize the simulated input using our training statistics
     columns = ["accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z"]
+    if imu_matrix.shape != (len(columns), window_samples):
+        raise ValueError(
+            f"Expected IMU payload shape {(len(columns), window_samples)}, got {imu_matrix.shape}"
+        )
     norm_imu = np.zeros_like(imu_matrix, dtype=np.float32)
-    
+
     for idx, col in enumerate(columns):
         mean_val = mean[col] if isinstance(mean, dict) else mean[idx]
         std_val = std[col] if isinstance(std, dict) else std[idx]
         norm_imu[idx, :] = (imu_matrix[idx, :] - mean_val) / std_val
 
+<<<<<<< HEAD
     # Convert to PyTorch tensor shaped [1, 6, window_samples]
+=======
+    # Convert to a PyTorch tensor shaped [batch, channels, time].
+>>>>>>> e1ee86a3b0f2f6630467a4fd9d784b05208c5d2d
     x = torch.from_numpy(norm_imu).unsqueeze(0)
-    
+
     # 2. Query the model (Inference / POST request)
     with torch.no_grad():
-        out = model(x)
-        # If output has uncertainty, mean is out[0, 0]. Otherwise, it's out[0]
-        speed_mean_mps = float(out[0, 0]) if out.shape[-1] > 1 else float(out[0])
+        output = model(x).reshape(-1)
+        speed_mean_mps = float(output[0])
+        predicted_std_mps = (
+            float(np.sqrt(np.exp(float(output[1])))) if output.numel() > 1 else None
+        )
 
     speed_kmh = speed_mean_mps * 3.6
     print(f"\n>>> SENDING TEST PAYLOAD: {name}")
@@ -45,6 +55,10 @@ def run_test_payload(model, name: str, imu_matrix: np.ndarray, mean: list | dict
     print("-" * 55)
     print(f"  BACKEND RESPONSE:")
     print(f"  Predicted Speed       : {speed_mean_mps:.3f} m/s ({speed_kmh:.2f} km/h)")
+    if predicted_std_mps is None:
+        print("  Prediction Confidence : unavailable (deterministic model)")
+    else:
+        print(f"  Prediction Confidence : ±{predicted_std_mps:.3f} m/s")
     print("=" * 55)
 
 
@@ -57,7 +71,7 @@ def main() -> None:
     ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     config = ckpt["config"]
     normalization = ckpt["normalization"]
-    window_samples = config["data"]["window_samples"]
+    window_samples = int(config["data"]["window_samples"])
 
     # Load model
     model = build_model(config)
@@ -86,7 +100,9 @@ def main() -> None:
     # ==================================================================
     accelerating_imu = np.zeros((6, window_samples), dtype=np.float32)
     accelerating_imu[0, :] = 2.50   # 2.5 m/s² forward acceleration
-    accelerating_imu[2, :] = 9.81 + np.random.normal(0, 0.5, window_samples)  # gravity + road noise
+    accelerating_imu[2, :] = 9.81 + np.random.default_rng(42).normal(
+        0, 0.5, window_samples
+    )  # gravity + deterministic road noise
     accelerating_imu[5, :] = 0.05   # slight yaw rate rotation (gentle curve)
 
     run_test_payload(

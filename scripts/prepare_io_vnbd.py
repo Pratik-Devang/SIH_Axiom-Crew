@@ -207,9 +207,12 @@ def prepare_trip(trip_id: str) -> pd.DataFrame:
         subset=["time_since_start_s"]
     ).reset_index(drop=True)
 
-    # Remove duplicate timestamps instead of failing.
+    # A handful of IO-VNBD files contain rows stored out of timestamp order.
+    # The synchronized timestamps remain authoritative, so restore their order
+    # before removing duplicates and resampling.
     result = (
         result
+        .sort_values("time_since_start_s", kind="stable")
         .drop_duplicates(
             subset=["time_since_start_s"],
             keep="first",
