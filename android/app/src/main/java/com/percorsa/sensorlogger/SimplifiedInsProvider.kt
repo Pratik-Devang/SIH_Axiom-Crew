@@ -41,8 +41,11 @@ class SimplifiedInsProvider : DeadReckoningProvider {
     private var estimatedLat: Double = 0.0
     private var estimatedLon: Double = 0.0
     private var headingDeg: Float = 0f
+    private var headingInitialized: Boolean = false
     private var velocityMps: Float = 0f
     private var initialized: Boolean = false
+    private var lastSensorTimestampNs: Long = 0L
+    private var filteredForwardAccel = 0f
 
     // Estimated accuracy degrades over time without GNSS
     private var estimatedAccuracyM: Float = 5f
@@ -52,6 +55,12 @@ class SimplifiedInsProvider : DeadReckoningProvider {
     private var stationaryAccumSeconds: Double = 0.0
     private val ZUPT_ACCEL_THRESHOLD = 0.6f   // m/s² — aligned with deadband
     private val ZUPT_WINDOW_SECONDS = 0.3     // require 0.3s of low accel before clamping
+
+    // Vehicle dynamics limits. These reject phone handling artifacts without
+    // clamping normal road acceleration or the displayed speed.
+    private val MAX_VALID_DT_SECONDS = 0.25
+    private val MAX_FORWARD_ACCEL_MPS2 = 12f
+    private val MAX_FORWARD_JERK_MPS3 = 35f
 
     // ── GNSS blend state ──────────────────────────────────────────────────────
     private var gnssTargetLat: Double = 0.0
@@ -70,24 +79,48 @@ class SimplifiedInsProvider : DeadReckoningProvider {
     override fun update(snapshot: SensorSnapshot, dtSeconds: Double) {
         if (!initialized) return
 
-        // 1. Heading from rotation vector (quaternion → yaw)
-        val q0 = snapshot.quatW.toDouble()
-        val q1 = snapshot.quatX.toDouble()
-        val q2 = snapshot.quatY.toDouble()
-        val q3 = snapshot.quatZ.toDouble()
-        val yawRad = atan2(2.0 * (q0 * q3 + q1 * q2), 1.0 - 2.0 * (q2 * q2 + q3 * q3))
-        headingDeg = Math.toDegrees(yawRad).toFloat().let {
-            if (it < 0f) it + 360f else it
+        val wallDt = if (dtSeconds.isFinite() && dtSeconds in 0.005..MAX_VALID_DT_SECONDS)
+            dtSeconds else return
+        val sampleDt = if (snapshot.timestampNs > 0L && lastSensorTimestampNs > 0L) {
+            val deltaNs = snapshot.timestampNs - lastSensorTimestampNs
+            if (deltaNs <= 0L || deltaNs > (MAX_VALID_DT_SECONDS * 1_000_000_000L).toLong()) {
+                lastSensorTimestampNs = snapshot.timestampNs
+                return
+            }
+            deltaNs / 1_000_000_000.0
+        } else {
+            wallDt
+        }
+        if (snapshot.timestampNs > 0L) lastSensorTimestampNs = snapshot.timestampNs
+
+        // GNSS course initializes the world heading. During an outage, yaw
+        // changes come from the calibrated vehicle-frame gyro, not compass yaw.
+        if (!headingInitialized && snapshot.compassBearingDeg.isFinite()) {
+            headingDeg = snapshot.compassBearingDeg
+            headingInitialized = true
+        }
+        if (snapshot.isCalibrated && snapshot.correctedGyroUp.isFinite()) {
+            headingDeg = normalizeHeading(headingDeg + Math.toDegrees(
+                snapshot.correctedGyroUp.toDouble() * sampleDt
+            ).toFloat())
         }
 
-        // 2. Forward acceleration from calibrated vehicle frame with deadband & low-pass filtering
-        val rawForwardAccel = if (snapshot.isCalibrated)
-            snapshot.correctedLinearForward
-        else
-            snapshot.linearAccelX   // fallback before calibration
+        // Without calibration there is no defensible phone->vehicle forward
+        // axis, so do not integrate an arbitrary phone X axis.
+        val rawForwardAccel = if (snapshot.isCalibrated) snapshot.correctedLinearForward else 0f
 
-        // Deadband filter: ignore small accelerations and hand tremor (< 0.6 m/s²)
-        val deadbandAccel = if (abs(rawForwardAccel) < 0.6f) 0f else rawForwardAccel
+        val accelIsFinite = rawForwardAccel.isFinite()
+        val jerkLimit = MAX_FORWARD_JERK_MPS3 * sampleDt.toFloat()
+        val isAccelOutlier = !accelIsFinite ||
+                abs(rawForwardAccel) > MAX_FORWARD_ACCEL_MPS2 ||
+                abs(rawForwardAccel - filteredForwardAccel) > jerkLimit
+        val validatedAccel = if (isAccelOutlier) 0f else rawForwardAccel
+        filteredForwardAccel = if (isAccelOutlier) {
+            filteredForwardAccel * 0.8f
+        } else {
+            0.35f * validatedAccel + 0.65f * filteredForwardAccel
+        }
+        val deadbandAccel = if (abs(filteredForwardAccel) < ZUPT_ACCEL_THRESHOLD) 0f else filteredForwardAccel
 
         // 3. ZUPT & Shake Detection — detect stationary or rapid hand movement
         val accelMag = sqrt(
@@ -98,21 +131,23 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         val gyroMag = snapshot.gyroMag
 
         // Rapid gyro changes or high 3D accel variance indicates hand shaking, not vehicle motion
-        val isHandShaking = gyroMag > 2.5f || (accelMag > 6.0f && snapshot.gpsSpeedMps < 1.0f)
+        val isMotionArtifact = accelMag > MAX_FORWARD_ACCEL_MPS2 ||
+                (gyroMag > 4.0f && snapshot.linearAccelMag > 4.0f)
 
-        if (accelMag < ZUPT_ACCEL_THRESHOLD || isHandShaking) {
-            stationaryAccumSeconds += dtSeconds
+        val lowMotion = snapshot.linearAccelMag < 0.35f && gyroMag < 0.15f
+        if (lowMotion || (snapshot.hasGps && snapshot.gpsSpeedMps < 0.3f && snapshot.gpsAccuracyM < 15f)) {
+            stationaryAccumSeconds += sampleDt
         } else {
             stationaryAccumSeconds = 0.0
         }
         val isStationary = stationaryAccumSeconds >= ZUPT_WINDOW_SECONDS
 
-        // 4. Velocity integration with velocity damping decay to prevent stationary drift
-        if (isStationary || (snapshot.hasGps && snapshot.gpsSpeedMps < 0.3f && snapshot.gpsAccuracyM < 15f)) {
+        // 4. Velocity integration with artifact rejection and ZUPT.
+        if (isStationary) {
             velocityMps = 0f
-        } else if (!isHandShaking) {
+        } else if (!isMotionArtifact) {
             if (deadbandAccel != 0f) {
-                velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, 40f)
+                velocityMps = (velocityMps + deadbandAccel * sampleDt.toFloat()).coerceIn(0f, 40f)
             } else {
                 // Exponential velocity decay when acceleration is within deadband (friction damping)
                 velocityMps = (velocityMps * 0.90f).let { if (it < 0.05f) 0f else it }
@@ -120,7 +155,7 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         }
 
         // 5. Position integration
-        val distM = velocityMps * dtSeconds.toFloat()
+        val distM = velocityMps * sampleDt.toFloat()
         val headingRad = Math.toRadians(headingDeg.toDouble())
         val dLat = (distM * cos(headingRad)) / EARTH_RADIUS_M
         val dLon = (distM * sin(headingRad)) / (EARTH_RADIUS_M * cos(Math.toRadians(estimatedLat)))
@@ -128,11 +163,11 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         estimatedLon += Math.toDegrees(dLon)
 
         // 6. Accuracy degradation during DR
-        estimatedAccuracyM += (DR_ACCURACY_GROWTH_RATE * dtSeconds).toFloat()
+        estimatedAccuracyM += (DR_ACCURACY_GROWTH_RATE * sampleDt).toFloat()
 
         // 7. Advance GNSS blend
         if (blendActive) {
-            blendElapsedSeconds += dtSeconds
+            blendElapsedSeconds += sampleDt
             val t = (blendElapsedSeconds / blendWindowSeconds).coerceIn(0.0, 1.0)
             // Smooth ease-in-out blend: 3t² - 2t³
             val smoothT = t * t * (3.0 - 2.0 * t)
@@ -158,6 +193,7 @@ class SimplifiedInsProvider : DeadReckoningProvider {
             velocityMps = speedMps
             estimatedAccuracyM = accuracyM
             initialized = true
+            headingInitialized = bearingDeg.isFinite() && speedMps > 0.5f
             return
         }
 
@@ -166,16 +202,19 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         blendStartLon = estimatedLon
         gnssTargetLat = lat
         gnssTargetLon = lon
-        this.blendWindowSeconds = blendWindowSeconds
+        this.blendWindowSeconds = blendWindowSeconds.coerceAtLeast(0.0)
         blendElapsedSeconds = 0.0
-        blendActive = true
+        blendActive = this.blendWindowSeconds > 0.0
 
         // Reset accuracy to GNSS accuracy
         estimatedAccuracyM = accuracyM
 
         // Update speed from GNSS if moving
-        if (speedMps > 0.5f) velocityMps = speedMps
-        if (bearingDeg > 0f) headingDeg = bearingDeg
+        if (speedMps > 0.5f && speedMps.isFinite()) velocityMps = speedMps.coerceIn(0f, 40f)
+        if (bearingDeg.isFinite() && speedMps > 0.5f) {
+            headingDeg = normalizeHeading(bearingDeg)
+            headingInitialized = true
+        }
     }
 
     override fun getEstimatedPosition(): DrPosition? {
@@ -197,11 +236,19 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         estimatedLat = 0.0
         estimatedLon = 0.0
         headingDeg = 0f
+        headingInitialized = false
         velocityMps = 0f
         estimatedAccuracyM = 5f
         initialized = false
         stationaryAccumSeconds = 0.0
         blendActive = false
         blendElapsedSeconds = 0.0
+        lastSensorTimestampNs = 0L
+        filteredForwardAccel = 0f
+    }
+
+    private fun normalizeHeading(value: Float): Float {
+        val normalized = value % 360f
+        return if (normalized < 0f) normalized + 360f else normalized
     }
 }
