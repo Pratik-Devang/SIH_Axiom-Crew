@@ -1,7 +1,7 @@
 package com.percorsa.sensorlogger
 
-import kotlin.math.asin
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -48,7 +48,7 @@ class OffRouteDetector {
 
         val nowMs = System.currentTimeMillis()
 
-        // Calculate minimum distance to any segment on route
+        // Calculate minimum distance to route segments, not just vertices.
         val minDistance = minDistanceToRoute(lat, lon, route.polyline)
 
         // Adjust threshold by accuracy if accuracy is degraded
@@ -86,14 +86,34 @@ class OffRouteDetector {
     }
 
     private fun minDistanceToRoute(lat: Double, lon: Double, polyline: List<LatLon>): Double {
+        if (polyline.size == 1) {
+            return distanceHaversine(lat, lon, polyline.first().lat, polyline.first().lon)
+        }
         var minDistance = Double.MAX_VALUE
-        for (pt in polyline) {
-            val d = distanceHaversine(lat, lon, pt.lat, pt.lon)
+        for (i in 0 until polyline.size - 1) {
+            val d = distanceToSegmentMeters(lat, lon, polyline[i], polyline[i + 1])
             if (d < minDistance) {
                 minDistance = d
             }
         }
         return minDistance
+    }
+
+    private fun distanceToSegmentMeters(lat: Double, lon: Double, a: LatLon, b: LatLon): Double {
+        val metersPerDegLat = 111_320.0
+        val metersPerDegLon = metersPerDegLat * cos(Math.toRadians(lat))
+        val ax = (a.lon - lon) * metersPerDegLon
+        val ay = (a.lat - lat) * metersPerDegLat
+        val bx = (b.lon - lon) * metersPerDegLon
+        val by = (b.lat - lat) * metersPerDegLat
+        val vx = bx - ax
+        val vy = by - ay
+        val lengthSq = vx * vx + vy * vy
+        if (lengthSq <= 0.000001) return hypot(ax, ay)
+        val t = (-(ax * vx + ay * vy) / lengthSq).coerceIn(0.0, 1.0)
+        val cx = ax + t * vx
+        val cy = ay + t * vy
+        return hypot(cx, cy)
     }
 
     private fun distanceHaversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
@@ -103,6 +123,6 @@ class OffRouteDetector {
         val a = sin(dLat / 2).let { it * it } +
                 cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
                 sin(dLon / 2).let { it * it }
-        return r * 2.0 * asin(sqrt(a))
+        return r * 2.0 * kotlin.math.asin(sqrt(a))
     }
 }

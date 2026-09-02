@@ -4,14 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#0B0F1A">
+    android:background="#0B0D10">
 
     <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
-        android:background="#12171F"
+        android:background="#171A1F"
         android:paddingStart="12dp"
         android:paddingEnd="12dp"
         android:gravity="center_vertical">
@@ -22,7 +22,7 @@
             android:layout_height="40dp"
             android:text="←"
             android:textSize="22sp"
-            android:textColor="#38BDF8"
+            android:textColor="#B8C0CA"
             android:gravity="center"
             android:layout_marginEnd="8dp" />
 
@@ -78,7 +78,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="1. PIPELINE FLOW DIAGRAM"
-                android:textColor="#38BDF8"
+                android:textColor="#B8C0CA"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1"
@@ -96,7 +96,7 @@
                     android:id="@+id/tvDbgPipelineDiagram"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="RAW SENSORS (200Hz) → GRAVITY/LINEAR → FILTERING → VEHICLE FRAME → 10Hz CANONICAL → TCN BUFFER [20/20 READY]\nRAW GNSS → 1D ADAPTIVE KF → FILTERED GNSS → NAV STATE"
+                    android:text="RAW SENSORS (200Hz) → GRAVITY/LINEAR → FILTERING → VEHICLE FRAME → 10Hz CANONICAL → TCN BUFFER [50/50 READY]\nRAW GNSS → 1D ADAPTIVE KF → FILTERED GNSS → NAV STATE"
                     android:textColor="#34D399"
                     android:textSize="11sp"
                     android:fontFamily="monospace" />
@@ -108,7 +108,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="2. LIVE SUBSYSTEM HEALTH"
-                android:textColor="#38BDF8"
+                android:textColor="#B8C0CA"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1"
@@ -147,7 +147,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="3. SENSOR TIMING &amp; DELIVERY RATES"
-                android:textColor="#38BDF8"
+                android:textColor="#B8C0CA"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1"
@@ -187,7 +187,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="4. RAW SENSOR READINGS (HARDWARE)"
-                android:textColor="#38BDF8"
+                android:textColor="#B8C0CA"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1"
@@ -283,7 +283,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="5. ANDROID-DERIVED SENSOR DATA"
-                android:textColor="#38BDF8"
+                android:textColor="#B8C0CA"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1"
@@ -350,7 +350,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="6. VEHICLE-FRAME &amp; FILTERED ACCEL"
-                android:textColor="#38BDF8"
+                android:textColor="#B8C0CA"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1"
@@ -378,7 +378,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Fwd: +0.000  Left: +0.000  Up: -9.810 m/s²"
-                    android:textColor="#38BDF8"
+                    android:textColor="#B8C0CA"
                     android:textSize="12sp"
                     android:fontFamily="monospace"
                     android:layout_marginBottom="8dp" />
@@ -426,7 +426,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="7. GNSS TELEMETRY &amp; 1D KALMAN FILTER"
-                android:textColor="#38BDF8"
+                android:textColor="#B8C0CA"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1"
@@ -501,7 +501,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="8. CANONICAL 10 Hz IMU STREAM &amp; TCN BUFFER"
-                android:textColor="#38BDF8"
+                android:textColor="#B8C0CA"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1"
@@ -519,7 +519,7 @@
                     android:id="@+id/tvDbgTcnStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="TCN Input Buffer: 20/20 READY (2.0s @ 10 Hz canonical stream)"
+                    android:text="TCN Input Buffer: 50/50 READY (5.0s @ 10 Hz canonical stream)"
                     android:textColor="#34D399"
                     android:textSize="12sp"
                     android:textStyle="bold"
@@ -550,7 +550,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="9. NAVIGATION ENGINE &amp; SUBSYSTEM STATUS"
-                android:textColor="#38BDF8"
+                android:textColor="#B8C0CA"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1"
@@ -606,7 +606,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="10. SENSOR RECORDING &amp; CALIBRATION"
-                android:textColor="#38BDF8"
+                android:textColor="#B8C0CA"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1"
@@ -668,9 +668,9 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:text="Calibrate Frame"
-                        android:textColor="#38BDF8"
+                        android:textColor="#B8C0CA"
                         android:textSize="11sp"
-                        android:backgroundTint="#1E293B"
+                        android:backgroundTint="#343A42"
                         android:layout_marginEnd="6dp" />
 
                     <Button
@@ -681,7 +681,7 @@
                         android:text="Export CSV"
                         android:textColor="#FFFFFF"
                         android:textSize="11sp"
-                        android:backgroundTint="#0284C7"
+                    android:backgroundTint="#68727D"
                         android:enabled="false" />
 
                 </LinearLayout>

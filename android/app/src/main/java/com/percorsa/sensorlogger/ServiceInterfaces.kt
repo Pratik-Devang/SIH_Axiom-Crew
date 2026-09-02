@@ -69,6 +69,10 @@ interface SearchService {
      * Throws [SearchException] on network or provider error.
      */
     suspend fun search(query: String, near: LatLon? = null): List<GeocodingResult>
+
+    /** Search a category in a small area around the current position. */
+    suspend fun searchNearby(category: String, near: LatLon): List<GeocodingResult> =
+        search(category, near)
 }
 
 class SearchException(message: String, cause: Throwable? = null) : Exception(message, cause)

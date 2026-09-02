@@ -121,8 +121,19 @@ class NavigationController(private val context: Context) {
                 accuracy = snap.gpsAccuracyM
                 drActive = false
             }
+            snap.latitude != 0.0 || snap.longitude != 0.0 -> {
+                // Keep the last known point visible during a GPS outage while
+                // the rotation-vector compass continues to update its heading.
+                lat = snap.latitude
+                lon = snap.longitude
+                heading = snap.compassBearingDeg
+                speed = 0f
+                accuracy = snap.gpsAccuracyM
+                drActive = true
+            }
             else -> {
                 updateState(_state.value.copy(
+                    compassBearingDeg = snap.compassBearingDeg,
                     gnssQuality = gnssQuality,
                     isRecording = sensorEngine.isRecording,
                     recordedSamples = snap.loggedCsvRows,
@@ -206,6 +217,7 @@ class NavigationController(private val context: Context) {
             latitude = lat,
             longitude = lon,
             heading = heading,
+            compassBearingDeg = snap.compassBearingDeg,
             speed = speed,
             positionAccuracy = accuracy,
             navMode = newMode,
@@ -356,6 +368,39 @@ class NavigationController(private val context: Context) {
                 updateState(_state.value.copy(
                     searchLoading = false,
                     searchError = "Search unavailable — check network connection"
+                ))
+            }
+        }
+    }
+
+    fun searchNearby(category: String) {
+        val near = _state.value.let {
+            if (it.hasValidPosition) LatLon(it.latitude, it.longitude) else null
+        }
+        if (near == null) {
+            search(category)
+            return
+        }
+
+        searchJob?.cancel()
+        updateState(_state.value.copy(
+            navMode = NavMode.SEARCHING,
+            searchLoading = true,
+            searchResults = emptyList(),
+            searchError = null
+        ))
+        searchJob = coroutineScope.launch {
+            try {
+                val results = searchService.searchNearby(category, near)
+                updateState(_state.value.copy(
+                    searchResults = results,
+                    searchLoading = false,
+                    searchError = if (results.isEmpty()) "No nearby $category places found" else null
+                ))
+            } catch (e: SearchException) {
+                updateState(_state.value.copy(
+                    searchLoading = false,
+                    searchError = "Nearby search unavailable - check network connection"
                 ))
             }
         }
