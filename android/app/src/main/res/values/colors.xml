@@ -73,5 +73,42 @@
     <!-- ── Legacy dark theme (for debug mode) ────────────────────────────── -->
     <color name="surface_deepest">#0B1220</color>
     <color name="surface_deep">#0F1626</color>
-    <color name="surface_card">#D9141B2E</color>
+    <color name="surface_card">#D9141B2E</color>        <!-- #141B2E at 85% opacity -->
+    <color name="surface_elevated">#E6182238</color>    <!-- elevated panel -->
+    <color name="surface_overlay">#F20B1220</color>
+
+    <!-- ── Brand & Signal States ────────────────────────────────────────── -->
+    <!-- GNSS-Locked state (signal trusted): electric cyan #3DD6F5 -->
+    <color name="percorsa_primary">#3DD6F5</color>
+    <color name="percorsa_primary_dark">#0284C7</color>
+    <color name="percorsa_primary_deep">#0369A1</color>
+    <color name="gnss_good">#3DD6F5</color>
+    <color name="gnss_fair">#38BDF8</color>
+
+    <!-- Inertial / dead-reckoning state (signal lost): signal amber #FFB020 -->
+    <color name="gnss_poor">#FFB020</color>
+    <color name="gnss_denied">#FFB020</color>
+    <color name="gnss_recovering">#A78BFA</color>
+    <color name="nav_amber">#FFB020</color>
+
+    <!-- Critical / Error state: coral red #FF5C5C -->
+    <color name="nav_red">#FF5C5C</color>
+    <color name="nav_green">#3DD6F5</color>
+    <color name="nav_purple">#A78BFA</color>
+    <color name="nav_blue">#3DD6F5</color>
+    <color name="ml_active">#22C55E</color>
+    <color name="ml_ready">#F59E0B</color>
+
+    <!-- ── Text ──────────────────────────────────────────────────────────── -->
+    <!-- Primary text: off-white #EDF1F7, secondary text: slate #8A93A6 -->
+    <color name="text_primary">#EDF1F7</color>
+    <color name="text_secondary">#8A93A6</color>
+    <color name="text_tertiary">#5A6478</color>
+    <color name="text_hint">#424B5D</color>
+
+    <!-- ── Dividers & Borders ────────────────────────────────────────────── -->
+    <color name="divider">#232D42</color>
+    <color name="divider_subtle">#182032</color>
+    <color name="border_cyan">#4D3DD6F5</color>
+    <color name="border_amber">#66FFB020</color>
 </resources>

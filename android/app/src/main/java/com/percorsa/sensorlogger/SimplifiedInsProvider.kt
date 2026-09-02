@@ -43,9 +43,23 @@ class SimplifiedInsProvider : DeadReckoningProvider {
     private var headingDeg: Float = 0f
     private var headingInitialized: Boolean = false
     private var velocityMps: Float = 0f
+    private var pendingTcnSpeedMps: Float? = null
     private var initialized: Boolean = false
     private var lastSensorTimestampNs: Long = 0L
     private var filteredForwardAccel = 0f
+
+    // The deployed TCN is vehicle-only. Do not let walking vibration become a
+    // vehicle-speed measurement until trusted GNSS has demonstrated vehicle motion.
+    private var vehicleMotionObserved: Boolean = false
+    override val acceptsTcnSpeedEstimate: Boolean get() = vehicleMotionObserved
+
+    // Android rotation-vector yaw is phone-relative and uses the opposite turn
+    // sign from compass bearing. Anchor relative yaw changes to the last moving
+    // GNSS bearing instead of treating phone yaw as an absolute road heading.
+    private var hasHeadingAnchor: Boolean = false
+    private var headingAnchorPending: Boolean = false
+    private var deviceYawAnchorDeg: Float = 0f
+    private var gnssHeadingAnchorDeg: Float = 0f
 
     // Estimated accuracy degrades over time without GNSS
     private var estimatedAccuracyM: Float = 5f
@@ -79,19 +93,21 @@ class SimplifiedInsProvider : DeadReckoningProvider {
     override fun update(snapshot: SensorSnapshot, dtSeconds: Double) {
         if (!initialized) return
 
-        val wallDt = if (dtSeconds.isFinite() && dtSeconds in 0.005..MAX_VALID_DT_SECONDS)
-            dtSeconds else return
-        val sampleDt = if (snapshot.timestampNs > 0L && lastSensorTimestampNs > 0L) {
-            val deltaNs = snapshot.timestampNs - lastSensorTimestampNs
-            if (deltaNs <= 0L || deltaNs > (MAX_VALID_DT_SECONDS * 1_000_000_000L).toLong()) {
-                lastSensorTimestampNs = snapshot.timestampNs
-                return
-            }
-            deltaNs / 1_000_000_000.0
-        } else {
-            wallDt
+        // 1. Heading from rotation vector (quaternion → yaw)
+        val q0 = snapshot.quatW.toDouble()
+        val q1 = snapshot.quatX.toDouble()
+        val q2 = snapshot.quatY.toDouble()
+        val q3 = snapshot.quatZ.toDouble()
+        val yawRad = atan2(2.0 * (q0 * q3 + q1 * q2), 1.0 - 2.0 * (q2 * q2 + q3 * q3))
+        val deviceYawDeg = normalizeHeading(Math.toDegrees(yawRad).toFloat())
+        if (!hasHeadingAnchor || headingAnchorPending) {
+            deviceYawAnchorDeg = deviceYawDeg
+            gnssHeadingAnchorDeg = headingDeg
+            hasHeadingAnchor = true
+            headingAnchorPending = false
         }
-        if (snapshot.timestampNs > 0L) lastSensorTimestampNs = snapshot.timestampNs
+        val relativePhoneTurnDeg = shortestSignedAngle(deviceYawAnchorDeg, deviceYawDeg)
+        headingDeg = normalizeHeading(gnssHeadingAnchorDeg - relativePhoneTurnDeg)
 
         // GNSS course initializes the world heading. During an outage, yaw
         // changes come from the calibrated vehicle-frame gyro, not compass yaw.
@@ -130,9 +146,11 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         )
         val gyroMag = snapshot.gyroMag
 
-        // Rapid gyro changes or high 3D accel variance indicates hand shaking, not vehicle motion
-        val isMotionArtifact = accelMag > MAX_FORWARD_ACCEL_MPS2 ||
-                (gyroMag > 4.0f && snapshot.linearAccelMag > 4.0f)
+        // Use conservative shake thresholds here. A stale low-speed GNSS fix
+        // must not classify the vehicle as a pedestrian during an outage and
+        // cap an otherwise valid TCN prediction at 3 m/s.
+        val isHandShaking = gyroMag > 2.5f ||
+            (accelMag > 6.0f && snapshot.hasGps && snapshot.gpsSpeedMps < 1.0f)
 
         val lowMotion = snapshot.linearAccelMag < 0.35f && gyroMag < 0.15f
         if (lowMotion || (snapshot.hasGps && snapshot.gpsSpeedMps < 0.3f && snapshot.gpsAccuracyM < 15f)) {
@@ -142,16 +160,27 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         }
         val isStationary = stationaryAccumSeconds >= ZUPT_WINDOW_SECONDS
 
-        // 4. Velocity integration with artifact rejection and ZUPT.
-        if (isStationary) {
+        // Walking recordings are outside the vehicle TCN's training domain.
+        // Keep pedestrian fallback physically bounded and ignore TCN output
+        // until trusted GNSS has shown clear vehicle motion.
+        val speedLimitMps = if (vehicleMotionObserved) VEHICLE_MAX_SPEED_MPS else PEDESTRIAN_MAX_SPEED_MPS
+
+        // 4. Velocity integration (clamp to 0 if ZUPT/shake or low GPS speed)
+        if (isStationary || (snapshot.hasGps && snapshot.gpsSpeedMps < 0.3f && snapshot.gpsAccuracyM < 15f)) {
             velocityMps = 0f
-        } else if (!isMotionArtifact) {
-            if (deadbandAccel != 0f) {
-                velocityMps = (velocityMps + deadbandAccel * sampleDt.toFloat()).coerceIn(0f, 40f)
-            } else {
-                // Exponential velocity decay when acceleration is within deadband (friction damping)
-                velocityMps = (velocityMps * 0.90f).let { if (it < 0.05f) 0f else it }
+            pendingTcnSpeedMps = null
+        } else if (!isHandShaking) {
+            // The TCN output is already causally smoothed and rate-limited.
+            // Blend it strongly enough to correct inertial drift while keeping
+            // acceleration integration as the dominant short-term signal.
+            velocityMps = (velocityMps + deadbandAccel * dtSeconds.toFloat()).coerceIn(0f, speedLimitMps)
+            pendingTcnSpeedMps?.let { tcnSpeed ->
+                if (vehicleMotionObserved) {
+                    velocityMps = (0.75f * velocityMps + 0.25f * tcnSpeed)
+                        .coerceIn(0f, VEHICLE_MAX_SPEED_MPS)
+                }
             }
+            pendingTcnSpeedMps = null
         }
 
         // 5. Position integration
@@ -189,8 +218,13 @@ class SimplifiedInsProvider : DeadReckoningProvider {
             // First fix — initialise directly with no blend
             estimatedLat = lat
             estimatedLon = lon
-            headingDeg = bearingDeg
+            if (speedMps >= MIN_BEARING_SPEED_MPS && bearingDeg.isFinite()) {
+                headingDeg = normalizeHeading(bearingDeg)
+                headingAnchorPending = true
+            }
             velocityMps = speedMps
+            vehicleMotionObserved =
+                speedMps >= VEHICLE_MOTION_THRESHOLD_MPS && accuracyM <= VEHICLE_EVIDENCE_MAX_ACCURACY_M
             estimatedAccuracyM = accuracyM
             initialized = true
             headingInitialized = bearingDeg.isFinite() && speedMps > 0.5f
@@ -210,10 +244,21 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         estimatedAccuracyM = accuracyM
 
         // Update speed from GNSS if moving
-        if (speedMps > 0.5f && speedMps.isFinite()) velocityMps = speedMps.coerceIn(0f, 40f)
-        if (bearingDeg.isFinite() && speedMps > 0.5f) {
+        if (speedMps > 0.5f) velocityMps = speedMps
+        if (speedMps >= VEHICLE_MOTION_THRESHOLD_MPS && accuracyM <= VEHICLE_EVIDENCE_MAX_ACCURACY_M) {
+            vehicleMotionObserved = true
+        }
+        if (speedMps >= MIN_BEARING_SPEED_MPS && bearingDeg.isFinite()) {
             headingDeg = normalizeHeading(bearingDeg)
-            headingInitialized = true
+            headingAnchorPending = true
+        }
+    }
+
+    override fun injectSpeedEstimate(speedMps: Float) {
+        if (vehicleMotionObserved && speedMps.isFinite() && speedMps >= 0f) {
+            pendingTcnSpeedMps = speedMps.coerceAtMost(VEHICLE_MAX_SPEED_MPS)
+        } else {
+            pendingTcnSpeedMps = null
         }
     }
 
@@ -240,7 +285,13 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         velocityMps = 0f
         estimatedAccuracyM = 5f
         initialized = false
+        vehicleMotionObserved = false
+        hasHeadingAnchor = false
+        headingAnchorPending = false
+        deviceYawAnchorDeg = 0f
+        gnssHeadingAnchorDeg = 0f
         stationaryAccumSeconds = 0.0
+        pendingTcnSpeedMps = null
         blendActive = false
         blendElapsedSeconds = 0.0
         lastSensorTimestampNs = 0L
@@ -250,5 +301,19 @@ class SimplifiedInsProvider : DeadReckoningProvider {
     private fun normalizeHeading(value: Float): Float {
         val normalized = value % 360f
         return if (normalized < 0f) normalized + 360f else normalized
+    }
+
+    private fun normalizeHeading(valueDeg: Float): Float =
+        ((valueDeg % 360f) + 360f) % 360f
+
+    private fun shortestSignedAngle(fromDeg: Float, toDeg: Float): Float =
+        ((toDeg - fromDeg + 540f) % 360f) - 180f
+
+    companion object {
+        private const val MIN_BEARING_SPEED_MPS = 0.8f
+        private const val VEHICLE_MOTION_THRESHOLD_MPS = 4.0f
+        private const val VEHICLE_EVIDENCE_MAX_ACCURACY_M = 15f
+        private const val PEDESTRIAN_MAX_SPEED_MPS = 2.5f
+        private const val VEHICLE_MAX_SPEED_MPS = 40f
     }
 }

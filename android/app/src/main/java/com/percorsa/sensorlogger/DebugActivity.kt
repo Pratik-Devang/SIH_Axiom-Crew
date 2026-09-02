@@ -250,8 +250,24 @@ class DebugActivity : AppCompatActivity() {
         tvDbgTcnStatus.text = "TCN Input Buffer: $bufferReadyStr (%.1fs @ %d Hz canonical stream)".format(
             Locale.US, snap.tcnWindowSeconds, TcnInputBuffer.SAMPLE_RATE_HZ
         )
-        tvDbgTcnStatus.setTextColor(if (snap.tcnBufferReady) 0xFF34D399.toInt() else 0xFFF59E0B.toInt())
-        tvDbgTcnModel.text = "Model Status: NOT ACTIVE (Input buffer ready for downstream feature/ml-speed-tcn)"
+        tvDbgTcnStatus.setTextColor(if (snap.tcnInferenceActive) 0xFF34D399.toInt() else 0xFFF59E0B.toInt())
+        tvDbgTcnModel.text = when {
+            snap.tcnInferenceActive -> "Model Status: ACTIVE | Raw: %.2f m/s | Filtered: %.2f m/s (%.1f km/h) | Age: %d ms | Inference: %.2f ms | Rate limited: %s | Rejected: %d".format(
+                Locale.US,
+                snap.tcnRawSpeedMps,
+                snap.tcnPredictedSpeedMps,
+                snap.tcnPredictedSpeedMps * 3.6f,
+                snap.tcnInferenceAgeMs,
+                snap.tcnInferenceLatencyMs,
+                if (snap.tcnPredictionRateLimited) "YES" else "NO",
+                snap.tcnRejectedPredictionCount
+            )
+            snap.tcnInferenceError != null -> "Model Status: ERROR | ${snap.tcnInferenceError}"
+            snap.tcnInferenceInFlight -> "Model Status: RUNNING FIRST INFERENCE"
+            snap.tcnModelLoaded && snap.tcnBufferReady -> "Model Status: LOADED | Waiting for first inference"
+            !snap.tcnModelLoaded -> "Model Status: LOADING ONNX MODEL"
+            else -> "Model Status: WARMING UP | Collecting 5-second IMU window"
+        }
         val lastCan = snap.lastCanonicalSample
         if (lastCan != null) {
             tvDbgProcessedStream.text = "10Hz Canonical: ax=%+.2f ay=%+.2f az=%+.2f gx=%+.2f gy=%+.2f gz=%+.2f\nFeature order: 1.accel_x 2.accel_y 3.accel_z 4.gyro_x 5.gyro_y 6.gyro_z".format(
@@ -265,8 +281,8 @@ class DebugActivity : AppCompatActivity() {
         tvDbgNavMode.text = "Nav Mode: ${state.navMode}"
         tvDbgDrProvider.text = "DR Engine: ${state.drProvider}" +
                 if (state.drProvider == DrProviderType.SIMPLIFIED_INS)
-                    " (Fallback INS — Percorsa ESKF stub inactive)" else ""
-        tvDbgGnssQuality.text = "GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: NOT ACTIVE | TCN: NOT ACTIVE"
+                    " (${if (snap.tcnInferenceActive) "TCN speed assisted" else "inertial fallback"}; ESKF inactive)" else ""
+        tvDbgGnssQuality.text = "GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: NOT ACTIVE | TCN Speed Assist: ${if (snap.tcnInferenceActive) "ACTIVE" else "INACTIVE"}"
         tvDbgAccuracy.text = if (state.positionAccuracy < Float.MAX_VALUE)
             "Position Accuracy: %.0f m | Position Source: RAW GNSS / KF GNSS".format(Locale.US, state.positionAccuracy)
         else "Position Accuracy: -- | Position Source: RAW GNSS / KF GNSS"

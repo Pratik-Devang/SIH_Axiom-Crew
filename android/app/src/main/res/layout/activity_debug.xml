@@ -529,7 +529,7 @@
                     android:id="@+id/tvDbgTcnModel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Model Status: NOT ACTIVE (Input buffer ready for downstream feature/ml-speed-tcn)"
+                    android:text="Model Status: WARMING UP | Collecting 5-second IMU window"
                     android:textColor="#94A3B8"
                     android:textSize="11sp"
                     android:layout_marginBottom="4dp" />
@@ -577,7 +577,7 @@
                     android:id="@+id/tvDbgDrProvider"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="DR Engine: SIMPLIFIED_INS (Fallback INS — Percorsa ESKF stub inactive)"
+                    android:text="DR Engine: SIMPLIFIED_INS (TCN speed assist available; ESKF inactive)"
                     android:textColor="#F59E0B"
                     android:textSize="12sp"
                     android:layout_marginBottom="4dp" />
@@ -586,7 +586,7 @@
                     android:id="@+id/tvDbgGnssQuality"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: NOT ACTIVE | TCN: NOT ACTIVE"
+                    android:text="GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: NOT ACTIVE | TCN Speed Assist: WARMING UP"
                     android:textColor="#94A3B8"
                     android:textSize="11sp"
                     android:layout_marginBottom="4dp" />

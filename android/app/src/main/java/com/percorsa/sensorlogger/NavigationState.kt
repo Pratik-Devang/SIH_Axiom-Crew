@@ -1,9 +1,5 @@
 package com.percorsa.sensorlogger
 
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-
 enum class NavMode {
     IDLE,
     SEARCHING,
@@ -97,18 +93,6 @@ data class NavigationState(
         distanceRemainingM <= 0.0 -> "--"
         distanceRemainingM < 1000 -> "%.0f m".format(distanceRemainingM)
         else -> "%.1f km".format(distanceRemainingM / 1000.0)
-    }
-
-    val routeProgressPercent: Int get() {
-        val total = route?.distanceM ?: return 0
-        if (total <= 0.0 || distanceRemainingM <= 0.0) return 0
-        return (((total - distanceRemainingM) / total) * 100.0).toInt().coerceIn(0, 100)
-    }
-
-    val estimatedArrivalFormatted: String get() {
-        if (etaSeconds <= 0L) return "--"
-        val arrivalMs = System.currentTimeMillis() + etaSeconds * 1000L
-        return SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(arrivalMs))
     }
 
     val statusLine: String get() = when {

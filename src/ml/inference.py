@@ -22,7 +22,12 @@ CANONICAL_TO_MODEL = {
 
 
 class OnnxSpeedPredictor:
-    """Run the committed 2 second TCN over standardized 10 Hz data."""
+    """Run the committed causal TCN over standardized 10 Hz data.
+
+    The deployed model currently declares a 50-sample (five-second) window;
+    the runtime reads the time dimension from the ONNX contract rather than
+    duplicating that value here.
+    """
 
     def __init__(self, model_path: str | Path, normalization_path: str | Path):
         self.session = ort.InferenceSession(

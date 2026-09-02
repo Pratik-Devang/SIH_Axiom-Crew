@@ -20,9 +20,11 @@ from src.data.live_trip import normalize_trip_frame
 from src.evaluation.metrics import horizontal_errors, trajectory_metrics
 from src.evaluation.replay import run_outage_replay
 from src.ml.inference import OnnxSpeedPredictor
+from src.preprocessing.synchronize import resample_to_10hz
 
-ONNX_PATH = _ROOT / "artifacts" / "v2" / "tcn.onnx"
-NORM_PATH  = _ROOT / "artifacts" / "v2" / "normalization.json"
+ONNX_PATH = _ROOT / "artifacts" / "tcn.onnx"
+NORM_PATH  = _ROOT / "artifacts" / "normalization.json"
+PEDESTRIAN_SPEED_CEILING_MPS = 3.0
 
 st.set_page_config(page_title="Percorsa | Navigation Dashboard", page_icon="🧭",
                    layout="wide", initial_sidebar_state="expanded")
@@ -57,6 +59,22 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 
 def kpi(label,value,sub="",quality=""):
     st.markdown(f"<div class='kpi-card {quality}'><div class='kpi-label'>{label}</div><div class='kpi-value'>{value}</div><div class='kpi-sub'>{sub}</div></div>",unsafe_allow_html=True)
+
+def is_low_speed_recording(frame):
+    """Return true when GNSS speed contains no evidence of vehicle motion.
+
+    The deployed TCN was trained on vehicle trips. Applying it to a walking
+    recording can turn gait vibration into a vehicle-speed estimate, so the
+    dashboard conservatively disables it when the 95th percentile of usable
+    GNSS speed remains below the pedestrian ceiling.
+    """
+    if "gps_speed_mps" not in frame:
+        return False
+    speed=pd.to_numeric(frame["gps_speed_mps"],errors="coerce")
+    speed=speed[np.isfinite(speed) & (speed >= 0)]
+    if len(speed) < 2:
+        return False
+    return float(speed.quantile(0.95)) <= PEDESTRIAN_SPEED_CEILING_MPS
 
 def _pd():
     return dict(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(15,22,40,0.6)",
@@ -252,7 +270,9 @@ times=trip["time_since_start_s"].to_numpy(float)
 dt_arr=np.diff(times); sample_rate=1.0/np.median(dt_arr[dt_arr>0]) if len(dt_arr)>0 else 10.0
 duration=float(times[-1]-times[0]); has_gnss=bool(v["replay_ready"])
 filtered_sensor_rows=int(trip["sensor_spike_detected"].sum()) if "sensor_spike_detected" in trip else 0
-speed_src_lbl="TCN ONNX" if(onnx_ok and use_tcn) else "Reference speed"
+low_speed_recording=is_low_speed_recording(trip)
+tcn_enabled=bool(onnx_ok and use_tcn and not low_speed_recording)
+speed_src_lbl="TCN ONNX" if tcn_enabled else ("Vehicle TCN skipped" if low_speed_recording else "Reference speed")
 
 st.markdown(f"""
 <div class='status-strip'>
@@ -266,6 +286,13 @@ if filtered_sensor_rows:
     st.warning(
         f"Noise filter replaced isolated IMU spikes or invalid values in "
         f"{filtered_sensor_rows} rows for model input. Raw recorded values remain available."
+    )
+
+if low_speed_recording and onnx_ok and use_tcn:
+    st.warning(
+        "This recording is consistent with walking or other low-speed motion. "
+        "The deployed TCN was trained on vehicle trips, so its speed output has "
+        "been excluded from navigation replay to prevent exaggerated distance."
     )
 
 if not has_gnss:
@@ -287,16 +314,22 @@ with st.container(border=True):
 outage_end=outage_start+outage_dur
 
 # ── Run replay ──
+# Android CSV files are recorded near the accelerometer callback rate. Navigation
+# and TCN inference both use the canonical 10 Hz contract, so do not run the EKF
+# once for every repeated high-rate snapshot.
+navigation_trip=resample_to_10hz(trip)
 speed_pred=speed_var=None; speed_status="Reference speed"
-if onnx_ok and use_tcn:
+if tcn_enabled:
     try:
-        predictor=OnnxSpeedPredictor(ONNX_PATH,NORM_PATH); speed_pred,speed_var=predictor.predict(trip); speed_status="TCN ONNX"
+        predictor=OnnxSpeedPredictor(ONNX_PATH,NORM_PATH); speed_pred,speed_var=predictor.predict(navigation_trip); speed_status="TCN ONNX"
     except Exception as exc:
         speed_status="TCN unavailable — GNSS speed withheld in outage"
         st.warning(f"TCN inference failed: {exc}. Reference speed will not enter the estimator during the outage.")
+elif low_speed_recording:
+    speed_status="Vehicle TCN skipped"
 
 with st.spinner("🔄 Running GNSS-denied replay…"):
-    replay,metrics=run_outage_replay(trip,outage_start,outage_dur,speed_pred,speed_var)
+    replay,metrics=run_outage_replay(navigation_trip,outage_start,outage_dur,speed_pred,speed_var)
 
 distance_km=float(np.hypot(np.diff(replay["east"].to_numpy()),np.diff(replay["north"].to_numpy())).sum()/1000.0)
 summary=metrics["percorsa"]; baseline=metrics["last_fix"]

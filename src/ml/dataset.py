@@ -1,6 +1,6 @@
 """Causal window generation for the Percorsa TCN.
 
-A window is 20 consecutive IMU samples. The label is the vehicle speed at the
+A window is 50 consecutive IMU samples. The label is the vehicle speed at the
 final sample, so the model never sees sensor readings from after the target
 time.
 

@@ -48,21 +48,143 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Where do you want to go?"
-            android:textColor="@color/text_secondary"
-            android:textSize="@dimen/text_body"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground" />
+            android:orientation="vertical">
 
-        <ImageButton
-            android:id="@+id/btnDebugSettings"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/ic_settings"
-            android:contentDescription="Open sensor diagnostics"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="8dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PERCORSA"
+                android:textColor="@color/percorsa_primary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.12"
+                android:fontFamily="monospace" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="VEHICLE NAVIGATION"
+                android:textColor="@color/text_tertiary"
+                android:textSize="9sp"
+                android:letterSpacing="0.10"
+                android:fontFamily="monospace" />
+
+        </LinearLayout>
+
+        <!-- ─ Center: GPS badge + lat/lon ─ -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.8"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/tvHudGnssBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="● POSITIONING"
+                android:textColor="@color/gnss_good"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.06" />
+
+            <TextView
+                android:id="@+id/tvHudMlBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ML LOADING"
+                android:textColor="@color/ml_ready"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace"
+                android:layout_marginTop="2dp" />
+
+            <TextView
+                android:id="@+id/tvHudLatLon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Acquiring location"
+                android:textColor="@color/text_secondary"
+                android:textSize="9sp"
+                android:fontFamily="monospace"
+                android:layout_marginTop="2dp" />
+
+        </LinearLayout>
+
+        <!-- ─ Right: Speed + REC + CAL + Settings ─ -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:id="@+id/tvHudSpeed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/percorsa_primary"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="km/h"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="8sp"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/btnHudRec"
+                android:layout_width="42dp"
+                android:layout_height="32dp"
+                android:text="REC"
+                android:textColor="@color/text_tertiary"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@drawable/card_bg"
+                android:fontFamily="monospace"
+                android:layout_marginEnd="6dp" />
+
+            <TextView
+                android:id="@+id/btnHudCal"
+                android:layout_width="42dp"
+                android:layout_height="32dp"
+                android:text="CAL"
+                android:textColor="@color/text_secondary"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@drawable/card_bg"
+                android:fontFamily="monospace"
+                android:layout_marginEnd="6dp" />
+
+            <TextView
+                android:id="@+id/btnDevMode"
+                android:layout_width="40dp"
+                android:layout_height="32dp"
+                android:text="⚙"
+                android:textSize="16sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:background="@drawable/card_bg" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -781,9 +903,9 @@
                     android:layout_width="0dp"
                     android:layout_height="@dimen/touch_lg"
                     android:layout_weight="1"
-                    android:text="Cancel"
-                    android:textColor="@color/text_primary"
-                    android:textSize="@dimen/text_body"
+                    android:text="CANCEL"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
                     android:textStyle="bold"
                     app:backgroundTint="@null"
                     android:background="@drawable/btn_secondary_bg"
@@ -794,9 +916,9 @@
                     android:layout_width="0dp"
                     android:layout_height="@dimen/touch_lg"
                     android:layout_weight="2"
-                    android:text="Start Navigation"
-                    android:textColor="@color/text_inverse"
-                    android:textSize="@dimen/text_body"
+                    android:text="START ──▶"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
                     android:textStyle="bold"
                     app:backgroundTint="@null"
                     android:background="@drawable/btn_primary_bg" />
