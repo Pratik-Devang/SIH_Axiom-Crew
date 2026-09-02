@@ -3,12 +3,14 @@ package com.percorsa.sensorlogger
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.webkit.JavascriptInterface
@@ -18,6 +20,8 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -44,13 +48,15 @@ class MainActivity : AppCompatActivity() {
         var navController: NavigationController? = null
     }
 
-    // ── Map Layer ──────────────────────────────────────────────────────────────
+    // â”€â”€ Map Layer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private lateinit var mapWebView: WebView
     private var mapReady = false
     private var cameraState = MapCameraState.FOLLOWING
     private var lastMapLat = 0.0
     private var lastMapLon = 0.0
     private var lastMapBearing = 0f
+    private var fallbackMapLat = 0.0
+    private var fallbackMapLon = 0.0
     private var routeDrawn = false
 
     // ── Top Instrument HUD ──────────────────────────────────────────────────────
@@ -62,27 +68,35 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnHudCal: TextView
     private lateinit var btnDevMode: TextView
 
-    // ── Maneuver Card (active navigation) ──────────────────────────────────────
+    // â”€â”€ GNSS Status Chip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private lateinit var gnssStatusChip: LinearLayout
+    private lateinit var tvGnssStatusDot: TextView
+    private lateinit var tvGnssStatusText: TextView
+    private lateinit var tvNavModeText: TextView
+
+    // â”€â”€ Maneuver Card (active navigation) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private lateinit var maneuverCard: LinearLayout
-    private lateinit var tvManeuverIcon: TextView
+    private lateinit var tvManeuverIcon: ImageView
     private lateinit var tvManeuverDistance: TextView
     private lateinit var tvManeuverInstruction: TextView
     private lateinit var tvGnssBadge: TextView
     private lateinit var rowSecondManeuver: LinearLayout
-    private lateinit var tvSecondManeuverIcon: TextView
+    private lateinit var tvSecondManeuverIcon: ImageView
     private lateinit var tvSecondManeuverInstruction: TextView
 
-    // ── Floating Map Controls ──────────────────────────────────────────────────
+    // â”€â”€ Floating Map Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private lateinit var btnCompass: FrameLayout
+    private lateinit var compassIndicator: FrameLayout
+    private lateinit var tvCompassArrow: ImageView
     private lateinit var tvCompassNeedle: TextView
     private lateinit var btnRecenter: FrameLayout
     private lateinit var tvRecenterIcon: TextView
 
-    // ── Full Search Overlay Screen ─────────────────────────────────────────────
+    // â”€â”€ Full Search Overlay Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private lateinit var panelSearchOverlay: LinearLayout
-    private lateinit var btnSearchBack: TextView
+    private lateinit var btnSearchBack: ImageButton
     private lateinit var etSearchInput: EditText
-    private lateinit var btnSearchClear: TextView
+    private lateinit var btnSearchClear: ImageButton
     private lateinit var searchProgressBar: ProgressBar
     private lateinit var tvSearchError: TextView
     private lateinit var rvSearchResults: RecyclerView
@@ -94,12 +108,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var chipHospital: TextView
     private lateinit var chipFood: TextView
 
-    // ── Bottom Sheets ──────────────────────────────────────────────────────────
-    private lateinit var bottomSheet: LinearLayout
+    // â”€â”€ Bottom Sheets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private lateinit var bottomSheet: SwipeBottomSheetLayout
+    private lateinit var sheetHandle: View
 
-    // Instrument panel (IDLE state — was panelIdleSheet, kept same ID)
+    // Instrument panel (IDLE state â€” was panelIdleSheet, kept same ID)
     private lateinit var panelIdleSheet: LinearLayout
+    private lateinit var idleExpandedContent: LinearLayout
     private lateinit var tvMetricSpeed: TextView
+    private lateinit var tvIdleLocationStatus: TextView
+    private lateinit var btnDebugSettings: ImageButton
     private lateinit var tvMetricImuHz: TextView
     private lateinit var tvMetricGpsAcc: TextView
     private lateinit var tvMetricSamples: TextView
@@ -115,6 +133,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnClearPath: Button
     private lateinit var btnExportCsv: Button
     private lateinit var btnNavigate: Button
+    private lateinit var btnIdleFuel: Button
+    private lateinit var btnIdleHospital: Button
+    private lateinit var btnIdleFood: Button
+    private var isIdleSheetExpanded = false
 
     private lateinit var panelRoutePreviewSheet: LinearLayout
     private lateinit var tvDestinationName: TextView
@@ -131,19 +153,21 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvNavDistance: TextView
     private lateinit var tvNavEta: TextView
     private lateinit var tvDrStatusLine: TextView
+    private lateinit var navRouteProgress: ProgressBar
+    private lateinit var tvNavProgress: TextView
     private lateinit var btnEndNav: Button
 
     private lateinit var panelArrivedSheet: LinearLayout
     private lateinit var tvArrivedDestName: TextView
     private lateinit var btnDone: Button
 
-    // ── Trip tracking ───────────────────────────────────────────────────────────
+    // â”€â”€ Trip tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private var tripStartMs = 0L
     private var drPathDistanceM = 0.0
     private var lastDrLat = 0.0
     private var lastDrLon = 0.0
 
-    // ── Handlers & Timers ──────────────────────────────────────────────────────
+    // â”€â”€ Handlers & Timers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private val uiHandler = Handler(Looper.getMainLooper())
     private val searchDebounceHandler = Handler(Looper.getMainLooper())
     private var searchRunnable: Runnable? = null
@@ -163,6 +187,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.statusBarColor = Color.TRANSPARENT
+        window.decorView.systemUiVisibility =
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
         setContentView(R.layout.activity_main)
 
         if (navController == null) {
@@ -175,8 +202,8 @@ class MainActivity : AppCompatActivity() {
         setupMapWebView()
         checkPermissions()
 
-        btnDevMode.setOnClickListener {
-            startActivity(Intent(this, DebugActivity::class.java))
+        tvSearchPlaceholder.setOnClickListener {
+            openSearchOverlay()
         }
 
         btnRecenter.setOnClickListener {
@@ -201,8 +228,10 @@ class MainActivity : AppCompatActivity() {
             val s = navController?.state?.value ?: return@setOnClickListener
             if (s.hasValidPosition) {
                 mapWebView.evaluateJavascript(
-                    "map.setView([${s.latitude}, ${s.longitude}], 16, {animate:true});", null
+                    "resetMapRotation(); map.setView([${s.latitude}, ${s.longitude}], 16, {animate:true});", null
                 )
+            } else {
+                mapWebView.evaluateJavascript("resetMapRotation();", null)
             }
         }
 
@@ -261,6 +290,8 @@ class MainActivity : AppCompatActivity() {
 
         // FABs
         btnCompass                  = findViewById(R.id.btnCompass)
+        compassIndicator            = findViewById(R.id.compassIndicator)
+        tvCompassArrow              = findViewById(R.id.tvCompassArrow)
         tvCompassNeedle             = findViewById(R.id.tvCompassNeedle)
         btnRecenter                 = findViewById(R.id.btnRecenter)
         tvRecenterIcon              = findViewById(R.id.tvRecenterIcon)
@@ -282,25 +313,18 @@ class MainActivity : AppCompatActivity() {
 
         // Bottom sheets
         bottomSheet                 = findViewById(R.id.bottomSheet)
+        sheetHandle                 = findViewById(R.id.sheetHandle)
         panelIdleSheet              = findViewById(R.id.panelIdleSheet)
+        idleExpandedContent         = findViewById(R.id.idleExpandedContent)
 
         // Instrument panel widgets (inside panelIdleSheet)
         tvMetricSpeed               = findViewById(R.id.tvMetricSpeed)
-        tvMetricImuHz               = findViewById(R.id.tvMetricImuHz)
-        tvMetricGpsAcc              = findViewById(R.id.tvMetricGpsAcc)
-        tvMetricSamples             = findViewById(R.id.tvMetricSamples)
-        tvAccelX                    = findViewById(R.id.tvAccelX)
-        tvAccelY                    = findViewById(R.id.tvAccelY)
-        tvAccelZ                    = findViewById(R.id.tvAccelZ)
-        tvOrientPitch               = findViewById(R.id.tvOrientPitch)
-        tvOrientRoll                = findViewById(R.id.tvOrientRoll)
-        tvOrientYaw                 = findViewById(R.id.tvOrientYaw)
-        tvTripMode                  = findViewById(R.id.tvTripMode)
-        tvTripDrDistance            = findViewById(R.id.tvTripDrDistance)
-        tvTripDuration              = findViewById(R.id.tvTripDuration)
-        btnClearPath                = findViewById(R.id.btnClearPath)
-        btnExportCsv                = findViewById(R.id.btnExportCsv)
+        tvIdleLocationStatus        = findViewById(R.id.tvIdleLocationStatus)
+        btnDebugSettings             = findViewById(R.id.btnDebugSettings)
         btnNavigate                 = findViewById(R.id.btnNavigate)
+        btnIdleFuel                 = findViewById(R.id.btnIdleFuel)
+        btnIdleHospital             = findViewById(R.id.btnIdleHospital)
+        btnIdleFood                 = findViewById(R.id.btnIdleFood)
 
         panelRoutePreviewSheet      = findViewById(R.id.panelRoutePreviewSheet)
         tvDestinationName           = findViewById(R.id.tvDestinationName)
@@ -317,6 +341,8 @@ class MainActivity : AppCompatActivity() {
         tvNavDistance               = findViewById(R.id.tvNavDistance)
         tvNavEta                    = findViewById(R.id.tvNavEta)
         tvDrStatusLine              = findViewById(R.id.tvDrStatusLine)
+        navRouteProgress            = findViewById(R.id.navRouteProgress)
+        tvNavProgress               = findViewById(R.id.tvNavProgress)
         btnEndNav                   = findViewById(R.id.btnEndNav)
 
         panelArrivedSheet           = findViewById(R.id.panelArrivedSheet)
@@ -373,66 +399,45 @@ class MainActivity : AppCompatActivity() {
             } else false
         }
 
-        chipHome.setOnClickListener { triggerChipSearch("Home") }
-        chipWork.setOnClickListener { triggerChipSearch("Work") }
-        chipPetrol.setOnClickListener { triggerChipSearch("Petrol Pump") }
-        chipHospital.setOnClickListener { triggerChipSearch("Hospital") }
-        chipFood.setOnClickListener { triggerChipSearch("Restaurant") }
+        chipHome.visibility = View.GONE
+        chipWork.visibility = View.GONE
+        chipHome.setOnClickListener { navController?.state?.value?.homePlace?.let { searchAdapter.submitList(listOf(it)) } }
+        chipWork.setOnClickListener { navController?.state?.value?.workPlace?.let { searchAdapter.submitList(listOf(it)) } }
+        chipPetrol.setOnClickListener { triggerNearbySearch("petrol") }
+        chipHospital.setOnClickListener { triggerNearbySearch("hospital") }
+        chipFood.setOnClickListener { triggerNearbySearch("restaurant") }
     }
 
     private fun setupInstrumentActions() {
-        // REC button — toggle CSV recording
-        btnHudRec.setOnClickListener {
-            val nc = navController ?: return@setOnClickListener
-            if (nc.sensorEngine.isRecording) {
-                nc.stopRecording()
-                btnHudRec.text = "REC"
-                btnHudRec.setTextColor(ContextCompat.getColor(this, R.color.text_tertiary))
-            } else {
-                val recorder = CsvRecorder(this)
-                nc.startRecording(recorder)
-                btnHudRec.text = "● REC"
-                btnHudRec.setTextColor(ContextCompat.getColor(this, R.color.nav_red))
-            }
-        }
-
-        // CAL button — calibrate vehicle frame
-        btnHudCal.setOnClickListener {
-            navController?.calibrateVehicleFrame()
-            Toast.makeText(this, "Vehicle frame calibrated", Toast.LENGTH_SHORT).show()
-        }
-
-        // Navigate — open search overlay
+        // Navigate â€” open search overlay
         btnNavigate.setOnClickListener {
             openSearchOverlay()
         }
 
-        // Clear path on map
-        btnClearPath.setOnClickListener {
-            mapWebView.evaluateJavascript("clearPath();", null)
-            resetTripCounters()
+        // Floating search bar click
+        tvSearchPlaceholder.setOnClickListener {
+            openSearchOverlay()
         }
 
-        // Export CSV — share the current recording file
-        btnExportCsv.setOnClickListener {
-            val engine = navController?.sensorEngine ?: return@setOnClickListener
-            val file = engine.csvRecorder?.file
-            if (file != null && file.exists()) {
-                val uri = androidx.core.content.FileProvider.getUriForFile(
-                    this,
-                    "${packageName}.provider",
-                    file
-                )
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/csv"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                startActivity(Intent.createChooser(shareIntent, "Share Sensor Log"))
-            } else {
-                Toast.makeText(this, "No recording active — tap REC first", Toast.LENGTH_SHORT).show()
+        sheetHandle.setOnClickListener {
+            isIdleSheetExpanded = !isIdleSheetExpanded
+            updateIdleSheetExpansion()
+        }
+
+        bottomSheet.onVerticalSwipe = { expand ->
+            if (panelIdleSheet.visibility == View.VISIBLE && isIdleSheetExpanded != expand) {
+                isIdleSheetExpanded = expand
+                updateIdleSheetExpansion()
             }
         }
+
+        btnDebugSettings.setOnClickListener {
+            startActivity(Intent(this, DebugActivity::class.java))
+        }
+
+        btnIdleFuel.setOnClickListener { triggerNearbySearch("petrol") }
+        btnIdleHospital.setOnClickListener { triggerNearbySearch("hospital") }
+        btnIdleFood.setOnClickListener { triggerNearbySearch("restaurant") }
     }
 
     private fun triggerChipSearch(query: String) {
@@ -440,6 +445,13 @@ class MainActivity : AppCompatActivity() {
         etSearchInput.setText(query)
         etSearchInput.setSelection(query.length)
         navController?.search(query)
+    }
+
+    private fun triggerNearbySearch(category: String) {
+        openSearchOverlay()
+        etSearchInput.text.clear()
+        navController?.searchNearby(category)
+        hideKeyboard()
     }
 
     private fun openSearchOverlay() {
@@ -452,10 +464,42 @@ class MainActivity : AppCompatActivity() {
 
     private fun showRecentOrResults(state: NavigationState) {
         searchAdapter.userLocation = if (state.hasValidPosition) LatLon(state.latitude, state.longitude) else null
-        if (etSearchInput.text.isEmpty()) {
-            searchAdapter.submitList(state.recentSearches)
+        val showingSearch = state.navMode == NavMode.SEARCHING || etSearchInput.text.isNotEmpty()
+        searchAdapter.submitList(if (showingSearch) state.searchResults else state.recentSearches)
+        chipHome.visibility = if (state.homePlace != null) View.VISIBLE else View.GONE
+        chipWork.visibility = if (state.workPlace != null) View.VISIBLE else View.GONE
+    }
+
+    private fun updateIdleSheetExpansion() {
+        idleExpandedContent.animate().cancel()
+        val travel = 12f * resources.displayMetrics.density
+        if (isIdleSheetExpanded) {
+            idleExpandedContent.visibility = View.VISIBLE
+            idleExpandedContent.alpha = 0f
+            idleExpandedContent.translationY = travel
+            idleExpandedContent.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(220L)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
         } else {
-            searchAdapter.submitList(state.searchResults)
+            idleExpandedContent.animate()
+                .alpha(0f)
+                .translationY(travel)
+                .setDuration(170L)
+                .setInterpolator(DecelerateInterpolator())
+                .withEndAction {
+                    idleExpandedContent.visibility = View.GONE
+                    idleExpandedContent.alpha = 1f
+                    idleExpandedContent.translationY = 0f
+                }
+                .start()
+        }
+        sheetHandle.contentDescription = if (isIdleSheetExpanded) {
+            "Collapse navigation controls"
+        } else {
+            "Expand navigation controls"
         }
     }
 
@@ -466,7 +510,7 @@ class MainActivity : AppCompatActivity() {
         lastDrLon = 0.0
     }
 
-    // ── Map WebView Setup ──────────────────────────────────────────────────────
+    // â”€â”€ Map WebView Setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun setupMapWebView() {
         with(mapWebView.settings) {
@@ -513,6 +557,8 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val loc = lm.getLastKnownLocation(provider)
                     if (loc != null && loc.accuracy < 200f) {
+                        fallbackMapLat = loc.latitude
+                        fallbackMapLon = loc.longitude
                         val js = "updatePosition(${loc.latitude},${loc.longitude},${loc.bearing},${loc.accuracy},true,false);"
                         mapWebView.post { mapWebView.evaluateJavascript(js, null) }
                         break
@@ -522,18 +568,41 @@ class MainActivity : AppCompatActivity() {
         } catch (_: Exception) {}
     }
 
-    // ── State Rendering ────────────────────────────────────────────────────────
+    // â”€â”€ State Rendering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun renderState(state: NavigationState) {
-        renderTopHud(state)
+        renderGnssStatusChip(state)
         renderBottomSheet(state)
-        renderGnssPill(state)
+        renderManeuverCard(state)
         renderMap(state)
         renderCompass(state)
         renderInstrumentPanel(state)
     }
 
-    private fun renderTopHud(state: NavigationState) {
+    private fun renderGnssStatusChip(state: NavigationState) {
+        // Update GNSS status chip with semantic colors
+        val gnssText = when (state.gnssQuality) {
+            GnssQuality.GOOD -> "GNSS GOOD"
+            GnssQuality.FAIR -> "GNSS FAIR"
+            GnssQuality.POOR -> "GNSS POOR"
+            GnssQuality.DENIED -> "GNSS LOST"
+            GnssQuality.RECOVERING -> "RECOVERING"
+        }
+
+        tvGnssStatusText.text = gnssText
+        tvGnssStatusText.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+        gnssStatusChip.setBackgroundResource(R.drawable.gnss_status_bg)
+
+        // Update navigation mode text
+        val navModeText = when {
+            state.drActive && state.mlInferenceActive -> "INS + TCN"
+            state.drActive -> "INS"
+            else -> "FUSED"
+        }
+        tvNavModeText.text = navModeText
+    }
+
+    private fun renderManeuverCard(state: NavigationState) {
         // Maneuver card visible only during active navigation
         val isNavigating = state.navMode == NavMode.NAVIGATING ||
                 state.navMode == NavMode.GNSS_DEGRADED ||
@@ -543,7 +612,7 @@ class MainActivity : AppCompatActivity() {
 
         if (isNavigating) {
             val m = state.nextManeuver
-            tvManeuverIcon.text = maneuverIcon(m?.type)
+            tvManeuverIcon.setImageResource(maneuverIconRes(m?.type))
             tvManeuverInstruction.text = m?.instruction ?: "Continue on route"
             tvManeuverDistance.text = if (m != null) {
                 if (m.distanceM < 1000) "%.0f m".format(Locale.US, m.distanceM)
@@ -553,33 +622,33 @@ class MainActivity : AppCompatActivity() {
             val m2 = state.secondManeuver
             if (m2 != null) {
                 rowSecondManeuver.visibility = View.VISIBLE
-                tvSecondManeuverIcon.text = maneuverIcon(m2.type)
+                tvSecondManeuverIcon.setImageResource(maneuverIconRes(m2.type))
                 tvSecondManeuverInstruction.text = m2.instruction
             } else {
                 rowSecondManeuver.visibility = View.GONE
             }
+
+            // Update GNSS badge in maneuver card
+            val gnssBadgeText = when (state.gnssQuality) {
+                GnssQuality.GOOD -> "GNSS"
+                GnssQuality.FAIR -> "FAIR"
+                GnssQuality.POOR -> "POOR"
+                GnssQuality.DENIED -> "SENSORS"
+                GnssQuality.RECOVERING -> "BACK"
+            }
+            tvGnssBadge.text = gnssBadgeText
+            tvGnssBadge.setTextColor(gnssColor(state.gnssQuality))
+            tvGnssBadge.setBackgroundResource(gnssPillBackground(state.gnssQuality))
         }
+    }
 
-        // HUD speed (always)
-        tvHudSpeed.text = state.speedKmh.toString()
-
-        // HUD lat/lon display
-        if (state.hasValidPosition) {
-            val latStr = "%.5f° %s".format(Locale.US, abs(state.latitude), if (state.latitude >= 0) "N" else "S")
-            val lonStr = "%.5f° %s".format(Locale.US, abs(state.longitude), if (state.longitude >= 0) "E" else "W")
-            val accStr = if (state.positionAccuracy < 9999f) " ±%.0fm".format(Locale.US, state.positionAccuracy) else ""
-            tvHudLatLon.text = "$latStr  $lonStr$accStr"
-        } else {
-            tvHudLatLon.text = "acquiring position…"
-        }
-
-        // HUD GNSS badge
-        val gnssLabel = when (state.gnssQuality) {
-            GnssQuality.GOOD       -> "● GNSS LOCK"
-            GnssQuality.FAIR       -> "◑ GNSS FAIR"
-            GnssQuality.POOR       -> "◑ GNSS POOR"
-            GnssQuality.DENIED     -> "● TRACKING ON SENSORS"
-            GnssQuality.RECOVERING -> "◑ GPS RETURNING"
+    private fun gnssPillBackground(quality: GnssQuality): Int {
+        return when (quality) {
+            GnssQuality.GOOD -> R.drawable.pill_gnss_good
+            GnssQuality.FAIR -> R.drawable.pill_gnss_fair
+            GnssQuality.POOR -> R.drawable.pill_gnss_poor
+            GnssQuality.DENIED -> R.drawable.pill_gnss_denied
+            GnssQuality.RECOVERING -> R.drawable.pill_gnss_fair // Use fair for recovering
         }
         val gnssHudColor = gnssColor(state.gnssQuality)
         tvHudGnssBadge.text = gnssLabel
@@ -629,7 +698,9 @@ class MainActivity : AppCompatActivity() {
                 show(panelNavigatingSheet)
                 tvNavSpeed.text = state.speedKmh.toString()
                 tvNavDistance.text = state.distanceFormatted
-                tvNavEta.text = state.etaFormatted
+                tvNavEta.text = state.estimatedArrivalFormatted
+                navRouteProgress.progress = state.routeProgressPercent
+                tvNavProgress.text = "%d%% complete".format(Locale.US, state.routeProgressPercent)
 
                 val statusLine = state.statusLine
                 tvDrStatusLine.text = statusLine
@@ -650,111 +721,39 @@ class MainActivity : AppCompatActivity() {
         // Only update instrument panel widgets when they are visible (IDLE mode)
         if (panelIdleSheet.visibility != View.VISIBLE) return
 
-        val snap = navController?.sensorEngine?.getSnapshot() ?: return
-
-        // 4 metric cards
+        // Update speed display
         tvMetricSpeed.text = state.speedKmh.toString()
-        tvMetricImuHz.text = "%.0f".format(Locale.US, snap.imuHz)
-        tvMetricGpsAcc.text = if (snap.hasGps && snap.gpsAccuracyM < 9999f)
-            "%.0f".format(Locale.US, snap.gpsAccuracyM) else "--"
-        tvMetricSamples.text = snap.loggedCsvRows.toString()
-
-        // Accel row
-        tvAccelX.text = "Ax %+.2f".format(Locale.US, snap.accelX)
-        tvAccelY.text = "Ay %+.2f".format(Locale.US, snap.accelY)
-        tvAccelZ.text = "Az %+.2f".format(Locale.US, snap.accelZ)
-
-        // Orientation from quaternion (w, x, y, z)
-        val w = snap.quatW.toDouble()
-        val x = snap.quatX.toDouble()
-        val y = snap.quatY.toDouble()
-        val z = snap.quatZ.toDouble()
-
-        val sinrCosp = 2.0 * (w * x + y * z)
-        val cosrCosp = 1.0 - 2.0 * (x * x + y * y)
-        val roll = Math.toDegrees(atan2(sinrCosp, cosrCosp))
-
-        val sinp = 2.0 * (w * y - z * x)
-        val pitch = if (abs(sinp) >= 1.0) Math.copySign(90.0, sinp)
-                    else Math.toDegrees(asin(sinp))
-
-        val sinyCosp = 2.0 * (w * z + x * y)
-        val cosyCosp = 1.0 - 2.0 * (y * y + z * z)
-        val yaw = Math.toDegrees(atan2(sinyCosp, cosyCosp))
-
-        tvOrientPitch.text = "P %+.1f°".format(Locale.US, pitch)
-        tvOrientRoll.text  = "R %+.1f°".format(Locale.US, roll)
-        tvOrientYaw.text   = "Y %+.1f°".format(Locale.US, yaw)
-
-        // Trip status — track DR path length while position valid
-        if (state.hasValidPosition) {
-            if (tripStartMs == 0L) tripStartMs = System.currentTimeMillis()
-            if (lastDrLat != 0.0 && state.drActive) {
-                val dLat = Math.toRadians(state.latitude - lastDrLat)
-                val dLon = Math.toRadians(state.longitude - lastDrLon)
-                val a = Math.sin(dLat / 2).let { it * it } +
-                        Math.cos(Math.toRadians(lastDrLat)) *
-                        Math.cos(Math.toRadians(state.latitude)) *
-                        Math.sin(dLon / 2).let { it * it }
-                drPathDistanceM += 6_371_000.0 * 2.0 * asin(sqrt(a))
-            }
-            lastDrLat = state.latitude
-            lastDrLon = state.longitude
+        tvIdleLocationStatus.text = when {
+            !state.hasValidPosition -> "Waiting for location"
+            state.gnssQuality == GnssQuality.DENIED -> "Location estimate from sensors"
+            else -> "Location ready"
         }
-
-        // Trip mode badge
-        val modeLabel = when (state.gnssQuality) {
-            GnssQuality.GOOD       -> "● GNSS LOCK"
-            GnssQuality.FAIR       -> "◑ GNSS FAIR"
-            GnssQuality.POOR       -> "◑ GNSS POOR"
-            GnssQuality.DENIED     -> "● TRACKING ON SENSORS"
-            GnssQuality.RECOVERING -> "◑ GPS RETURNING"
-        }
-        tvTripMode.text = modeLabel
-        tvTripMode.setTextColor(gnssColor(state.gnssQuality))
-
-        tvTripDrDistance.text = "Trip: %.0f m".format(Locale.US, drPathDistanceM)
-
-        if (tripStartMs > 0L) {
-            val elapsedS = (System.currentTimeMillis() - tripStartMs) / 1000L
-            tvTripDuration.text = "%02d:%02d".format(elapsedS / 60, elapsedS % 60)
-        } else {
-            tvTripDuration.text = "00:00"
-        }
-    }
-
-    private fun renderGnssPill(state: NavigationState) {
-        // Maneuver card GNSS pill — color-coded semantic label
-        val label = when (state.gnssQuality) {
-            GnssQuality.DENIED     -> "SENSORS"
-            GnssQuality.RECOVERING -> "GPS BACK"
-            GnssQuality.POOR       -> "GPS POOR"
-            GnssQuality.FAIR       -> "GPS OK"
-            GnssQuality.GOOD       -> "GNSS"
-        }
-        tvGnssBadge.text = label
-        tvGnssBadge.setTextColor(gnssColor(state.gnssQuality))
-        tvGnssBadge.setBackgroundResource(gnssPillBg(state.gnssQuality))
     }
 
     private fun renderCompass(state: NavigationState) {
-        tvCompassNeedle.rotation = -state.heading
+        compassIndicator.rotation = -state.compassBearingDeg
     }
 
     private fun renderMap(state: NavigationState) {
-        if (!mapReady || !state.hasValidPosition) return
+        if (!mapReady) return
 
-        val latDelta = abs(state.latitude - lastMapLat)
-        val lonDelta = abs(state.longitude - lastMapLon)
-        val brgDelta = abs(state.heading - lastMapBearing)
+        // A last-known fix keeps the marker and compass useful when GPS starts off.
+        val displayLat = if (state.hasValidPosition) state.latitude else fallbackMapLat
+        val displayLon = if (state.hasValidPosition) state.longitude else fallbackMapLon
+        if (displayLat == 0.0 && displayLon == 0.0) return
+
+        val latDelta = abs(displayLat - lastMapLat)
+        val lonDelta = abs(displayLon - lastMapLon)
+        val mapBearing = state.compassBearingDeg
+        val brgDelta = abs(mapBearing - lastMapBearing)
 
         if (latDelta > 0.000015 || lonDelta > 0.000015 || brgDelta > 3f) {
-            lastMapLat = state.latitude
-            lastMapLon = state.longitude
-            lastMapBearing = state.heading
+            lastMapLat = displayLat
+            lastMapLon = displayLon
+            lastMapBearing = mapBearing
             val drFlag = if (state.drActive) "true" else "false"
             val acc = if (state.positionAccuracy < 1000f) state.positionAccuracy else 0f
-            val js = "updatePosition(${state.latitude},${state.longitude},${state.heading},$acc,false,$drFlag);"
+            val js = "updatePosition(${displayLat},${displayLon},${mapBearing},$acc,false,$drFlag);"
             mapWebView.evaluateJavascript(js, null)
         }
 
@@ -787,11 +786,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateRecenterButtonAppearance() {
-        // Always neutral — recenter is not a state indicator, just an action
+        // Always neutral â€” recenter is not a state indicator, just an action
         tvRecenterIcon.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
     }
 
-    // ── Leaflet HTML ───────────────────────────────────────────────────────────
+    // â”€â”€ Leaflet HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun buildMapHtml(): String = """
 <!DOCTYPE html>
@@ -802,7 +801,9 @@ class MainActivity : AppCompatActivity() {
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    html, body, #map { height:100%; width:100%; background:#0B1220; }
+    html, body, #mapStage, #map { height:100%; width:100%; background:#0B1220; overflow:hidden; }
+    /* Portrait screens need more than sqrt(2) coverage when the map is rotated. */
+    #mapStage { position:absolute; width:200%; height:200%; left:-50%; top:-50%; transform-origin:center center; }
     .leaflet-control-zoom {
       display:block!important; border:1px solid rgba(61,214,245,.28)!important;
       border-radius:14px!important; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.34)!important;
@@ -816,10 +817,7 @@ class MainActivity : AppCompatActivity() {
     .leaflet-control-attribution {
       font-size:8px; opacity:0.3; background:transparent!important; color:#8A93A6!important; margin-bottom: 260px!important;
     }
-    /* Dark night-mode filter for OSM tiles to match #0B1220 deep space-navy */
-    .leaflet-tile-pane {
-      filter: brightness(0.62) invert(1) contrast(3.2) hue-rotate(200deg) saturate(0.35);
-    }
+    .leaflet-tile-pane { filter: brightness(0.58) contrast(1.14) saturate(0.72); }
     @keyframes snapPulse {
       0%   { transform: scale(0.95); opacity: 0.9; }
       50%  { transform: scale(1.05); opacity: 1; }
@@ -828,18 +826,61 @@ class MainActivity : AppCompatActivity() {
   </style>
 </head>
 <body>
-<div id="map"></div>
+<div id="mapStage"><div id="map"></div></div>
 <script>
   // Bootstrap at street-city zoom (15), not subcontinent (5)
   var map = L.map('map', {
-    zoomControl: true, attributionControl: true,
+    zoomControl: false, attributionControl: true,
     zoomAnimation: true, fadeAnimation: false, preferCanvas: true
   }).setView([20.5937, 78.9629], 15);
 
+  // Two-finger rotation, while one-finger dragging remains normal map panning.
+  var mapRotation = 0;
+  var rotationStartAngle = 0;
+  var rotationStartValue = 0;
+  var rotating = false;
+  var mapStage = document.getElementById('mapStage');
+
+  function touchAngle(a, b) {
+    return Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) * 180 / Math.PI;
+  }
+
+  function applyMapRotation() {
+    mapStage.style.transform = 'rotate(' + mapRotation + 'deg)';
+  }
+
+  function resetMapRotation() {
+    mapRotation = 0;
+    applyMapRotation();
+  }
+
+  map.getContainer().addEventListener('touchstart', function(event) {
+    if (event.touches.length !== 2) return;
+    rotating = true;
+    rotationStartAngle = touchAngle(event.touches[0], event.touches[1]);
+    rotationStartValue = mapRotation;
+    // Keep Leaflet's native pinch handler active so fractional zoom and tile
+    // loading remain correct while this listener adds rotation.
+    map.dragging.disable();
+  }, {passive:false});
+
+  map.getContainer().addEventListener('touchmove', function(event) {
+    if (!rotating || event.touches.length !== 2) return;
+    mapRotation = rotationStartValue + touchAngle(event.touches[0], event.touches[1]) - rotationStartAngle;
+    applyMapRotation();
+  }, {passive:false});
+
+  map.getContainer().addEventListener('touchend', function(event) {
+    if (!rotating || event.touches.length > 1) return;
+    rotating = false;
+    map.dragging.enable();
+    map.invalidateSize({pan:false});
+  }, {passive:false});
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors', maxZoom: 19,
-    subdomains: ['a','b','c'], keepBuffer:4,
-    updateWhenIdle:false, updateWhenZooming:false
+    subdomains: ['a','b','c'], keepBuffer:8,
+    updateWhenIdle:false, updateWhenZooming:true
   }).addTo(map);
 
   map.on('dragstart zoomstart', function() {
@@ -848,7 +889,7 @@ class MainActivity : AppCompatActivity() {
     }
   });
 
-  // ── Signature Percorsa Vehicle Marker: Trust Halo & Expanding Uncertainty Cone ──
+  // â”€â”€ Signature Percorsa Vehicle Marker: Trust Halo & Expanding Uncertainty Cone â”€â”€
   function makeVehicleIcon(bearing, isDr) {
     var haloColor = isDr ? '#FFB020' : '#3DD6F5';
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">';
@@ -868,8 +909,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Vehicle Core Geometry
-    svg += '<circle cx="48" cy="48" r="10" fill="#0B1220" stroke="' + haloColor + '" stroke-width="2"/>' +
-           '<polygon points="48,32 40,54 48,50 56,54" fill="' + haloColor + '"/>' +
+    svg += '<circle cx="48" cy="48" r="13" fill="#F8FAFC" stroke="' + haloColor + '" stroke-width="3"/>' +
+           '<path d="M48 23 L62 61 L48 54 L34 61 Z" fill="#0F172A" stroke="' + haloColor + '" stroke-width="2" stroke-linejoin="round"/>' +
            '</svg>';
 
     return L.divIcon({
@@ -936,13 +977,13 @@ class MainActivity : AppCompatActivity() {
       lineJoin:'round', lineCap:'round'
     }).addTo(map);
     routePolyline = L.polyline(coords, {
-      color:'#3DD6F5', weight:5.5, opacity:0.95,
+      color:'#14B8A6', weight:5.5, opacity:0.95,
       lineJoin:'round', lineCap:'round'
     }).addTo(map);
     startMarker = L.marker(coords[0], {icon: makeStartIcon(), interactive:false, zIndexOffset:850}).addTo(map);
     destMarker = L.marker([destLat, destLon], {icon: makeDestIcon(), zIndexOffset:900}).addTo(map);
     var bounds = routePolyline.getBounds().pad(0.18);
-    map.fitBounds(bounds, {animate:true, duration:0.5});
+    map.fitBounds(bounds, {animate:true, duration:0.5, paddingTopLeft:[28, 110], paddingBottomRight:[28, 190]});
   }
 
   function clearRoute() {
@@ -961,7 +1002,7 @@ class MainActivity : AppCompatActivity() {
 </html>
     """.trimIndent()
 
-    // ── Permissions & Lifecycle ────────────────────────────────────────────────
+    // â”€â”€ Permissions & Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun hasLocationPermission() =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
@@ -1005,7 +1046,7 @@ class MainActivity : AppCompatActivity() {
         navController = null
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun hideKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
@@ -1016,7 +1057,7 @@ class MainActivity : AppCompatActivity() {
         GnssQuality.GOOD       -> ContextCompat.getColor(this, R.color.gnss_good)
         GnssQuality.FAIR       -> ContextCompat.getColor(this, R.color.gnss_fair)
         GnssQuality.POOR       -> ContextCompat.getColor(this, R.color.gnss_poor)
-        GnssQuality.DENIED     -> ContextCompat.getColor(this, R.color.nav_amber)    // amber, not red
+        GnssQuality.DENIED     -> ContextCompat.getColor(this, R.color.gnss_denied)    // orange-amber, not red
         GnssQuality.RECOVERING -> ContextCompat.getColor(this, R.color.gnss_recovering)
     }
 

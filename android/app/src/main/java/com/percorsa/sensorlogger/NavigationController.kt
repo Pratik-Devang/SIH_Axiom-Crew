@@ -126,8 +126,19 @@ class NavigationController(private val context: Context) {
                 accuracy = snap.gpsAccuracyM
                 drActive = false
             }
+            snap.latitude != 0.0 || snap.longitude != 0.0 -> {
+                // Keep the last known point visible during a GPS outage while
+                // the rotation-vector compass continues to update its heading.
+                lat = snap.latitude
+                lon = snap.longitude
+                heading = snap.compassBearingDeg
+                speed = 0f
+                accuracy = snap.gpsAccuracyM
+                drActive = true
+            }
             else -> {
                 updateState(_state.value.copy(
+                    compassBearingDeg = snap.compassBearingDeg,
                     gnssQuality = gnssQuality,
                     isRecording = sensorEngine.isRecording,
                     recordedSamples = snap.loggedCsvRows,
@@ -169,12 +180,15 @@ class NavigationController(private val context: Context) {
         var etaSec = current.etaSeconds
         var nextManeuver: Maneuver? = current.nextManeuver
         var secondManeuver: Maneuver? = current.secondManeuver
-        var isOffRoute = false
+        var isOffRoute = current.offRoute
         var isRecalculating = current.recalculating
 
         if (route != null && isDrivingMode) {
-            // 1. Polyline-constrained distance remaining
-            distRemaining = computeRemainingRouteDistance(lat, lon, route)
+            // 1. Segment projection gives cumulative route progress, not vertex distance.
+            val routeMatch = RouteGeometry.project(LatLon(lat, lon), route.polyline)
+            distRemaining = routeMatch?.let {
+                (route.distanceM - it.distanceAlongM).coerceAtLeast(0.0)
+            } ?: route.distanceM
 
             // 2. Exponentially smoothed speed to prevent jitter
             smoothedSpeedMps = 0.05 * speed.toDouble() + 0.95 * smoothedSpeedMps
@@ -199,17 +213,20 @@ class NavigationController(private val context: Context) {
             }
             etaSec = smoothedEtaSec.toLong().coerceAtLeast(0L)
 
-            val pair = findNextManeuvers(lat, lon, route)
+            val pair = findNextManeuvers(routeMatch?.distanceAlongM ?: 0.0, route)
             nextManeuver = pair.first
             secondManeuver = pair.second
 
             // Check off-route
-            val offRouteState = offRouteDetector.checkPosition(lat, lon, accuracy, speed, route)
+            val offRouteState = offRouteDetector.checkPosition(lat, lon, accuracy, speed, heading, route)
             if (offRouteState == OffRouteState.OFF_ROUTE && !isRecalculating) {
                 isOffRoute = true
-                triggerReroute(LatLon(lat, lon), current.destination!!.location)
+                isRecalculating = true
+                current.destination?.location?.let { triggerReroute(LatLon(lat, lon), it) }
             } else if (offRouteState == OffRouteState.RECALCULATING) {
                 isRecalculating = true
+            } else if (offRouteState == OffRouteState.ON_ROUTE && !isRecalculating) {
+                isOffRoute = false
             }
         }
 
@@ -217,6 +234,7 @@ class NavigationController(private val context: Context) {
             latitude = lat,
             longitude = lon,
             heading = heading,
+            compassBearingDeg = snap.compassBearingDeg,
             speed = speed,
             positionAccuracy = accuracy,
             navMode = newMode,
@@ -243,26 +261,37 @@ class NavigationController(private val context: Context) {
 
     private fun triggerReroute(origin: LatLon, destination: LatLon) {
         offRouteDetector.markRecalculating()
-        updateState(_state.value.copy(recalculating = true))
+        updateState(_state.value.copy(recalculating = true, routeError = null))
         rerouteJob?.cancel()
         rerouteJob = coroutineScope.launch {
             try {
                 val newRoute = routingService.getRoute(origin, destination)
                 if (newRoute != null) {
                     offRouteDetector.reset()
+                    smoothedSpeedMps = 0.0
+                    smoothedEtaSec = newRoute.durationSeconds.toDouble()
+                    val pair = findNextManeuvers(0.0, newRoute)
                     updateState(_state.value.copy(
                         route = newRoute,
                         recalculating = false,
                         offRoute = false,
                         distanceRemainingM = newRoute.distanceM,
                         etaSeconds = newRoute.durationSeconds,
-                        nextManeuver = newRoute.maneuvers.firstOrNull()
+                        nextManeuver = pair.first,
+                        secondManeuver = pair.second,
+                        routeError = null
                     ))
                 } else {
-                    updateState(_state.value.copy(recalculating = false))
+                    updateState(_state.value.copy(
+                        recalculating = false,
+                        routeError = "Unable to recalculate route"
+                    ))
                 }
             } catch (e: Exception) {
-                updateState(_state.value.copy(recalculating = false))
+                updateState(_state.value.copy(
+                    recalculating = false,
+                    routeError = "Unable to recalculate route"
+                ))
             }
         }
     }
@@ -296,7 +325,7 @@ class NavigationController(private val context: Context) {
                         navMode = NavMode.IDLE
                     ))
                 } else {
-                    val pair = findNextManeuvers(origin.lat, origin.lon, route)
+                    val pair = findNextManeuvers(0.0, route)
                     updateState(_state.value.copy(
                         route = route,
                         routeLoading = false,
@@ -384,6 +413,39 @@ class NavigationController(private val context: Context) {
         }
     }
 
+    fun searchNearby(category: String) {
+        val near = _state.value.let {
+            if (it.hasValidPosition) LatLon(it.latitude, it.longitude) else null
+        }
+        if (near == null) {
+            search(category)
+            return
+        }
+
+        searchJob?.cancel()
+        updateState(_state.value.copy(
+            navMode = NavMode.SEARCHING,
+            searchLoading = true,
+            searchResults = emptyList(),
+            searchError = null
+        ))
+        searchJob = coroutineScope.launch {
+            try {
+                val results = searchService.searchNearby(category, near)
+                updateState(_state.value.copy(
+                    searchResults = results,
+                    searchLoading = false,
+                    searchError = if (results.isEmpty()) "No nearby $category places found" else null
+                ))
+            } catch (e: SearchException) {
+                updateState(_state.value.copy(
+                    searchLoading = false,
+                    searchError = "Nearby search unavailable - check network connection"
+                ))
+            }
+        }
+    }
+
     fun cancelSearch() {
         searchJob?.cancel()
         updateState(_state.value.copy(
@@ -422,15 +484,9 @@ class NavigationController(private val context: Context) {
         return r * 2.0 * asin(sqrt(a))
     }
 
-    private fun findNextManeuvers(lat: Double, lon: Double, route: Route): Pair<Maneuver?, Maneuver?> {
+    private fun findNextManeuvers(distanceAlongM: Double, route: Route): Pair<Maneuver?, Maneuver?> {
         if (route.maneuvers.isEmpty()) return Pair(null, null)
-        var closestDist = Double.MAX_VALUE
-        var closestIdx = 0
-        route.polyline.forEachIndexed { i, pt ->
-            val d = distanceTo(lat, lon, pt.lat, pt.lon)
-            if (d < closestDist) { closestDist = d; closestIdx = i }
-        }
-        val fraction = closestIdx.toDouble() / route.polyline.size.toDouble()
+        val fraction = (distanceAlongM / route.distanceM.coerceAtLeast(1.0)).coerceIn(0.0, 1.0)
         val mIdx = min((fraction * route.maneuvers.size).toInt(), route.maneuvers.size - 1)
         val m1 = route.maneuvers.getOrNull(mIdx)
         val m2 = route.maneuvers.getOrNull(mIdx + 1)
@@ -475,24 +531,4 @@ class NavigationController(private val context: Context) {
         )
     }
 
-    private fun computeRemainingRouteDistance(lat: Double, lon: Double, route: Route): Double {
-        if (route.polyline.isEmpty()) return 0.0
-        var closestIdx = 0
-        var closestDist = Double.MAX_VALUE
-        for (i in route.polyline.indices) {
-            val pt = route.polyline[i]
-            val d = distanceTo(lat, lon, pt.lat, pt.lon)
-            if (d < closestDist) {
-                closestDist = d
-                closestIdx = i
-            }
-        }
-        var sum = distanceTo(lat, lon, route.polyline[closestIdx].lat, route.polyline[closestIdx].lon)
-        for (i in closestIdx until route.polyline.size - 1) {
-            val pt1 = route.polyline[i]
-            val pt2 = route.polyline[i + 1]
-            sum += distanceTo(pt1.lat, pt1.lon, pt2.lat, pt2.lon)
-        }
-        return sum
-    }
 }

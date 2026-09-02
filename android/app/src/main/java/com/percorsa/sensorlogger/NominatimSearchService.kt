@@ -1,6 +1,7 @@
 package com.percorsa.sensorlogger
 
 import com.google.gson.Gson
+import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -37,18 +38,62 @@ class NominatimSearchService : SearchService {
     private val userAgent = "Percorsa-Navigation/1.0 (SIH-Axiom-Crew)"
 
     override suspend fun search(query: String, near: LatLon?): List<GeocodingResult> =
+        searchInternal(query, near, nearbyOnly = false)
+
+    override suspend fun searchNearby(category: String, near: LatLon): List<GeocodingResult> =
+        withContext(Dispatchers.IO) {
+            val amenity = when (category.lowercase()) {
+                "restaurant", "food" -> "restaurant"
+                "hospital", "health" -> "hospital"
+                "petrol", "fuel", "petrol pump" -> "fuel"
+                else -> category.lowercase().replace("[^a-z]".toRegex(), "")
+            }
+            val amenityFilter = if (amenity == "restaurant") {
+                "[\"amenity\"~\"restaurant|fast_food|cafe\"]"
+            } else {
+                "[\"amenity\"=\"$amenity\"]"
+            }
+            val query = "[out:json][timeout:12];nwr$amenityFilter(around:10000,${near.lat},${near.lon});out center tags;"
+            val encodedQuery = URLEncoder.encode(query, "UTF-8")
+            val endpoints = listOf(
+                "https://overpass-api.de/api/interpreter",
+                "https://overpass.kumi.systems/api/interpreter"
+            )
+            for (endpoint in endpoints) {
+                try {
+                    val response = client.newCall(
+                        Request.Builder()
+                            .url("$endpoint?data=$encodedQuery")
+                            .header("User-Agent", userAgent)
+                            .build()
+                    ).execute()
+                    if (!response.isSuccessful) {
+                        response.close()
+                        continue
+                    }
+                    val results = parseNearbyResults(response.body?.string().orEmpty(), near, amenity)
+                    if (results.isNotEmpty()) return@withContext results
+                } catch (_: IOException) {
+                    // Try the next public Overpass instance.
+                }
+            }
+            emptyList()
+        }
+
+    private suspend fun searchInternal(query: String, near: LatLon?, nearbyOnly: Boolean): List<GeocodingResult> =
         withContext(Dispatchers.IO) {
             val encoded = URLEncoder.encode(query.trim(), "UTF-8")
             val viewbox = if (near != null) {
-                val delta = 0.5  // ~55km box
-                "&viewbox=${near.lon - delta},${near.lat + delta},${near.lon + delta},${near.lat - delta}&bounded=0"
+                val delta = if (nearbyOnly) 0.08 else 0.5
+                val bounded = if (nearbyOnly) 1 else 0
+                "&viewbox=${near.lon - delta},${near.lat + delta},${near.lon + delta},${near.lat - delta}&bounded=$bounded"
             } else ""
 
             val url = "https://nominatim.openstreetmap.org/search" +
                     "?q=$encoded" +
                     "&format=json" +
                     "&addressdetails=1" +
-                    "&limit=8" +
+                    "&limit=${if (nearbyOnly) 20 else 8}" +
                     "&countrycodes=in" +    // India focus for SIH demo — removable
                     viewbox
 
@@ -60,14 +105,59 @@ class NominatimSearchService : SearchService {
             try {
                 val response = client.newCall(request).execute()
                 if (!response.isSuccessful) {
+                    response.close()
                     throw SearchException("Nominatim returned ${response.code}")
                 }
                 val body = response.body?.string() ?: return@withContext emptyList()
-                parseNominatimResults(body)
+                val results = parseNominatimResults(body)
+                if (nearbyOnly && near != null) {
+                    results.sortedBy { distanceMeters(near, it.location) }
+                } else results
             } catch (e: IOException) {
                 throw SearchException("Network error: ${e.message}", e)
             }
+    }
+
+    private fun distanceMeters(a: LatLon, b: LatLon): Double {
+        val dLat = Math.toRadians(b.lat - a.lat)
+        val dLon = Math.toRadians(b.lon - a.lon)
+        val lat = Math.toRadians((a.lat + b.lat) / 2.0)
+        return 6371000.0 * kotlin.math.sqrt(dLat * dLat + kotlin.math.cos(lat) * kotlin.math.cos(lat) * dLon * dLon)
+    }
+
+    private fun parseNearbyResults(json: String, near: LatLon, amenity: String): List<GeocodingResult> {
+        return try {
+            val root = JsonParser.parseString(json).asJsonObject
+            root.getAsJsonArray("elements").mapNotNull { element ->
+                val item = element.asJsonObject
+                val tags = item.getAsJsonObject("tags") ?: return@mapNotNull null
+                val point = when {
+                    item.has("lat") && item.has("lon") -> item
+                    item.has("center") -> item.getAsJsonObject("center")
+                    else -> return@mapNotNull null
+                }
+                val lat = point.get("lat")?.asDouble ?: return@mapNotNull null
+                val lon = point.get("lon")?.asDouble ?: return@mapNotNull null
+                val name = tags.get("name")?.asString?.takeIf { it.isNotBlank() }
+                    ?: amenity.replaceFirstChar { it.uppercase() }
+                val address = listOfNotNull(
+                    tags.get("addr:street")?.asString,
+                    tags.get("addr:housenumber")?.asString,
+                    tags.get("addr:city")?.asString
+                ).joinToString(", ")
+                val id = item.get("id")?.asString ?: "$lat,$lon"
+                GeocodingResult(
+                    id = "overpass:$id",
+                    name = name,
+                    address = address.ifBlank { "Nearby ${amenity}" },
+                    location = LatLon(lat, lon),
+                    category = "amenity/$amenity"
+                )
+            }.sortedBy { distanceMeters(near, it.location) }
+        } catch (_: Exception) {
+            emptyList()
         }
+    }
 
     private fun parseNominatimResults(json: String): List<GeocodingResult> {
         return try {

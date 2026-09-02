@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.sqrt
 
 data class SensorSnapshot(
@@ -32,6 +33,7 @@ data class SensorSnapshot(
     val gpsSpeedMps: Float,
     val gpsBearingDeg: Float,
     val gpsAccuracyM: Float,
+    val compassBearingDeg: Float,
     val accelX: Float,
     val accelY: Float,
     val accelZ: Float,
@@ -178,7 +180,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
 
     // Recording & Diagnostics
     var isRecording: Boolean = false; private set
-    var csvRecorder: CsvRecorder? = null; private set
+    private var csvRecorder: CsvRecorder? = null
 
     private val totalCallbackCount = AtomicInteger(0)
     private val primaryImuSampleCount = AtomicInteger(0)
@@ -579,6 +581,9 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         val linearMag = sqrt(linearAccel[0] * linearAccel[0] + linearAccel[1] * linearAccel[1] + linearAccel[2] * linearAccel[2])
         val gravMag = sqrt(gravity[0] * gravity[0] + gravity[1] * gravity[1] + gravity[2] * gravity[2])
         val qNorm = sqrt(quaternion[0] * quaternion[0] + quaternion[1] * quaternion[1] + quaternion[2] * quaternion[2] + quaternion[3] * quaternion[3])
+        val compassHeadingDeg = if (hasRotVector) {
+            normalizeHeading(Math.toDegrees(atan2(rCurrent[1].toDouble(), rCurrent[4].toDouble())).toFloat())
+        } else 0f
 
         if (qNorm.isNaN() || abs(qNorm - 1.0f) > 0.05f) {
             addWarning("Quaternion norm anomaly: %.4f".format(qNorm))
@@ -619,6 +624,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             gpsSpeedMps = loc?.speed ?: 0f,
             gpsBearingDeg = loc?.bearing ?: 0f,
             gpsAccuracyM = loc?.accuracy ?: 0f,
+            compassBearingDeg = compassHeadingDeg,
             accelX = rawAccel[0], accelY = rawAccel[1], accelZ = rawAccel[2], accelMag = accelMag,
             gyroX = rawGyro[0], gyroY = rawGyro[1], gyroZ = rawGyro[2], gyroMag = gyroMag,
             quatW = quaternion[0], quatX = quaternion[1], quatY = quaternion[2], quatZ = quaternion[3], quatNorm = qNorm,
@@ -662,5 +668,10 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             staleSensorCount = staleSensorCount.get(),
             warnings = ArrayList(currentWarnings)
         )
+    }
+
+    private fun normalizeHeading(valueDeg: Float): Float {
+        val normalized = valueDeg % 360f
+        return if (normalized < 0f) normalized + 360f else normalized
     }
 }
