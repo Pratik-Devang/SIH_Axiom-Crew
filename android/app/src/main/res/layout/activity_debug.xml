@@ -259,6 +259,26 @@
                     android:layout_marginBottom="8dp" />
 
                 <TextView
+                    android:id="@+id/tvDbgRotationMatrix"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="R current: [1.000 0.000 0.000; 0.000 1.000 0.000; 0.000 0.000 1.000]"
+                    android:textColor="#B8C0CA"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/tvDbgCalibrationMatrix"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="R calibration: [1.000 0.000 0.000; 0.000 1.000 0.000; 0.000 0.000 1.000]"
+                    android:textColor="#B8C0CA"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="RAW MAGNETOMETER µT"
@@ -380,6 +400,16 @@
                     android:text="Fwd: +0.000  Left: +0.000  Up: -9.810 m/s²"
                     android:textColor="#B8C0CA"
                     android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvDbgVehicleFrameGyro"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Vehicle gyro Fwd: +0.000  Left: +0.000  Up: +0.000 rad/s"
+                    android:textColor="#B8C0CA"
+                    android:textSize="11sp"
                     android:fontFamily="monospace"
                     android:layout_marginBottom="8dp" />
 
@@ -598,6 +628,16 @@
                     android:text="Position Accuracy: -- m | Position Source: RAW GNSS / KF GNSS"
                     android:textColor="#94A3B8"
                     android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/tvDbgInsTelemetry"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="INS: dt 0.000 s | Fwd accel +0.000 m/s² | velocity 0.000 → 0.000 m/s | position -- → --"
+                    android:textColor="#B8C0CA"
+                    android:textSize="10sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginTop="8dp" />
 
             </LinearLayout>
 

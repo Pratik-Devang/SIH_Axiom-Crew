@@ -1,5 +1,7 @@
 package com.percorsa.sensorlogger
 
+import kotlin.math.roundToInt
+
 enum class NavMode {
     IDLE,
     SEARCHING,
@@ -93,6 +95,14 @@ data class NavigationState(
         distanceRemainingM <= 0.0 -> "--"
         distanceRemainingM < 1000 -> "%.0f m".format(distanceRemainingM)
         else -> "%.1f km".format(distanceRemainingM / 1000.0)
+    }
+
+    val estimatedArrivalFormatted: String get() = etaFormatted
+
+    val routeProgressPercent: Int get() {
+        val total = route?.distanceM ?: return 0
+        if (total <= 0.0) return 0
+        return ((1.0 - distanceRemainingM / total) * 100.0).coerceIn(0.0, 100.0).roundToInt()
     }
 
     val statusLine: String get() = when {
