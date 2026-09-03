@@ -213,8 +213,9 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     private val tcnInferenceInFlight = AtomicBoolean(false)
     private val tcnRejectedPredictionCount = AtomicLong(0L)
     private val tcnSpeedFilter = TcnSpeedFilter()
-    private var tcnRawSpeedMps: Float = 0f
-    private var tcnPredictedSpeedMps: Float = 0f
+    // TCN is independent and must remain empty until a real model output exists.
+    private var tcnRawSpeedMps: Float = Float.NaN
+    private var tcnPredictedSpeedMps: Float = Float.NaN
     private var lastTcnInferenceTimestampNs: Long = 0L
     private var tcnInferenceLatencyMs: Float = 0f
     private var tcnPredictionRateLimited: Boolean = false
