@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import java.io.File
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
@@ -280,11 +281,47 @@ class DebugActivity : AppCompatActivity() {
         // ── 9. Navigation Engine & Future Fusion Status ──────────────────────
         tvDbgNavMode.text = "Nav Mode: ${state.navMode}"
         val insDiag = nc.insDiagnostics
-        tvDbgDrProvider.text = "DR Engine: ${state.drProvider}" +
+        val shadow = nc.eskfShadowDiagnostics
+        val speedDifference = if (shadow.speedMps.isFinite())
+            abs(insDiag.velocityAfterMps - shadow.speedMps).toFloat() else Float.NaN
+        val headingDifference = if (shadow.headingDeg.isFinite()) {
+            abs(((state.heading.toDouble() - shadow.headingDeg + 540.0) % 360.0) - 180.0)
+        } else Double.NaN
+        val positionDifference = if (shadow.positionLatitude.isFinite() && shadow.positionLongitude.isFinite() && state.hasValidPosition)
+            distanceMeters(state.latitude, state.longitude, shadow.positionLatitude, shadow.positionLongitude)
+        else Float.NaN
+        val activeProviderText = "DR Engine: ${state.drProvider}" +
                 if (state.drProvider == DrProviderType.SIMPLIFIED_INS)
                     " (${if (insDiag.tcnSpeedInjected) "TCN speed injected" else "TCN not injected"}; ESKF inactive)" else ""
+        tvDbgDrProvider.text = activeProviderText
         tvDbgGnssQuality.text = "GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: NOT ACTIVE | Vehicle motion: ${insDiag.vehicleMotionEvidence} | TCN: ${if (snap.tcnInferenceActive) "ACTIVE %.2f m/s".format(Locale.US, snap.tcnPredictedSpeedMps) else "INACTIVE"} | DR: %.2f m/s | Injected: %s".format(
             Locale.US, insDiag.velocityAfterMps, if (insDiag.tcnSpeedInjected) "YES" else "NO"
+        )
+        tvDbgDrProvider.text = activeProviderText + "\nACTIVE INS: speed %.2f m/s | ESKF SHADOW: init=%s valid=%s motion=%s pos=%s vel=(%.2f, %.2f, %.2f) speed=%.2f m/s heading=%.1f° dt=%.3fs covTrace=%.3g qNorm=%.6f GNSS=%s/NIS %.2f/Innovation %.1fm/t=%.2fs TCN=%s/NIS %.2f/t=%.2fs NHC=%s ZUPT=%s | DIFFERENCE: speed=%.2f m/s heading=%.1f° pos=%.1f m".format(
+            Locale.US,
+            insDiag.velocityAfterMps,
+            shadow.initialized,
+            shadow.valid,
+            shadow.vehicleMotionObserved,
+            if (!shadow.positionLatitude.isFinite() || !shadow.positionLongitude.isFinite()) "--" else "%.5f,%.5f".format(Locale.US, shadow.positionLatitude, shadow.positionLongitude),
+            shadow.velocityWorldEnu[0], shadow.velocityWorldEnu[1], shadow.velocityWorldEnu[2],
+            shadow.speedMps,
+            shadow.headingDeg,
+            shadow.lastDtSeconds,
+            shadow.covarianceTrace,
+            shadow.quaternionNorm,
+            shadow.lastGnssAccepted,
+            shadow.lastGnssNis,
+            shadow.lastGnssInnovationMagnitudeM,
+            shadow.lastGnssTimestampSeconds,
+            shadow.lastTcnAccepted,
+            shadow.lastTcnNis,
+            shadow.lastTcnTimestampSeconds,
+            shadow.lastNhcAccepted,
+            shadow.lastZuptAccepted,
+            speedDifference,
+            headingDifference,
+            positionDifference
         )
         tvDbgAccuracy.text = if (state.positionAccuracy < Float.MAX_VALUE)
             "Position Accuracy: %.0f m | Position Source: RAW GNSS / KF GNSS".format(Locale.US, state.positionAccuracy)
@@ -297,6 +334,16 @@ class DebugActivity : AppCompatActivity() {
         tvDbgTripStatus.text = if (recording) "● RECORDING" else "● IDLE"
         tvDbgTripStatus.setTextColor(if (recording) 0xFFEF4444.toInt() else 0xFF64748B.toInt())
         tvDbgSampleCount.text = "${snap.loggedCsvRows} logged"
+    }
+
+    private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
+        val radius = 6_371_000.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = kotlin.math.sin(dLat / 2).let { it * it } +
+                kotlin.math.cos(Math.toRadians(lat1)) * kotlin.math.cos(Math.toRadians(lat2)) *
+                kotlin.math.sin(dLon / 2).let { it * it }
+        return (radius * 2.0 * kotlin.math.asin(sqrt(a))).toFloat()
     }
 
     private fun shareLastCsv() {
