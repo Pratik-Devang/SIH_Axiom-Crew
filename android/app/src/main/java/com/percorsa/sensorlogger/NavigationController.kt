@@ -38,6 +38,8 @@ class NavigationController(private val context: Context) {
     val state: StateFlow<NavigationState> = _state.asStateFlow()
     val insDiagnostics: InsDiagnostics
         get() = (drEngine as? SimplifiedInsProvider)?.diagnostics ?: InsDiagnostics()
+    val tcnSpeedInjected: Boolean
+        get() = insDiagnostics.tcnSpeedInjected
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var searchJob: Job? = null
@@ -97,6 +99,12 @@ class NavigationController(private val context: Context) {
                 bearingDeg = snap.gpsBearingDeg,
                 blendWindowSeconds = blendWindow
             )
+        } else if (shouldInjectTcnSpeed(
+                hasTrustedGnss,
+                snap.tcnInferenceActive,
+                drEngine.acceptsTcnSpeedEstimate
+            )) {
+            drEngine.injectSpeedEstimate(snap.tcnPredictedSpeedMps)
         }
 
         drEngine.update(snap, dtSeconds)
@@ -460,6 +468,14 @@ class NavigationController(private val context: Context) {
 
     private fun updateState(new: NavigationState) {
         _state.value = new
+    }
+
+    companion object {
+        internal fun shouldInjectTcnSpeed(
+            hasTrustedGnss: Boolean,
+            tcnInferenceActive: Boolean,
+            acceptsTcnSpeedEstimate: Boolean
+        ): Boolean = !hasTrustedGnss && tcnInferenceActive && acceptsTcnSpeedEstimate
     }
 
     private fun distanceTo(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {

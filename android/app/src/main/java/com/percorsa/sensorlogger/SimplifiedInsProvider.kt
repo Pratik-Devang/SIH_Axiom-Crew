@@ -14,6 +14,10 @@ data class InsDiagnostics(
     val correctedAccelUp: Float = 0f,
     val velocityBeforeMps: Float = 0f,
     val velocityAfterMps: Float = 0f,
+    val tcnSpeedMps: Float = Float.NaN,
+    val tcnSpeedInjected: Boolean = false,
+    val vehicleMotionObserved: Boolean = false,
+    val vehicleMotionEvidence: String = "WAITING: GNSS speed ≥ 4.0 m/s and accuracy ≤ 15 m",
     val positionBefore: LatLon = LatLon(0.0, 0.0),
     val positionAfter: LatLon = LatLon(0.0, 0.0)
 )
@@ -58,6 +62,8 @@ class SimplifiedInsProvider : DeadReckoningProvider {
     private var initialized: Boolean = false
     private var lastSensorTimestampNs: Long = 0L
     private var filteredForwardAccel = 0f
+    private var pendingTcnSpeedMps: Float? = null
+    private var vehicleMotionObserved = false
     @Volatile private var lastDiagnostics = InsDiagnostics()
 
     val diagnostics: InsDiagnostics get() = lastDiagnostics
@@ -65,8 +71,15 @@ class SimplifiedInsProvider : DeadReckoningProvider {
     /** Diagnostic-only read of the provider's current internal velocity. */
     val diagnosticSpeedMps: Float get() = velocityMps
 
+    override val acceptsTcnSpeedEstimate: Boolean
+        get() = vehicleMotionObserved
+
     override fun injectSpeedEstimate(speedMps: Float) {
-        // TCN remains an independent diagnostic estimate for this provider.
+        if (acceptsTcnSpeedEstimate && speedMps.isFinite() && speedMps >= 0f) {
+            pendingTcnSpeedMps = speedMps
+        } else {
+            pendingTcnSpeedMps = null
+        }
     }
 
     // Estimated accuracy degrades over time without GNSS
@@ -168,8 +181,11 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         val isStationary = stationaryAccumSeconds >= ZUPT_WINDOW_SECONDS
 
         // 4. Velocity integration with artifact rejection and ZUPT.
+        var tcnSpeedInjected = false
+        var injectedTcnSpeed = Float.NaN
         if (isStationary) {
             velocityMps = 0f
+            pendingTcnSpeedMps = null
         } else if (!isMotionArtifact) {
             if (deadbandAccel != 0f) {
                 velocityMps = (velocityMps + deadbandAccel * sampleDt.toFloat()).coerceIn(0f, 40f)
@@ -177,6 +193,12 @@ class SimplifiedInsProvider : DeadReckoningProvider {
                 // Exponential velocity decay when acceleration is within deadband (friction damping)
                 velocityMps = (velocityMps * 0.90f).let { if (it < 0.05f) 0f else it }
             }
+            pendingTcnSpeedMps?.let { tcnSpeed ->
+                velocityMps = (0.75f * velocityMps + 0.25f * tcnSpeed).coerceIn(0f, 40f)
+                injectedTcnSpeed = tcnSpeed
+                tcnSpeedInjected = true
+            }
+            pendingTcnSpeedMps = null
         }
 
         // 5. Position integration
@@ -209,6 +231,13 @@ class SimplifiedInsProvider : DeadReckoningProvider {
             correctedAccelUp = snapshot.correctedLinearUp,
             velocityBeforeMps = velocityBefore,
             velocityAfterMps = velocityMps,
+            tcnSpeedMps = injectedTcnSpeed,
+            tcnSpeedInjected = tcnSpeedInjected,
+            vehicleMotionObserved = vehicleMotionObserved,
+            vehicleMotionEvidence = if (vehicleMotionObserved)
+                "OBSERVED: GNSS speed ≥ 4.0 m/s and accuracy ≤ 15 m"
+            else
+                "WAITING: GNSS speed ≥ 4.0 m/s and accuracy ≤ 15 m",
             positionBefore = positionBefore,
             positionAfter = LatLon(estimatedLat, estimatedLon)
         )
@@ -230,6 +259,8 @@ class SimplifiedInsProvider : DeadReckoningProvider {
             velocityMps = speedMps
             estimatedAccuracyM = accuracyM
             initialized = true
+            vehicleMotionObserved = speedMps >= VEHICLE_MOTION_THRESHOLD_MPS &&
+                    accuracyM <= VEHICLE_EVIDENCE_MAX_ACCURACY_M
             headingInitialized = bearingDeg.isFinite() && speedMps > 0.5f
             return
         }
@@ -248,6 +279,9 @@ class SimplifiedInsProvider : DeadReckoningProvider {
 
         // Update speed from GNSS if moving
         if (speedMps > 0.5f && speedMps.isFinite()) velocityMps = speedMps.coerceIn(0f, 40f)
+        if (speedMps >= VEHICLE_MOTION_THRESHOLD_MPS && accuracyM <= VEHICLE_EVIDENCE_MAX_ACCURACY_M) {
+            vehicleMotionObserved = true
+        }
         if (bearingDeg.isFinite() && speedMps > 0.5f) {
             headingDeg = normalizeHeading(bearingDeg)
             headingInitialized = true
@@ -282,10 +316,17 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         blendElapsedSeconds = 0.0
         lastSensorTimestampNs = 0L
         filteredForwardAccel = 0f
+        pendingTcnSpeedMps = null
+        vehicleMotionObserved = false
     }
 
     private fun normalizeHeading(value: Float): Float {
         val normalized = value % 360f
         return if (normalized < 0f) normalized + 360f else normalized
+    }
+
+    companion object {
+        private const val VEHICLE_MOTION_THRESHOLD_MPS = 4.0f
+        private const val VEHICLE_EVIDENCE_MAX_ACCURACY_M = 15f
     }
 }

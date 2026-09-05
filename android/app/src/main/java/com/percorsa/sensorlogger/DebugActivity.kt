@@ -279,10 +279,13 @@ class DebugActivity : AppCompatActivity() {
 
         // ── 9. Navigation Engine & Future Fusion Status ──────────────────────
         tvDbgNavMode.text = "Nav Mode: ${state.navMode}"
+        val insDiag = nc.insDiagnostics
         tvDbgDrProvider.text = "DR Engine: ${state.drProvider}" +
                 if (state.drProvider == DrProviderType.SIMPLIFIED_INS)
-                    " (${if (snap.tcnInferenceActive) "TCN speed assisted" else "inertial fallback"}; ESKF inactive)" else ""
-        tvDbgGnssQuality.text = "GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: NOT ACTIVE | TCN Speed Assist: ${if (snap.tcnInferenceActive) "ACTIVE" else "INACTIVE"}"
+                    " (${if (insDiag.tcnSpeedInjected) "TCN speed injected" else "TCN not injected"}; ESKF inactive)" else ""
+        tvDbgGnssQuality.text = "GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: NOT ACTIVE | Vehicle motion: ${insDiag.vehicleMotionEvidence} | TCN: ${if (snap.tcnInferenceActive) "ACTIVE %.2f m/s".format(Locale.US, snap.tcnPredictedSpeedMps) else "INACTIVE"} | DR: %.2f m/s | Injected: %s".format(
+            Locale.US, insDiag.velocityAfterMps, if (insDiag.tcnSpeedInjected) "YES" else "NO"
+        )
         tvDbgAccuracy.text = if (state.positionAccuracy < Float.MAX_VALUE)
             "Position Accuracy: %.0f m | Position Source: RAW GNSS / KF GNSS".format(Locale.US, state.positionAccuracy)
         else "Position Accuracy: -- | Position Source: RAW GNSS / KF GNSS"
