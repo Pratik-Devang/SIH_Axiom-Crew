@@ -17,6 +17,8 @@ open class CsvRecorder(context: Context? = null, overrideFile: File? = null) {
     private var handlerThread: HandlerThread? = null
     private var handler: Handler? = null
     private var firstTimestampNs: Long = -1L
+    @Volatile private var estimatedSpeedMps: Float = Float.NaN
+    @Volatile private var tcnSpeedMps: Float = Float.NaN
 
     init {
         if (overrideFile != null) {
@@ -48,7 +50,7 @@ open class CsvRecorder(context: Context? = null, overrideFile: File? = null) {
                 "gravity_x,gravity_y,gravity_z," +
                 "gyro_x,gyro_y,gyro_z," +
                 "quat_w,quat_x,quat_y,quat_z," +
-                "latitude,longitude,gps_accuracy_m,gps_speed_mps,gps_bearing_deg,vehicle_speed," +
+                "latitude,longitude,gps_accuracy_m,gps_speed_mps,gps_bearing_deg,estimated_speed_mps,tcn_speed_mps,eskf_speed_mps," +
                 "corrected_accel_forward,corrected_accel_left,corrected_accel_up," +
                 "corrected_linear_forward,corrected_linear_left,corrected_linear_up," +
                 "corrected_gyro_forward,corrected_gyro_left,corrected_gyro_up\n"
@@ -57,6 +59,16 @@ open class CsvRecorder(context: Context? = null, overrideFile: File? = null) {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    /** Diagnostic-only value supplied by the active navigation estimator. */
+    fun setEstimatedSpeedMps(speedMps: Float) {
+        estimatedSpeedMps = speedMps
+    }
+
+    /** Diagnostic-only value supplied by the independent TCN predictor. */
+    fun setTcnSpeedMps(speedMps: Float) {
+        tcnSpeedMps = speedMps
     }
 
     open fun writeRow(
@@ -103,7 +115,8 @@ open class CsvRecorder(context: Context? = null, overrideFile: File? = null) {
                     firstTimestampNs = timestampNs
                 }
                 val timeSinceStartS = (timestampNs - firstTimestampNs) / 1_000_000_000.0
-                val vehicleSpeedKmh = if (!gpsSpeedMps.isNaN()) gpsSpeedMps * 3.6f else 0f
+                val estimatedSpeed = estimatedSpeedMps
+                val tcnSpeed = tcnSpeedMps
 
                 writer?.let { w ->
                     val latStr = if (latitude.isNaN()) "" else "%.7f".format(Locale.US, latitude)
@@ -112,7 +125,9 @@ open class CsvRecorder(context: Context? = null, overrideFile: File? = null) {
                     val spdStr = if (gpsSpeedMps.isNaN()) "" else "%.2f".format(Locale.US, gpsSpeedMps)
                     val brgStr = if (gpsBearingDeg.isNaN()) "" else "%.1f".format(Locale.US, gpsBearingDeg)
 
-                    w.write("$timestampNs,%.4f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,$latStr,$lonStr,$accStr,$spdStr,$brgStr,%.2f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n".format(
+                    val estimatedSpeedStr = if (estimatedSpeed.isNaN()) "" else "%.2f".format(Locale.US, estimatedSpeed)
+                    val tcnSpeedStr = if (tcnSpeed.isNaN()) "" else "%.2f".format(Locale.US, tcnSpeed)
+                    w.write("$timestampNs,%.4f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,$latStr,$lonStr,$accStr,$spdStr,$brgStr,$estimatedSpeedStr,$tcnSpeedStr,,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n".format(
                         Locale.US,
                         timeSinceStartS,
                         accelX, accelY, accelZ,
@@ -120,7 +135,6 @@ open class CsvRecorder(context: Context? = null, overrideFile: File? = null) {
                         gravX, gravY, gravZ,
                         gyroX, gyroY, gyroZ,
                         qw, qx, qy, qz,
-                        vehicleSpeedKmh,
                         corrAccelFwd, corrAccelLeft, corrAccelUp,
                         corrLinearFwd, corrLinearLeft, corrLinearUp,
                         corrGyroFwd, corrGyroLeft, corrGyroUp

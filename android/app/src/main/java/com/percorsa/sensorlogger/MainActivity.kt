@@ -59,14 +59,9 @@ class MainActivity : AppCompatActivity() {
     private var fallbackMapLon = 0.0
     private var routeDrawn = false
 
-    // ── Top Instrument HUD ──────────────────────────────────────────────────────
-    private lateinit var tvHudGnssBadge: TextView
-    private lateinit var tvHudMlBadge: TextView
-    private lateinit var tvHudLatLon: TextView
-    private lateinit var tvHudSpeed: TextView
-    private lateinit var btnHudRec: TextView
-    private lateinit var btnHudCal: TextView
-    private lateinit var btnDevMode: TextView
+    // â”€â”€ Floating Search Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private lateinit var floatingSearchBar: LinearLayout
+    private lateinit var tvSearchPlaceholder: TextView
 
     // â”€â”€ GNSS Status Chip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private lateinit var gnssStatusChip: LinearLayout
@@ -269,14 +264,15 @@ class MainActivity : AppCompatActivity() {
     private fun bindViews() {
         mapWebView                  = findViewById(R.id.mapWebView)
 
-        // Top HUD
-        tvHudGnssBadge              = findViewById(R.id.tvHudGnssBadge)
-        tvHudMlBadge                = findViewById(R.id.tvHudMlBadge)
-        tvHudLatLon                 = findViewById(R.id.tvHudLatLon)
-        tvHudSpeed                  = findViewById(R.id.tvHudSpeed)
-        btnHudRec                   = findViewById(R.id.btnHudRec)
-        btnHudCal                   = findViewById(R.id.btnHudCal)
-        btnDevMode                  = findViewById(R.id.btnDevMode)
+        // Floating Search Bar
+        floatingSearchBar           = findViewById(R.id.floatingSearchBar)
+        tvSearchPlaceholder         = findViewById(R.id.tvSearchPlaceholder)
+
+        // GNSS Status Chip
+        gnssStatusChip              = findViewById(R.id.gnssStatusChip)
+        tvGnssStatusDot             = findViewById(R.id.tvGnssStatusDot)
+        tvGnssStatusText            = findViewById(R.id.tvGnssStatusText)
+        tvNavModeText               = findViewById(R.id.tvNavModeText)
 
         // Maneuver card
         maneuverCard                = findViewById(R.id.maneuverCard)
@@ -650,18 +646,6 @@ class MainActivity : AppCompatActivity() {
             GnssQuality.DENIED -> R.drawable.pill_gnss_denied
             GnssQuality.RECOVERING -> R.drawable.pill_gnss_fair // Use fair for recovering
         }
-        val gnssHudColor = gnssColor(state.gnssQuality)
-        tvHudGnssBadge.text = gnssLabel
-        tvHudGnssBadge.setTextColor(gnssHudColor)
-        tvHudMlBadge.text = state.mlStatusLabel
-        tvHudMlBadge.setTextColor(mlColor(state))
-
-        // REC button state sync
-        val isRec = state.isRecording
-        btnHudRec.text = if (isRec) "● REC" else "REC"
-        btnHudRec.setTextColor(
-            ContextCompat.getColor(this, if (isRec) R.color.nav_red else R.color.text_tertiary)
-        )
     }
 
     private fun renderBottomSheet(state: NavigationState) {
@@ -1079,17 +1063,17 @@ class MainActivity : AppCompatActivity() {
         }
     )
 
-    private fun maneuverIcon(type: ManeuverType?): String = when (type) {
-        ManeuverType.TURN_LEFT    -> "←"
-        ManeuverType.TURN_RIGHT   -> "→"
-        ManeuverType.SLIGHT_LEFT  -> "↖"
-        ManeuverType.SLIGHT_RIGHT -> "↗"
-        ManeuverType.SHARP_LEFT   -> "↙"
-        ManeuverType.SHARP_RIGHT  -> "↘"
-        ManeuverType.U_TURN       -> "↺"
-        ManeuverType.ROUNDABOUT   -> "⊙"
-        ManeuverType.ARRIVE       -> "🏁"
-        ManeuverType.DEPART       -> "↑"
-        else                      -> "↑"
+    private fun maneuverIconRes(type: ManeuverType?): Int = when (type) {
+        ManeuverType.TURN_LEFT    -> R.drawable.ic_turn_left
+        ManeuverType.TURN_RIGHT   -> R.drawable.ic_turn_right
+        ManeuverType.SLIGHT_LEFT  -> R.drawable.ic_turn_left
+        ManeuverType.SLIGHT_RIGHT -> R.drawable.ic_turn_right
+        ManeuverType.SHARP_LEFT   -> R.drawable.ic_turn_left
+        ManeuverType.SHARP_RIGHT  -> R.drawable.ic_turn_right
+        ManeuverType.U_TURN       -> R.drawable.ic_u_turn
+        ManeuverType.ROUNDABOUT   -> R.drawable.ic_roundabout
+        ManeuverType.ARRIVE       -> R.drawable.ic_destination
+        ManeuverType.DEPART       -> R.drawable.ic_straight
+        else                      -> R.drawable.ic_straight
     }
 }

@@ -181,6 +181,8 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     // Recording & Diagnostics
     var isRecording: Boolean = false; private set
     private var csvRecorder: CsvRecorder? = null
+    @Volatile private var estimatedSpeedMps: Float = Float.NaN
+    @Volatile private var estimatedSpeedProvider: (() -> Float)? = null
 
     private val totalCallbackCount = AtomicInteger(0)
     private val primaryImuSampleCount = AtomicInteger(0)
@@ -211,8 +213,9 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     private val tcnInferenceInFlight = AtomicBoolean(false)
     private val tcnRejectedPredictionCount = AtomicLong(0L)
     private val tcnSpeedFilter = TcnSpeedFilter()
-    private var tcnRawSpeedMps: Float = 0f
-    private var tcnPredictedSpeedMps: Float = 0f
+    // TCN is independent and must remain empty until a real model output exists.
+    private var tcnRawSpeedMps: Float = Float.NaN
+    private var tcnPredictedSpeedMps: Float = Float.NaN
     private var lastTcnInferenceTimestampNs: Long = 0L
     private var tcnInferenceLatencyMs: Float = 0f
     private var tcnPredictionRateLimited: Boolean = false
@@ -515,6 +518,9 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     }
 
     private fun recordCurrentState(timestampNs: Long) {
+        val diagnosticEstimatedSpeed = estimatedSpeedProvider?.invoke() ?: estimatedSpeedMps
+        csvRecorder?.setEstimatedSpeedMps(diagnosticEstimatedSpeed)
+        csvRecorder?.setTcnSpeedMps(tcnRawSpeedMps)
         val corrAccel = FloatArray(3)
         val corrLinear = FloatArray(3)
         val corrGyro = FloatArray(3)
@@ -553,6 +559,14 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
                 corrGyroFwd = corrGyro[0], corrGyroLeft = corrGyro[1], corrGyroUp = corrGyro[2]
             )
         }
+    }
+
+    fun setEstimatedSpeedForDiagnostics(speedMps: Float) {
+        estimatedSpeedMps = speedMps
+    }
+
+    fun setEstimatedSpeedProviderForDiagnostics(provider: (() -> Float)?) {
+        estimatedSpeedProvider = provider
     }
 
     private fun transformToVehicleFrame(vPhone: FloatArray, vVehicle: FloatArray) {
