@@ -45,7 +45,8 @@ import android.util.Log
  * - /src/navigation/constraints.py — vehicle constraint updates
  * - /src/navigation/ai_update.py   — TCN speed measurement injection
  */
-class PercorsaEskfProvider : DeadReckoningProvider {
+@Deprecated("Retained only as the historical stub source; use the experimental provider implementation.")
+class PercorsaEskfProviderStub : DeadReckoningProvider {
 
     override val providerType: DrProviderType = DrProviderType.PERCORSA_ESKF
 

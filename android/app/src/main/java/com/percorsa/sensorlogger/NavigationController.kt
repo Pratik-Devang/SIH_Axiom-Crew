@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.min
@@ -22,6 +25,12 @@ class NavigationController(private val context: Context) {
 
     // ── Navigation engine ─────────────────────────────────────────────────────
     private val drEngine: DeadReckoningProvider = SimplifiedInsProvider()
+    /** Observer only: this provider never supplies active navigation state. */
+    private val eskfShadow = PercorsaEskfProvider()
+    private val eskfShadowExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "percorsa-eskf-shadow").apply { priority = Thread.NORM_PRIORITY - 1 }
+    }
+    @Volatile private var eskfShadowStopped = false
 
     // ── Supporting components ─────────────────────────────────────────────────
     val sensorEngine = SensorEngine(context)
@@ -40,6 +49,8 @@ class NavigationController(private val context: Context) {
         get() = (drEngine as? SimplifiedInsProvider)?.diagnostics ?: InsDiagnostics()
     val tcnSpeedInjected: Boolean
         get() = insDiagnostics.tcnSpeedInjected
+    val eskfShadowDiagnostics: EskfProviderDiagnostics
+        get() = eskfShadow.status
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var searchJob: Job? = null
@@ -71,7 +82,9 @@ class NavigationController(private val context: Context) {
     }
 
     fun stop() {
+        eskfShadowStopped = true
         sensorEngine.stop()
+        eskfShadowExecutor.shutdown()
         searchJob?.cancel()
         routeJob?.cancel()
         rerouteJob?.cancel()
@@ -105,6 +118,35 @@ class NavigationController(private val context: Context) {
                 drEngine.acceptsTcnSpeedEstimate
             )) {
             drEngine.injectSpeedEstimate(snap.tcnPredictedSpeedMps)
+        }
+
+        // Shadow work is serialized away from the UI thread. It receives the
+        // same raw-phone snapshot and trusted measurement decisions, but its
+        // state is never used below for active navigation.
+        if (!eskfShadowStopped && !eskfShadow.isSuspended) {
+            try {
+                eskfShadowExecutor.execute {
+                    runCatching {
+                        if (hasTrustedGnss) {
+                            eskfShadow.injectGnssCorrection(
+                                lat = snap.latitude,
+                                lon = snap.longitude,
+                                accuracyM = snap.gpsAccuracyM,
+                                speedMps = snap.gpsSpeedMps,
+                                bearingDeg = snap.gpsBearingDeg,
+                                blendWindowSeconds = 0.0
+                            )
+                        } else if (snap.tcnInferenceActive && eskfShadow.acceptsTcnSpeedEstimate) {
+                            eskfShadow.injectSpeedEstimate(snap.tcnPredictedSpeedMps)
+                        }
+                        eskfShadow.update(snap, dtSeconds)
+                    }.onFailure { error ->
+                        eskfShadow.markInvalid(error.message ?: error.javaClass.simpleName)
+                    }
+                }
+            } catch (_: RejectedExecutionException) {
+                // stop() won the lifecycle race; shadow shutdown is isolated.
+            }
         }
 
         drEngine.update(snap, dtSeconds)
