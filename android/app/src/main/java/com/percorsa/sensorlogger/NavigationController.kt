@@ -65,6 +65,59 @@ class NavigationController(private val context: Context) {
         sensorEngine.setEstimatedSpeedProviderForDiagnostics {
             (drEngine as? SimplifiedInsProvider)?.diagnosticSpeedMps ?: Float.NaN
         }
+        sensorEngine.setNavigationDiagnosticsProvider {
+            val snap = sensorEngine.getSnapshot()
+            val stateNow = _state.value
+            val active = drEngine.getEstimatedPosition()
+            val ins = insDiagnostics
+            val shadow = eskfShadowDiagnostics
+            CsvNavigationDiagnostics(
+                activeProvider = if (stateNow.drProvider == DrProviderType.NONE) null else stateNow.drProvider.name,
+                activeLatitude = active?.latitude ?: Double.NaN,
+                activeLongitude = active?.longitude ?: Double.NaN,
+                activeVelocityMps = active?.speedMps ?: Float.NaN,
+                activeSpeedMps = active?.speedMps ?: Float.NaN,
+                activeHeadingDeg = active?.heading ?: Float.NaN,
+                tcnCanonicalTimestampNs = snap.lastCanonicalSample?.timestampNs ?: 0L,
+                tcnInferenceActive = snap.tcnInferenceActive,
+                tcnRawSpeedMps = snap.tcnRawSpeedMps,
+                tcnFilteredSpeedMps = snap.tcnPredictedSpeedMps,
+                tcnPredictionRateLimited = snap.tcnPredictionRateLimited,
+                tcnRejectedPredictionCount = snap.tcnRejectedPredictionCount,
+                vehicleMotionObserved = ins.vehicleMotionObserved,
+                tcnInjectedIntoIns = ins.tcnSpeedInjected,
+                tcnAcceptedByEskf = shadow.lastTcnAccepted,
+                tcnNis = shadow.lastTcnNis,
+                eskfInitialized = shadow.initialized,
+                eskfValid = shadow.valid,
+                eskfTimestampNs = shadow.lastPropagationTimestampNs,
+                eskfDtSeconds = shadow.lastDtSeconds,
+                eskfPositionLatitude = shadow.positionLatitude,
+                eskfPositionLongitude = shadow.positionLongitude,
+                eskfPositionEastM = shadow.positionWorldEnu.getOrNull(0) ?: Double.NaN,
+                eskfPositionNorthM = shadow.positionWorldEnu.getOrNull(1) ?: Double.NaN,
+                eskfPositionUpM = shadow.positionWorldEnu.getOrNull(2) ?: Double.NaN,
+                eskfVelocityEastMps = shadow.velocityWorldEnu.getOrNull(0) ?: Double.NaN,
+                eskfVelocityNorthMps = shadow.velocityWorldEnu.getOrNull(1) ?: Double.NaN,
+                eskfVelocityUpMps = shadow.velocityWorldEnu.getOrNull(2) ?: Double.NaN,
+                eskfSpeedMps = shadow.speedMps,
+                eskfHeadingDeg = shadow.headingDeg,
+                eskfQuaternionW = shadow.quaternionW,
+                eskfQuaternionX = shadow.quaternionX,
+                eskfQuaternionY = shadow.quaternionY,
+                eskfQuaternionZ = shadow.quaternionZ,
+                eskfQuaternionNorm = shadow.quaternionNorm,
+                eskfCovarianceTrace = shadow.covarianceTrace,
+                eskfStateFinite = shadow.stateFinite,
+                eskfCovarianceFinite = shadow.covarianceFinite,
+                eskfCovariancePsd = shadow.covariancePsd,
+                eskfGnssAccepted = shadow.lastGnssAccepted,
+                eskfGnssNis = shadow.lastGnssNis,
+                eskfGnssInnovationM = shadow.lastGnssInnovationMagnitudeM,
+                eskfNhcAccepted = shadow.lastNhcAccepted,
+                eskfZuptAccepted = shadow.lastZuptAccepted
+            )
+        }
         // Load initial persisted searches/places
         _state.value = _state.value.copy(
             recentSearches = preferencesRepo.getRecentSearches(),
