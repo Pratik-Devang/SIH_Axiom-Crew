@@ -18,7 +18,7 @@ class EskfShadowModeTest {
             shadowSnapshot(1_020_000_000L, 0.4f, 0.3f)
         )
         samples.forEach { sample ->
-            first.update(sample, 99.0)
+            first.update(sample, 0.01)
             second.update(sample, 0.01)
         }
 

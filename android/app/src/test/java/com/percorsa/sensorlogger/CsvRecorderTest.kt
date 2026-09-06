@@ -85,14 +85,14 @@ class CsvRecorderTest {
         recorder.setRawTimestamps(1_000_000_000L, 0L)
         recorder.setNavigationDiagnostics(
             CsvNavigationDiagnostics(
-                activeProvider = "SIMPLIFIED_INS",
+                activeProvider = "PERCORSA_ESKF",
                 activeSpeedMps = 4.5f,
                 tcnCanonicalTimestampNs = 990_000_000L,
                 tcnInferenceActive = true,
                 vehicleMotionObserved = false,
                 tcnInjectedIntoIns = false,
                 eskfInitialized = false,
-                eskfValid = true
+                eskfValid = false
             )
         )
         recorder.writeRow(
@@ -119,5 +119,30 @@ class CsvRecorderTest {
         assertTrue(columns.contains("eskf_covariance_psd"))
         assertEquals("", values[columns.indexOf("gyro_timestamp_ns")])
         assertEquals("false", values[columns.indexOf("tcn_injected_into_ins")])
+    }
+
+    @Test
+    fun rawImuSidecarPreservesEveryCallbackInArrivalOrder() {
+        val file = File.createTempFile("csv_raw_imu_test", ".csv")
+        file.deleteOnExit()
+        val recorder = CsvRecorder(context = null, overrideFile = file)
+        recorder.rawImuFile.deleteOnExit()
+
+        recorder.writeRawImuEvent(
+            sensorType = "accelerometer",
+            timestampNs = 1_000_000_000L,
+            accelX = 1f, accelY = 2f, accelZ = 3f
+        )
+        recorder.writeRawImuEvent(
+            sensorType = "gyroscope",
+            timestampNs = 999_000_000L,
+            gyroX = 4f, gyroY = 5f, gyroZ = 6f
+        )
+        recorder.close()
+
+        val lines = recorder.rawImuFile.readText().trim().lines()
+        assertEquals(3, lines.size)
+        assertTrue(lines[1], lines[1].contains(",0,1000000000,accelerometer,1.000000000,2.000000000,3.000000000,,,"))
+        assertTrue(lines[2], lines[2].contains(",1,999000000,gyroscope,,,,4.000000000,5.000000000,6.000000000"))
     }
 }

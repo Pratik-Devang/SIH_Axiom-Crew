@@ -17,7 +17,8 @@ data class EskfTcnUpdateResult(
     val innovationMps: Double,
     val innovationVarianceMps2: Double,
     val jacobian: DoubleArray,
-    val kalmanGain: DoubleArray
+    val kalmanGain: DoubleArray,
+    val rejectionReason: String? = null
 )
 
 /** Standalone Python-compatible scalar TCN forward-speed ESKF update. */
@@ -97,7 +98,8 @@ class EskfTcnUpdater(
             innovation,
             innovationVariance,
             h,
-            k
+            k,
+            null
         )
     }
 
@@ -157,7 +159,7 @@ class EskfTcnUpdater(
     ) = EskfTcnUpdateResult(
         state, covariance, false,
         if (reason == "NIS rejected") Double.NaN else Double.POSITIVE_INFINITY,
-        predicted, innovation, innovationVariance, h, DoubleArray(ErrorStateIndex.SIZE)
+        predicted, innovation, innovationVariance, h, DoubleArray(ErrorStateIndex.SIZE), reason
     )
 
     companion object {

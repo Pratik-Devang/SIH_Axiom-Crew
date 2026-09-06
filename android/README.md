@@ -19,10 +19,10 @@ validated Python replay pipeline as the primary demonstration.
 - **Android Gradle Plugin (AGP)**: `8.9.0`
 - **Gradle Version**: `9.5.0` (Gradle Wrapper target `8.13`)
 - **JDK Version**: Java 17 / Java 21 (Targeting Java 11 bytecode compatibility)
-- **Minimum Android SDK (`minSdk`)**: `24` (Android 7.0 Nougat)
-- **Compile SDK (`compileSdk`)**: `37`
+- **Minimum Android SDK (`minSdk`)**: `21` (Android 5.0 Lollipop)
+- **Compile SDK (`compileSdk`)**: `34`
 - **Target SDK (`targetSdk`)**: `37`
-- **Application Namespace / ID**: `com.percorsa.navigation`
+- **Application Namespace / ID**: `com.percorsa.sensorlogger`
 
 ---
 
@@ -69,10 +69,14 @@ The compiled APK will be generated at:
 ## Recorded Sensor Data Specification
 
 The current implementation logs high-frequency motion data:
-- **Raw Accelerometer**: 3-axis linear acceleration ($X, Y, Z$) in $m/s^2$.
-- **Raw Gyroscope**: 3-axis angular velocity ($X, Y, Z$) in $rad/s$.
-- **Resampling & Buffering**: In-memory ring buffer with $100\text{ Hz}$ resampling (`SensorResampler`), timing jitter metrics (`SensorTimingTracker`), and rate tracking (`SensorRateTracker`).
-- **Trip Logging**: `TripLogger` outputs structured timestamped CSV/JSON logs.
+- **Raw Accelerometer**: 3-axis specific force ($X, Y, Z$) in $m/s^2$,
+  including gravity, in the raw phone frame.
+- **Raw Gyroscope**: 3-axis angular velocity ($X, Y, Z$) in $rad/s$ in the raw
+  phone frame.
+- **Canonical TCN stream**: a separate 10 Hz, 50-sample window; raw callback
+  replay data is preserved in the `*_raw_imu.csv` sidecar.
+- **Trip Logging**: `CsvRecorder` outputs timestamped CSV diagnostics; see
+  `docs/android_logger_schema.md` for the exact schema.
 
 ---
 
@@ -80,18 +84,21 @@ The current implementation logs high-frequency motion data:
 
 The app bundles `tcn.onnx` and its training normalization values. `SensorEngine`
 creates a canonical `[1, 6, 50]` tensor after the initial five-second warm-up,
-runs deterministic ONNX inference on a dedicated worker, and injects valid
-forward-speed estimates into the fallback dead-reckoning provider while GNSS is
-untrusted. A causal output filter limits implausible speed jumps before they
-reach navigation. Developer Mode reports model loading, buffer readiness, raw
+runs deterministic ONNX inference on a dedicated worker, and supplies valid
+forward-speed estimates to the active ESKF measurement update while GNSS is
+untrusted and vehicle motion has been established. A causal output filter
+limits implausible speed jumps before they reach navigation. Developer Mode reports model loading, buffer readiness, raw
 and filtered speed, inference latency, rate limiting, rejected predictions, and
 errors.
 
 ## Known Incomplete Features
 
-- GNSS / GPS location stream integration.
-- 3-axis Magnetometer logging.
-- Full ESKF fusion of the TCN speed measurement; the current app applies it to
-  `SimplifiedInsProvider` while the ESKF provider remains a stub.
-- Offline map rendering and live route replay display.
+- Quantitative ESKF accuracy validation against an independent reference.
+- Full quantitative ESKF accuracy validation against an independent reference
+  remains required for accuracy claims. The app now uses
+  `PercorsaEskfProvider` as the single active estimator;
+  `SimplifiedInsProvider` remains available only as a reference/fallback
+  implementation. `PercorsaEskfProviderStub` is retained as a deprecated
+  historical placeholder and is not on the production path.
+- Offline route replay display and production routing-provider hardening.
 

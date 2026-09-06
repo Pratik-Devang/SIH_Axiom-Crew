@@ -16,6 +16,7 @@ class ImuPreprocessor {
     fun processSnapshot(snapshot: SensorSnapshot): CanonicalImuSample? {
         val sampleTimeNs = snapshot.timestampNs
         if (sampleTimeNs <= 0L) return null
+        if (lastSampleTimeNs > 0L && sampleTimeNs <= lastSampleTimeNs) return null
 
         if (lastSampleTimeNs == 0L || (sampleTimeNs - lastSampleTimeNs) >= TARGET_INTERVAL_NS) {
             lastSampleTimeNs = sampleTimeNs

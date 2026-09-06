@@ -10,16 +10,12 @@ package com.percorsa.sensorlogger
  *
  * Provider hierarchy:
  *   DeadReckoningProvider
- *       ├── SimplifiedInsProvider   — temporary fallback (linear accel integration)
- *       └── PercorsaEskfProvider    — future slot for real TCN + ESKF engine
+ *       ├── SimplifiedInsProvider   — retained reference/fallback implementation
+ *       └── PercorsaEskfProvider    — authoritative active ESKF provider
  *
- * To replace SimplifiedInsProvider with the real Percorsa algorithm:
- *   1. Complete PercorsaEskfProvider (port the ESKF from Python)
- *   2. In NavigationController, change:
- *        drProvider = SimplifiedInsProvider()
- *      to:
- *        drProvider = PercorsaEskfProvider()
- *   No changes required in MainActivity, NavigationState, or UI layer.
+ * NavigationController selects PercorsaEskfProvider as the sole active
+ * estimator. SimplifiedInsProvider remains available for comparison and an
+ * explicitly selected fallback, but is never blended into ESKF state.
  */
 interface DeadReckoningProvider {
 
@@ -41,7 +37,7 @@ interface DeadReckoningProvider {
     fun update(snapshot: SensorSnapshot, dtSeconds: Double)
 
     /** Inject a trusted TCN forward-speed estimate when GNSS is unavailable. */
-    fun injectSpeedEstimate(speedMps: Float)
+    fun injectSpeedEstimate(speedMps: Float, timestampNs: Long = 0L)
 
     /**
      * Whether the current motion history is inside the deployed TCN's domain.
@@ -71,8 +67,12 @@ interface DeadReckoningProvider {
         accuracyM: Float,
         speedMps: Float,
         bearingDeg: Float,
-        blendWindowSeconds: Double = 3.0
+        blendWindowSeconds: Double = 3.0,
+        sourceTimestampNs: Long = 0L
     )
+
+    /** Drop an invalid sensor interval without fabricating an estimator dt. */
+    fun rebaselineSensorTimestamp(timestampNs: Long) {}
 
     /**
      * Current estimated position.

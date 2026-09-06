@@ -23,7 +23,9 @@ data class Maneuver(
     val instruction: String,
     val distanceM: Double,
     val durationSeconds: Long,
-    val type: ManeuverType = ManeuverType.STRAIGHT
+    val type: ManeuverType = ManeuverType.STRAIGHT,
+    /** Cumulative route distance at the end of this maneuver step, when known. */
+    val distanceAlongM: Double = Double.NaN
 )
 
 enum class ManeuverType {

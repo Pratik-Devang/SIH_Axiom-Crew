@@ -232,12 +232,12 @@ class DebugActivity : AppCompatActivity() {
             state.gnssQuality.name, snap.gpsAccuracyM, snap.gpsFixAgeMs, if (hasGps) "GPS" else "NONE")
 
         if (hasGps) {
-            tvDbgGpsCoords.text = "Raw Lat: %.5f  Lon: %.5f\nKF  Lat: %.5f  Lon: %.5f".format(
+            tvDbgGpsCoords.text = "Raw Lat: %.5f  Lon: %.5f\nESKF Lat: %.5f  Lon: %.5f".format(
                 Locale.US, snap.latitude, snap.longitude, state.latitude, state.longitude)
             tvDbgGpsAccuracy.text = "Accuracy: %.0f m".format(Locale.US, snap.gpsAccuracyM)
             tvDbgGpsSpeed.text   = "Speed: %.1f km/h (%.1f m/s)".format(Locale.US, snap.gpsSpeedMps * 3.6f, snap.gpsSpeedMps)
         } else {
-            tvDbgGpsCoords.text  = "Raw Lat: --  Lon: --\nKF  Lat: --  Lon: --"
+            tvDbgGpsCoords.text  = "Raw Lat: --  Lon: --\nESKF Lat: --  Lon: --"
             tvDbgGpsAccuracy.text = "Accuracy: --"
             tvDbgGpsSpeed.text   = "Speed: --"
         }
@@ -280,48 +280,40 @@ class DebugActivity : AppCompatActivity() {
 
         // ── 9. Navigation Engine & Future Fusion Status ──────────────────────
         tvDbgNavMode.text = "Nav Mode: ${state.navMode}"
-        val insDiag = nc.insDiagnostics
-        val shadow = nc.eskfShadowDiagnostics
-        val speedDifference = if (shadow.speedMps.isFinite())
-            abs(insDiag.velocityAfterMps - shadow.speedMps).toFloat() else Float.NaN
-        val headingDifference = if (shadow.headingDeg.isFinite()) {
-            abs(((state.heading.toDouble() - shadow.headingDeg + 540.0) % 360.0) - 180.0)
-        } else Double.NaN
-        val positionDifference = if (shadow.positionLatitude.isFinite() && shadow.positionLongitude.isFinite() && state.hasValidPosition)
-            distanceMeters(state.latitude, state.longitude, shadow.positionLatitude, shadow.positionLongitude)
-        else Float.NaN
-        val activeProviderText = "DR Engine: ${state.drProvider}" +
-                if (state.drProvider == DrProviderType.SIMPLIFIED_INS)
-                    " (${if (insDiag.tcnSpeedInjected) "TCN speed injected" else "TCN not injected"}; ESKF inactive)" else ""
+        val eskf = nc.eskfDiagnostics
+        val activeProviderText = "ACTIVE ESTIMATOR: ESKF | status=${eskf.runtimeState} | initialized=${eskf.initialized} | valid=${eskf.valid}"
         tvDbgDrProvider.text = activeProviderText
-        tvDbgGnssQuality.text = "GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: NOT ACTIVE | Vehicle motion: ${insDiag.vehicleMotionEvidence} | TCN: ${if (snap.tcnInferenceActive) "ACTIVE %.2f m/s".format(Locale.US, snap.tcnPredictedSpeedMps) else "INACTIVE"} | DR: %.2f m/s | Injected: %s".format(
-            Locale.US, insDiag.velocityAfterMps, if (insDiag.tcnSpeedInjected) "YES" else "NO"
+        tvDbgGnssQuality.text = "GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: ACTIVE | status=${eskf.runtimeState} | Vehicle motion: ${eskf.vehicleMotionObserved} (trusted GNSS >=4.0 m/s, accuracy <=15 m) | TCN: ${if (snap.tcnInferenceActive) "ACTIVE %.2f m/s".format(Locale.US, snap.tcnPredictedSpeedMps) else "INACTIVE"} | ESKF TCN injected: ${if (eskf.lastTcnInjected) "YES" else "NO"} | ESKF TCN accepted: ${eskf.lastTcnAccepted} | DR/ESKF: %.2f m/s".format(
+            Locale.US, eskf.speedMps
         )
-        tvDbgDrProvider.text = activeProviderText + "\nACTIVE INS: speed %.2f m/s | ESKF SHADOW: init=%s valid=%s motion=%s pos=%s vel=(%.2f, %.2f, %.2f) speed=%.2f m/s heading=%.1f° dt=%.3fs covTrace=%.3g qNorm=%.6f GNSS=%s/NIS %.2f/Innovation %.1fm/t=%.2fs TCN=%s/NIS %.2f/t=%.2fs NHC=%s ZUPT=%s | DIFFERENCE: speed=%.2f m/s heading=%.1f° pos=%.1f m".format(
+        tvDbgDrProvider.text = activeProviderText + "\nROUTE: segment=%d progress=%.1fm lateral=%.1fm headingError=%.1f° turn=%s yaw=%.1f°/s offRoute=%s rerouting=%s\nACTIVE ESKF: calibration=%s pos=%s vel=(%.2f, %.2f, %.2f) speed=%.2f m/s heading=%.1f° dt=%.3fs covTrace=%.3g qNorm=%.6f GNSS=%s/NIS %.2f/Innovation %.1fm/t=%.2fs TCN=%s/NIS %.2f/t=%.2fs NHC=%s ZUPT=%s reason=%s".format(
             Locale.US,
-            insDiag.velocityAfterMps,
-            shadow.initialized,
-            shadow.valid,
-            shadow.vehicleMotionObserved,
-            if (!shadow.positionLatitude.isFinite() || !shadow.positionLongitude.isFinite()) "--" else "%.5f,%.5f".format(Locale.US, shadow.positionLatitude, shadow.positionLongitude),
-            shadow.velocityWorldEnu[0], shadow.velocityWorldEnu[1], shadow.velocityWorldEnu[2],
-            shadow.speedMps,
-            shadow.headingDeg,
-            shadow.lastDtSeconds,
-            shadow.covarianceTrace,
-            shadow.quaternionNorm,
-            shadow.lastGnssAccepted,
-            shadow.lastGnssNis,
-            shadow.lastGnssInnovationMagnitudeM,
-            shadow.lastGnssTimestampSeconds,
-            shadow.lastTcnAccepted,
-            shadow.lastTcnNis,
-            shadow.lastTcnTimestampSeconds,
-            shadow.lastNhcAccepted,
-            shadow.lastZuptAccepted,
-            speedDifference,
-            headingDifference,
-            positionDifference
+            state.routeSegmentIndex,
+            state.routeProgressM,
+            state.routeLateralErrorM,
+            state.routeHeadingErrorDeg,
+            state.turnState,
+            state.turnYawRateDegS,
+            state.offRoute,
+            state.recalculating,
+            eskf.calibrationActive,
+            if (!eskf.positionLatitude.isFinite() || !eskf.positionLongitude.isFinite()) "--" else "%.5f,%.5f".format(Locale.US, eskf.positionLatitude, eskf.positionLongitude),
+            eskf.velocityWorldEnu[0], eskf.velocityWorldEnu[1], eskf.velocityWorldEnu[2],
+            eskf.speedMps,
+            eskf.headingDeg,
+            eskf.lastDtSeconds,
+            eskf.covarianceTrace,
+            eskf.quaternionNorm,
+            eskf.lastGnssAccepted,
+            eskf.lastGnssNis,
+            eskf.lastGnssInnovationMagnitudeM,
+            eskf.lastGnssTimestampSeconds,
+            eskf.lastTcnAccepted,
+            eskf.lastTcnNis,
+            eskf.lastTcnTimestampSeconds,
+            "accepted=%s/enabled=%s/NIS=%.2f".format(Locale.US, eskf.lastNhcAccepted, eskf.nhcEnabled, eskf.lastNhcNis),
+            "accepted=%s/enabled=%s/NIS=%.2f".format(Locale.US, eskf.lastZuptAccepted, eskf.zuptEnabled, eskf.lastZuptNis),
+            eskf.degradationReason ?: "none"
         )
         tvDbgAccuracy.text = if (state.positionAccuracy < Float.MAX_VALUE)
             "Position Accuracy: %.0f m | Position Source: RAW GNSS / KF GNSS".format(Locale.US, state.positionAccuracy)
