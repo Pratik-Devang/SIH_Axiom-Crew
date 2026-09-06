@@ -21,6 +21,10 @@ data class EskfProviderDiagnostics(
     val lastDtSeconds: Double = 0.0,
     val covarianceTrace: Double = Double.NaN,
     val quaternionNorm: Double = Double.NaN,
+    val quaternionW: Double = Double.NaN,
+    val quaternionX: Double = Double.NaN,
+    val quaternionY: Double = Double.NaN,
+    val quaternionZ: Double = Double.NaN,
     val positionWorldEnu: List<Double> = listOf(0.0, 0.0, 0.0),
     val velocityWorldEnu: List<Double> = listOf(0.0, 0.0, 0.0),
     val speedMps: Double = Double.NaN,
@@ -219,6 +223,10 @@ class PercorsaEskfProvider(
             positionLongitude = current?.let { enuToLatLon(it.position[0], it.position[1], origin ?: LatLon(0.0, 0.0))[1] } ?: Double.NaN,
             covarianceTrace = p?.values?.indices?.sumOf { index -> p.values[index][index] } ?: Double.NaN,
             quaternionNorm = current?.quaternion?.norm() ?: Double.NaN,
+            quaternionW = current?.quaternion?.w ?: Double.NaN,
+            quaternionX = current?.quaternion?.x ?: Double.NaN,
+            quaternionY = current?.quaternion?.y ?: Double.NaN,
+            quaternionZ = current?.quaternion?.z ?: Double.NaN,
         )
     }
 

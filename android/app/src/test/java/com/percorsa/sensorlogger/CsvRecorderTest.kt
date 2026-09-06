@@ -76,4 +76,48 @@ class CsvRecorderTest {
         assertEquals("", value("gps_speed_mps"))
         assertEquals("", value("eskf_speed_mps"))
     }
+
+    @Test
+    fun schemaIncludesReplayTimestampsDiagnosticsAndExplicitMissingValues() {
+        val file = File.createTempFile("csv_schema_test", ".csv")
+        file.deleteOnExit()
+        val recorder = CsvRecorder(context = null, overrideFile = file)
+        recorder.setRawTimestamps(1_000_000_000L, 0L)
+        recorder.setNavigationDiagnostics(
+            CsvNavigationDiagnostics(
+                activeProvider = "SIMPLIFIED_INS",
+                activeSpeedMps = 4.5f,
+                tcnCanonicalTimestampNs = 990_000_000L,
+                tcnInferenceActive = true,
+                vehicleMotionObserved = false,
+                tcnInjectedIntoIns = false,
+                eskfInitialized = false,
+                eskfValid = true
+            )
+        )
+        recorder.writeRow(
+            timestampNs = 1_000_000_000L,
+            accelX = 1f, accelY = 2f, accelZ = 3f,
+            linearX = 0f, linearY = 0f, linearZ = 0f,
+            gravX = 0f, gravY = 0f, gravZ = 9.81f,
+            gyroX = 0f, gyroY = 0f, gyroZ = 0f,
+            qw = 1f, qx = 0f, qy = 0f, qz = 0f,
+            corrAccelFwd = 0f, corrAccelLeft = 0f, corrAccelUp = 0f,
+            corrLinearFwd = 0f, corrLinearLeft = 0f, corrLinearUp = 0f,
+            corrGyroFwd = 0f, corrGyroLeft = 0f, corrGyroUp = 0f
+        )
+        recorder.close()
+
+        val lines = file.readText().trim().lines()
+        val columns = lines.first().split(',')
+        val values = lines.last().split(',')
+        assertEquals(columns.size, values.size)
+        assertTrue(columns.contains("session_id"))
+        assertTrue(columns.contains("accel_timestamp_ns"))
+        assertTrue(columns.contains("gnss_elapsed_realtime_ns"))
+        assertTrue(columns.contains("tcn_canonical_timestamp_ns"))
+        assertTrue(columns.contains("eskf_covariance_psd"))
+        assertEquals("", values[columns.indexOf("gyro_timestamp_ns")])
+        assertEquals("false", values[columns.indexOf("tcn_injected_into_ins")])
+    }
 }

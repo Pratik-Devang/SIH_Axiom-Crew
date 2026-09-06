@@ -183,6 +183,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     private var csvRecorder: CsvRecorder? = null
     @Volatile private var estimatedSpeedMps: Float = Float.NaN
     @Volatile private var estimatedSpeedProvider: (() -> Float)? = null
+    @Volatile private var navigationDiagnosticsProvider: (() -> CsvNavigationDiagnostics)? = null
 
     private val totalCallbackCount = AtomicInteger(0)
     private val primaryImuSampleCount = AtomicInteger(0)
@@ -521,6 +522,14 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         val diagnosticEstimatedSpeed = estimatedSpeedProvider?.invoke() ?: estimatedSpeedMps
         csvRecorder?.setEstimatedSpeedMps(diagnosticEstimatedSpeed)
         csvRecorder?.setTcnSpeedMps(tcnRawSpeedMps)
+        csvRecorder?.setRawTimestamps(accelTimestampNs, gyroTimestampNs)
+        val locForMetadata = rawLastLocation ?: lastLocation
+        csvRecorder?.setGnssMetadata(
+            timestampMs = locForMetadata?.time ?: 0L,
+            elapsedRealtimeNs = locForMetadata?.elapsedRealtimeNanos ?: 0L,
+            altitudeM = if (locForMetadata?.hasAltitude() == true) locForMetadata.altitude else Double.NaN
+        )
+        csvRecorder?.setNavigationDiagnostics(navigationDiagnosticsProvider?.invoke() ?: CsvNavigationDiagnostics())
         val corrAccel = FloatArray(3)
         val corrLinear = FloatArray(3)
         val corrGyro = FloatArray(3)
@@ -567,6 +576,10 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
 
     fun setEstimatedSpeedProviderForDiagnostics(provider: (() -> Float)?) {
         estimatedSpeedProvider = provider
+    }
+
+    fun setNavigationDiagnosticsProvider(provider: (() -> CsvNavigationDiagnostics)?) {
+        navigationDiagnosticsProvider = provider
     }
 
     private fun transformToVehicleFrame(vPhone: FloatArray, vVehicle: FloatArray) {
