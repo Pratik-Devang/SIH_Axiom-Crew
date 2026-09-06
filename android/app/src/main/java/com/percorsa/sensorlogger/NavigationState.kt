@@ -35,6 +35,15 @@ enum class DrProviderType {
     NONE
 }
 
+enum class TurnState {
+    STRAIGHT,
+    APPROACHING_LEFT,
+    APPROACHING_RIGHT,
+    TURNING_LEFT,
+    TURNING_RIGHT,
+    U_TURN
+}
+
 data class NavigationState(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
@@ -69,6 +78,12 @@ data class NavigationState(
     val etaSeconds: Long = 0L,
     val nextManeuver: Maneuver? = null,
     val secondManeuver: Maneuver? = null,
+    val routeSegmentIndex: Int = -1,
+    val routeProgressM: Double = 0.0,
+    val routeLateralErrorM: Double = Double.NaN,
+    val routeHeadingErrorDeg: Double = Double.NaN,
+    val turnState: TurnState = TurnState.STRAIGHT,
+    val turnYawRateDegS: Float = Float.NaN,
     val offRoute: Boolean = false,
     val recalculating: Boolean = false,
 

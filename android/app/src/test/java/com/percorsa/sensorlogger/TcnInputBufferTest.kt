@@ -36,6 +36,15 @@ class TcnInputBufferTest {
         assertArrayEquals(floatArrayOf(1f, 2f, 3f), buffer.getFeatureMatrix()[0], 0.0f)
     }
 
+    @Test
+    fun nonMonotonicCanonicalSampleIsNotAdded() {
+        val buffer = TcnInputBuffer(capacity = 3)
+        assertTrue(buffer.push(sample(10)))
+        assertFalse(buffer.push(sample(10)))
+        assertFalse(buffer.push(sample(9)))
+        assertEquals(1, buffer.size)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun capacityMustBePositive() {
         TcnInputBuffer(capacity = 0)

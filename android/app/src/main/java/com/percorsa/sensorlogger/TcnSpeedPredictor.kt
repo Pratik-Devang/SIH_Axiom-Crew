@@ -92,7 +92,8 @@ class TcnSpeedPredictor(context: Context) : AutoCloseable {
                 } ?: error("Unexpected TCN output type: ${output::class.java.simpleName}")
 
                 require(speed.isFinite()) { "TCN produced a non-finite speed" }
-                return speed.coerceIn(MIN_SPEED_MPS, MAX_SPEED_MPS)
+                require(speed >= 0f) { "TCN produced a negative speed" }
+                return speed
             }
         }
     }
@@ -134,7 +135,5 @@ class TcnSpeedPredictor(context: Context) : AutoCloseable {
         )
         private const val MODEL_ASSET = "tcn.onnx"
         private const val NORMALIZATION_ASSET = "normalization.json"
-        private const val MIN_SPEED_MPS = 0f
-        private const val MAX_SPEED_MPS = 70f
     }
 }

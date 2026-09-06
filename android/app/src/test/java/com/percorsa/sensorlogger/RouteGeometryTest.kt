@@ -44,4 +44,19 @@ class RouteGeometryTest {
             detector.checkPosition(offRoad.lat, offRoad.lon, 5f, 8f, 90f, Route(eastRoute, 220.0, 30, emptyList()))
         )
     }
+
+    @Test
+    fun normalForwardTrackingDoesNotJumpBackwardOnRoute() {
+        val route = Route(
+            listOf(LatLon(19.0, 72.0), LatLon(19.002, 72.0)),
+            223.0,
+            30L,
+            emptyList()
+        )
+        val detector = OffRouteDetector()
+        detector.checkPosition(19.001, 72.0, 5f, 8f, 0f, route)
+        detector.checkPosition(19.0002, 72.0, 5f, 8f, 0f, route)
+
+        assertTrue((detector.routeMatch?.distanceAlongM ?: 0.0) > 90.0)
+    }
 }

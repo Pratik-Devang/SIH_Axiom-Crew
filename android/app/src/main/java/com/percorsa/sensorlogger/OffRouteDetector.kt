@@ -45,7 +45,7 @@ class OffRouteDetector {
             return currentState
         }
 
-        val nowMs = System.currentTimeMillis()
+        val nowMs = System.nanoTime() / 1_000_000L
 
         val position = LatLon(lat, lon)
         val localStart = (lastMatch?.segmentIndex ?: 0) - 40
@@ -55,6 +55,7 @@ class OffRouteDetector {
             // A genuine road change can leave the local route window; search all segments once.
             match = RouteGeometry.project(position, route.polyline)
         }
+        match = stabilizeMatch(match, headingDeg, speedMps)
         lastMatch = match
         val minDistance = match?.lateralDistanceM ?: Double.MAX_VALUE
 
@@ -84,7 +85,7 @@ class OffRouteDetector {
 
     fun markRecalculating() {
         currentState = OffRouteState.RECALCULATING
-        lastRerouteTimeMs = System.currentTimeMillis()
+        lastRerouteTimeMs = System.nanoTime() / 1_000_000L
         candidateTicks = 0
     }
 
@@ -93,5 +94,24 @@ class OffRouteDetector {
         candidateTicks = 0
         lastRerouteTimeMs = 0L
         lastMatch = null
+    }
+
+    /** Keep normal forward travel on the current route topology. */
+    private fun stabilizeMatch(candidate: RouteMatch?, headingDeg: Float, speedMps: Float): RouteMatch? {
+        val previous = lastMatch ?: return candidate
+        if (candidate == null || speedMps <= 3.0f) return candidate
+
+        val isUturnLike = RouteGeometry.bearingDifference(
+            headingDeg.toDouble(), previous.routeBearingDeg
+        ) > 135.0
+        if (isUturnLike) return candidate
+
+        // A normal 10 Hz vehicle update cannot legitimately jump far backward
+        // or skip a large section of route in one observation. Keep the prior
+        // topology association until a later observation supports the move.
+        if (candidate.distanceAlongM < previous.distanceAlongM - 10.0 ||
+            candidate.distanceAlongM > previous.distanceAlongM + 100.0
+        ) return previous
+        return candidate
     }
 }

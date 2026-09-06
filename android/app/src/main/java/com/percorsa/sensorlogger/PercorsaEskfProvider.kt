@@ -65,7 +65,8 @@ class PercorsaEskfProviderStub : DeadReckoningProvider {
         accuracyM: Float,
         speedMps: Float,
         bearingDeg: Float,
-        blendWindowSeconds: Double
+        blendWindowSeconds: Double,
+        sourceTimestampNs: Long
     ) {
         // TODO: implement ESKF GNSS measurement update
         Log.w("PercorsaESKF", "injectGnssCorrection() called but ESKF not yet implemented")
@@ -76,7 +77,7 @@ class PercorsaEskfProviderStub : DeadReckoningProvider {
         return null
     }
 
-    override fun injectSpeedEstimate(speedMps: Float) {
+    override fun injectSpeedEstimate(speedMps: Float, timestampNs: Long) {
         Log.w("PercorsaESKF", "TCN speed received but ESKF measurement update is not yet implemented")
     }
 

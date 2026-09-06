@@ -38,6 +38,7 @@ class PercorsaEskfProviderTest {
     fun providerStartsUninitializedAndInitializesDeterministically() {
         val provider = PercorsaEskfProvider()
         assertFalse(provider.isInitialized)
+        assertFalse(provider.status.valid)
         assertEquals(null, provider.getEstimatedPosition())
         provider.initialize(doubleArrayOf(0.0, 0.0, 0.0), doubleArrayOf(1.0, 0.0, 0.0), timestampNs = 1_000_000_000L)
         assertTrue(provider.isInitialized)
@@ -49,12 +50,20 @@ class PercorsaEskfProviderTest {
     fun rawPhoneImuPropagatesNominalAndCovarianceWithSensorTimestamp() {
         val provider = PercorsaEskfProvider()
         provider.initialize(timestampNs = 1_000_000_000L)
-        provider.update(snapshot(1_010_000_000L), 99.0)
+        provider.update(snapshot(1_010_000_000L), 0.01)
         val current = provider.currentState!!
         assertEquals(1.01, current.timestampSeconds, 1e-12)
         assertEquals(0.0, current.velocity[2], 1e-8)
         assertTrue(provider.status.stateFinite && provider.status.covarianceFinite && provider.status.covariancePsd)
         assertEquals(1.0, current.quaternion.norm(), 1e-12)
+    }
+
+    @Test
+    fun rawAccelerometerRemainsGravityAwareEvenWhenLinearSensorIsAvailable() {
+        val provider = PercorsaEskfProvider()
+        provider.initialize(timestampNs = 1_000_000_000L)
+        provider.update(snapshot(1_010_000_000L).copy(hasLinearAccel = true), 0.01)
+        assertEquals(0.0, provider.currentState!!.velocity[2], 1e-6)
     }
 
     @Test
@@ -68,6 +77,15 @@ class PercorsaEskfProviderTest {
     }
 
     @Test
+    fun invalidSuppliedDtInvalidatesShadow() {
+        val provider = PercorsaEskfProvider()
+        provider.initialize(timestampNs = 1_000_000_000L)
+        provider.update(snapshot(1_010_000_000L), 0.0)
+        assertFalse(provider.status.valid)
+        assertTrue(provider.status.error!!.contains("supplied IMU dt"))
+    }
+
+    @Test
     fun measurementsUseStandaloneUpdatersAndRejectUnsafeTcn() {
         val provider = PercorsaEskfProvider()
         provider.initialize(velocityWorldEnu = doubleArrayOf(5.0, 0.0, 0.0), timestampNs = 1_000_000_000L)
@@ -76,19 +94,110 @@ class PercorsaEskfProviderTest {
         provider.setVehicleMotionObserved(true)
         val accepted = provider.processTcn(5.0, motionObserved = true)!!
         assertTrue(accepted.accepted)
+        provider.setPhoneToVehicleRotation(PhoneToVehicleRotation(arrayOf(
+            doubleArrayOf(1.0, 0.0, 0.0),
+            doubleArrayOf(0.0, 1.0, 0.0),
+            doubleArrayOf(0.0, 0.0, 1.0)
+        )))
         assertNotNull(provider.processNhc(enabled = true))
         assertNotNull(provider.processZupt(EskfZuptMeasurement(stdVelocityMps = 1.0), enabled = true))
         assertTrue(provider.status.stateFinite && provider.status.covariancePsd)
     }
 
     @Test
+    fun runtimeConstraintsRequireMotionOrPersistentStationarity() {
+        val provider = PercorsaEskfProvider()
+        provider.injectGnssCorrection(19.0, 73.0, 5f, 5f, 90f, 0.0)
+        provider.setPhoneToVehicleRotation(PhoneToVehicleRotation(arrayOf(
+            doubleArrayOf(1.0, 0.0, 0.0),
+            doubleArrayOf(0.0, 1.0, 0.0),
+            doubleArrayOf(0.0, 0.0, 1.0)
+        )))
+        val moving = snapshot(1_100_000_000L).copy(
+            hasLinearAccel = true,
+            linearAccelX = 1f,
+            linearAccelMag = 1f
+        )
+        provider.update(moving, 0.1)
+        provider.update(moving.copy(timestampNs = 1_200_000_000L), 0.1)
+        assertTrue(provider.status.nhcEnabled)
+        assertTrue(provider.status.lastNhcAccepted == true)
+
+        repeat(3) { index ->
+            provider.update(
+                moving.copy(
+                    timestampNs = 1_300_000_000L + index * 100_000_000L,
+                    linearAccelX = 0f,
+                    linearAccelMag = 0f,
+                    gyroMag = 0f
+                ),
+                0.1
+            )
+        }
+        assertTrue(provider.status.stationary)
+        assertTrue(provider.status.zuptEnabled)
+    }
+
+    @Test
     fun gnssInitializesPositionAndOutputUsesNavigationBearingConvention() {
         val provider = PercorsaEskfProvider()
         provider.injectGnssCorrection(19.0, 73.0, 5f, 5f, 90f, 0.0)
+        provider.setPhoneToVehicleRotation(PhoneToVehicleRotation(arrayOf(
+            doubleArrayOf(1.0, 0.0, 0.0),
+            doubleArrayOf(0.0, 1.0, 0.0),
+            doubleArrayOf(0.0, 0.0, 1.0)
+        )))
         val output = provider.getEstimatedPosition()!!
         assertEquals(19.0, output.latitude, 0.0)
         assertEquals(73.0, output.longitude, 0.0)
         assertEquals(90f, output.heading, 1e-5f)
         assertTrue(provider.acceptsTcnSpeedEstimate)
     }
+
+    @Test
+    fun firstGnssInitializationUsesSuppliedRotationVectorAttitude() {
+        val provider = PercorsaEskfProvider()
+        val quarterYaw = EskfQuaternion(
+            kotlin.math.cos(Math.PI / 4.0), 0.0, 0.0,
+            kotlin.math.sin(Math.PI / 4.0)
+        )
+        provider.setInitialOrientation(quarterYaw)
+        provider.injectGnssCorrection(19.0, 73.0, 5f, 5f, 90f, 0.0)
+
+        assertEquals(quarterYaw.w, provider.currentState!!.quaternion.w, 1e-12)
+        assertEquals(quarterYaw.z, provider.currentState!!.quaternion.z, 1e-12)
+        assertEquals(1.0, provider.status.quaternionNorm, 1e-12)
+    }
+
+    @Test
+    fun missingGnssSpeedInitializesPositionWithoutFusingFabricatedVelocity() {
+        val provider = PercorsaEskfProvider()
+        provider.injectGnssCorrection(19.0, 73.0, 5f, Float.NaN, 90f, 0.0)
+
+        assertEquals(0f, provider.getEstimatedPosition()!!.speedMps, 0f)
+        assertFalse(provider.acceptsTcnSpeedEstimate)
+        assertTrue(provider.status.valid)
+    }
+
+    @Test
+    fun tcnHandoffIsAppliedAsAnEskfMeasurementAfterVehicleAndFrameGates() {
+        val provider = PercorsaEskfProvider()
+        provider.injectGnssCorrection(19.0, 73.0, 5f, 5f, 90f, 0.0)
+        provider.setPhoneToVehicleRotation(identityTransform())
+        provider.injectSpeedEstimate(5.5f, timestampNs = 1_100_000_000L)
+
+        provider.update(snapshot(1_100_000_000L), 0.1)
+        provider.update(snapshot(1_200_000_000L), 0.1)
+
+        assertTrue(provider.status.lastTcnInjected)
+        assertTrue("${provider.status.lastTcnAccepted}: ${provider.status.lastTcnNis}: ${provider.status.lastTcnRejectionReason}", provider.status.lastTcnAccepted == true)
+        assertTrue(provider.currentState!!.velocity[0] > 5.0)
+        assertTrue(provider.status.covariancePsd)
+    }
+
+    private fun identityTransform() = PhoneToVehicleRotation(arrayOf(
+        doubleArrayOf(1.0, 0.0, 0.0),
+        doubleArrayOf(0.0, 1.0, 0.0),
+        doubleArrayOf(0.0, 0.0, 1.0)
+    ))
 }

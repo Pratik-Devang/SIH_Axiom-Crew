@@ -27,8 +27,8 @@ data class InsDiagnostics(
  *
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  * THIS IS A PLACEHOLDER IMPLEMENTATION — NOT THE PERCORSA ALGORITHM.
- * Replace with [PercorsaEskfProvider] once the TCN + ESKF stack is
- * ported from Python to Android/Kotlin.
+ * The [PercorsaEskfProvider] is authoritative in the current live path; this
+ * provider remains available as a reference/fallback implementation.
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  *
  * What this does (simplified):
@@ -74,12 +74,17 @@ class SimplifiedInsProvider : DeadReckoningProvider {
     override val acceptsTcnSpeedEstimate: Boolean
         get() = vehicleMotionObserved
 
-    override fun injectSpeedEstimate(speedMps: Float) {
+    override fun injectSpeedEstimate(speedMps: Float, timestampNs: Long) {
         if (acceptsTcnSpeedEstimate && speedMps.isFinite() && speedMps >= 0f) {
             pendingTcnSpeedMps = speedMps
         } else {
             pendingTcnSpeedMps = null
         }
+    }
+
+    /** Drop a rejected sensor interval without resetting navigation state. */
+    override fun rebaselineSensorTimestamp(timestampNs: Long) {
+        if (timestampNs > 0L) lastSensorTimestampNs = timestampNs
     }
 
     // Estimated accuracy degrades over time without GNSS
@@ -172,7 +177,8 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         val isMotionArtifact = accelMag > MAX_FORWARD_ACCEL_MPS2 ||
                 (gyroMag > 4.0f && snapshot.linearAccelMag > 4.0f)
 
-        val lowMotion = snapshot.linearAccelMag < 0.35f && gyroMag < 0.15f
+        val lowMotion = snapshot.hasLinearAccel &&
+                snapshot.linearAccelMag < 0.35f && gyroMag < 0.15f
         if (lowMotion || (snapshot.hasGps && snapshot.gpsSpeedMps < 0.3f && snapshot.gpsAccuracyM < 15f)) {
             stationaryAccumSeconds += sampleDt
         } else {
@@ -188,13 +194,13 @@ class SimplifiedInsProvider : DeadReckoningProvider {
             pendingTcnSpeedMps = null
         } else if (!isMotionArtifact) {
             if (deadbandAccel != 0f) {
-                velocityMps = (velocityMps + deadbandAccel * sampleDt.toFloat()).coerceIn(0f, 40f)
+                velocityMps = (velocityMps + deadbandAccel * sampleDt.toFloat()).coerceAtLeast(0f)
             } else {
                 // Exponential velocity decay when acceleration is within deadband (friction damping)
                 velocityMps = (velocityMps * 0.90f).let { if (it < 0.05f) 0f else it }
             }
             pendingTcnSpeedMps?.let { tcnSpeed ->
-                velocityMps = (0.75f * velocityMps + 0.25f * tcnSpeed).coerceIn(0f, 40f)
+                velocityMps = (0.75f * velocityMps + 0.25f * tcnSpeed).coerceAtLeast(0f)
                 injectedTcnSpeed = tcnSpeed
                 tcnSpeedInjected = true
             }
@@ -249,19 +255,25 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         accuracyM: Float,
         speedMps: Float,
         bearingDeg: Float,
-        blendWindowSeconds: Double
+        blendWindowSeconds: Double,
+        sourceTimestampNs: Long
     ) {
+        if (!lat.isFinite() || !lon.isFinite() || !accuracyM.isFinite() || accuracyM <= 0f ||
+            (!speedMps.isFinite() && !speedMps.isNaN()) || speedMps < 0f) {
+            return
+        }
+        val suppliedSpeed = speedMps.takeIf { it.isFinite() } ?: 0f
         if (!initialized) {
             // First fix — initialise directly with no blend
             estimatedLat = lat
             estimatedLon = lon
-            headingDeg = bearingDeg
-            velocityMps = speedMps
+            headingDeg = if (bearingDeg.isFinite()) bearingDeg else 0f
+            velocityMps = suppliedSpeed
             estimatedAccuracyM = accuracyM
             initialized = true
-            vehicleMotionObserved = speedMps >= VEHICLE_MOTION_THRESHOLD_MPS &&
+            vehicleMotionObserved = speedMps.isFinite() && speedMps >= VEHICLE_MOTION_THRESHOLD_MPS &&
                     accuracyM <= VEHICLE_EVIDENCE_MAX_ACCURACY_M
-            headingInitialized = bearingDeg.isFinite() && speedMps > 0.5f
+            headingInitialized = bearingDeg.isFinite() && suppliedSpeed > 0.5f
             return
         }
 
@@ -278,8 +290,8 @@ class SimplifiedInsProvider : DeadReckoningProvider {
         estimatedAccuracyM = accuracyM
 
         // Update speed from GNSS if moving
-        if (speedMps > 0.5f && speedMps.isFinite()) velocityMps = speedMps.coerceIn(0f, 40f)
-        if (speedMps >= VEHICLE_MOTION_THRESHOLD_MPS && accuracyM <= VEHICLE_EVIDENCE_MAX_ACCURACY_M) {
+        if (speedMps > 0.5f && speedMps.isFinite()) velocityMps = speedMps
+        if (speedMps.isFinite() && speedMps >= VEHICLE_MOTION_THRESHOLD_MPS && accuracyM <= VEHICLE_EVIDENCE_MAX_ACCURACY_M) {
             vehicleMotionObserved = true
         }
         if (bearingDeg.isFinite() && speedMps > 0.5f) {

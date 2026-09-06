@@ -9,14 +9,27 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.RejectedExecutionException
 import kotlin.math.asin
 import kotlin.math.cos
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
+
+private fun EskfProviderDiagnostics.asInsDiagnostics(): InsDiagnostics = InsDiagnostics(
+    timestampNs = lastPropagationTimestampNs,
+    dtSeconds = lastDtSeconds,
+    velocityAfterMps = speedMps.toFloat(),
+    tcnSpeedMps = Float.NaN,
+    tcnSpeedInjected = lastTcnInjected,
+    vehicleMotionObserved = vehicleMotionObserved,
+    vehicleMotionEvidence = if (vehicleMotionObserved) {
+        "OBSERVED: trusted GNSS speed ≥ 4.0 m/s and accuracy ≤ 15 m"
+    } else {
+        "WAITING: trusted GNSS speed ≥ 4.0 m/s and accuracy ≤ 15 m"
+    },
+    positionAfter = LatLon(positionLatitude, positionLongitude)
+)
 
 /**
  * Central navigation state machine.
@@ -24,19 +37,17 @@ import kotlin.math.sqrt
 class NavigationController(private val context: Context) {
 
     // ── Navigation engine ─────────────────────────────────────────────────────
-    private val drEngine: DeadReckoningProvider = SimplifiedInsProvider()
-    /** Observer only: this provider never supplies active navigation state. */
-    private val eskfShadow = PercorsaEskfProvider()
-    private val eskfShadowExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "percorsa-eskf-shadow").apply { priority = Thread.NORM_PRIORITY - 1 }
-    }
-    @Volatile private var eskfShadowStopped = false
+    /** The single authoritative active navigation estimator. */
+    private val drEngine: DeadReckoningProvider = PercorsaEskfProvider()
+    private val activeEskf: PercorsaEskfProvider get() = drEngine as PercorsaEskfProvider
+    private val activeEskfDiagnostics: EskfProviderDiagnostics get() = activeEskf.status
 
     // ── Supporting components ─────────────────────────────────────────────────
     val sensorEngine = SensorEngine(context)
     private val gnssMonitor = GnssQualityMonitor()
     val preferencesRepo = PreferencesRepository(context)
     private val offRouteDetector = OffRouteDetector()
+    private val turnDetector = TurnDetector()
 
     // Search and routing interfaces
     private val searchService: SearchService = NominatimSearchService()
@@ -46,31 +57,32 @@ class NavigationController(private val context: Context) {
     private val _state = MutableStateFlow(NavigationState())
     val state: StateFlow<NavigationState> = _state.asStateFlow()
     val insDiagnostics: InsDiagnostics
-        get() = (drEngine as? SimplifiedInsProvider)?.diagnostics ?: InsDiagnostics()
+        get() = activeEskfDiagnostics.asInsDiagnostics()
     val tcnSpeedInjected: Boolean
         get() = insDiagnostics.tcnSpeedInjected
-    val eskfShadowDiagnostics: EskfProviderDiagnostics
-        get() = eskfShadow.status
+    val eskfDiagnostics: EskfProviderDiagnostics
+        get() = activeEskf.status
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var searchJob: Job? = null
     private var routeJob: Job? = null
     private var rerouteJob: Job? = null
+    private var lastRouteDistanceAlongM = 0.0
 
-    private var lastUpdateMs: Long = 0L
+    private var lastSensorTimestampNs: Long = 0L
     private val ARRIVAL_RADIUS_M = 40.0
     private val GNSS_BLEND_SECONDS = 3.0
+    private val MAX_MONOTONIC_DT_SECONDS = 0.5
 
     init {
         sensorEngine.setEstimatedSpeedProviderForDiagnostics {
-            (drEngine as? SimplifiedInsProvider)?.diagnosticSpeedMps ?: Float.NaN
+            activeEskfDiagnostics.speedMps.toFloat()
         }
         sensorEngine.setNavigationDiagnosticsProvider {
             val snap = sensorEngine.getSnapshot()
             val stateNow = _state.value
             val active = drEngine.getEstimatedPosition()
-            val ins = insDiagnostics
-            val shadow = eskfShadowDiagnostics
+            val eskf = eskfDiagnostics
             CsvNavigationDiagnostics(
                 activeProvider = if (stateNow.drProvider == DrProviderType.NONE) null else stateNow.drProvider.name,
                 activeLatitude = active?.latitude ?: Double.NaN,
@@ -84,38 +96,54 @@ class NavigationController(private val context: Context) {
                 tcnFilteredSpeedMps = snap.tcnPredictedSpeedMps,
                 tcnPredictionRateLimited = snap.tcnPredictionRateLimited,
                 tcnRejectedPredictionCount = snap.tcnRejectedPredictionCount,
-                vehicleMotionObserved = ins.vehicleMotionObserved,
-                tcnInjectedIntoIns = ins.tcnSpeedInjected,
-                tcnAcceptedByEskf = shadow.lastTcnAccepted,
-                tcnNis = shadow.lastTcnNis,
-                eskfInitialized = shadow.initialized,
-                eskfValid = shadow.valid,
-                eskfTimestampNs = shadow.lastPropagationTimestampNs,
-                eskfDtSeconds = shadow.lastDtSeconds,
-                eskfPositionLatitude = shadow.positionLatitude,
-                eskfPositionLongitude = shadow.positionLongitude,
-                eskfPositionEastM = shadow.positionWorldEnu.getOrNull(0) ?: Double.NaN,
-                eskfPositionNorthM = shadow.positionWorldEnu.getOrNull(1) ?: Double.NaN,
-                eskfPositionUpM = shadow.positionWorldEnu.getOrNull(2) ?: Double.NaN,
-                eskfVelocityEastMps = shadow.velocityWorldEnu.getOrNull(0) ?: Double.NaN,
-                eskfVelocityNorthMps = shadow.velocityWorldEnu.getOrNull(1) ?: Double.NaN,
-                eskfVelocityUpMps = shadow.velocityWorldEnu.getOrNull(2) ?: Double.NaN,
-                eskfSpeedMps = shadow.speedMps,
-                eskfHeadingDeg = shadow.headingDeg,
-                eskfQuaternionW = shadow.quaternionW,
-                eskfQuaternionX = shadow.quaternionX,
-                eskfQuaternionY = shadow.quaternionY,
-                eskfQuaternionZ = shadow.quaternionZ,
-                eskfQuaternionNorm = shadow.quaternionNorm,
-                eskfCovarianceTrace = shadow.covarianceTrace,
-                eskfStateFinite = shadow.stateFinite,
-                eskfCovarianceFinite = shadow.covarianceFinite,
-                eskfCovariancePsd = shadow.covariancePsd,
-                eskfGnssAccepted = shadow.lastGnssAccepted,
-                eskfGnssNis = shadow.lastGnssNis,
-                eskfGnssInnovationM = shadow.lastGnssInnovationMagnitudeM,
-                eskfNhcAccepted = shadow.lastNhcAccepted,
-                eskfZuptAccepted = shadow.lastZuptAccepted
+                vehicleMotionObserved = eskf.vehicleMotionObserved,
+                tcnInjectedIntoIns = eskf.lastTcnInjected,
+                tcnAcceptedByEskf = eskf.lastTcnAccepted,
+                tcnNis = eskf.lastTcnNis,
+                tcnRejectionReason = eskf.lastTcnRejectionReason,
+                eskfInitialized = eskf.initialized,
+                eskfValid = eskf.valid,
+                eskfRuntimeState = eskf.runtimeState.name,
+                eskfDegradationReason = eskf.degradationReason,
+                eskfCalibrationActive = eskf.calibrationActive,
+                eskfTimestampNs = eskf.lastPropagationTimestampNs,
+                eskfDtSeconds = eskf.lastDtSeconds,
+                eskfPositionLatitude = eskf.positionLatitude,
+                eskfPositionLongitude = eskf.positionLongitude,
+                eskfPositionEastM = eskf.positionWorldEnu.getOrNull(0) ?: Double.NaN,
+                eskfPositionNorthM = eskf.positionWorldEnu.getOrNull(1) ?: Double.NaN,
+                eskfPositionUpM = eskf.positionWorldEnu.getOrNull(2) ?: Double.NaN,
+                eskfVelocityEastMps = eskf.velocityWorldEnu.getOrNull(0) ?: Double.NaN,
+                eskfVelocityNorthMps = eskf.velocityWorldEnu.getOrNull(1) ?: Double.NaN,
+                eskfVelocityUpMps = eskf.velocityWorldEnu.getOrNull(2) ?: Double.NaN,
+                eskfSpeedMps = eskf.speedMps,
+                eskfHeadingDeg = eskf.headingDeg,
+                eskfQuaternionW = eskf.quaternionW,
+                eskfQuaternionX = eskf.quaternionX,
+                eskfQuaternionY = eskf.quaternionY,
+                eskfQuaternionZ = eskf.quaternionZ,
+                eskfQuaternionNorm = eskf.quaternionNorm,
+                eskfCovarianceTrace = eskf.covarianceTrace,
+                eskfStateFinite = eskf.stateFinite,
+                eskfCovarianceFinite = eskf.covarianceFinite,
+                eskfCovariancePsd = eskf.covariancePsd,
+                eskfGnssAccepted = eskf.lastGnssAccepted,
+                eskfGnssNis = eskf.lastGnssNis,
+                eskfGnssInnovationM = eskf.lastGnssInnovationMagnitudeM,
+                eskfStationary = eskf.stationary,
+                eskfNhcEnabled = eskf.nhcEnabled,
+                eskfNhcAccepted = eskf.lastNhcAccepted,
+                eskfNhcNis = eskf.lastNhcNis,
+                eskfZuptEnabled = eskf.zuptEnabled,
+                eskfZuptAccepted = eskf.lastZuptAccepted,
+                routeSegmentIndex = stateNow.routeSegmentIndex.takeIf { it >= 0 },
+                routeProgressM = stateNow.routeProgressM,
+                routeLateralErrorM = stateNow.routeLateralErrorM,
+                routeHeadingErrorDeg = stateNow.routeHeadingErrorDeg,
+                turnState = stateNow.turnState.name,
+                turnYawRateDegS = stateNow.turnYawRateDegS,
+                offRoute = stateNow.offRoute,
+                rerouting = stateNow.recalculating
             )
         }
         // Load initial persisted searches/places
@@ -131,30 +159,33 @@ class NavigationController(private val context: Context) {
 
     fun start() {
         sensorEngine.start()
-        lastUpdateMs = System.currentTimeMillis()
+        lastSensorTimestampNs = 0L
     }
 
     fun stop() {
-        eskfShadowStopped = true
         sensorEngine.stop()
-        eskfShadowExecutor.shutdown()
         searchJob?.cancel()
         routeJob?.cancel()
         rerouteJob?.cancel()
     }
 
     fun tick() {
-        val nowMs = System.currentTimeMillis()
-        val dtSeconds = if (lastUpdateMs > 0L)
-            ((nowMs - lastUpdateMs) / 1000.0).coerceIn(0.005, 0.5)
-        else 0.1
-        lastUpdateMs = nowMs
-
         val snap = sensorEngine.getSnapshot()
+        val dtSeconds = nextMonotonicDtSeconds(snap.timestampNs)
         val gnssQuality = gnssMonitor.update(snap)
         val current = _state.value
 
-        val hasTrustedGnss = gnssMonitor.shouldUseMeasurement() && snap.hasGps && snap.latitude != 0.0
+        val hasTrustedGnss = gnssMonitor.shouldUseMeasurement() && snap.hasGps &&
+                snap.latitude.isFinite() && snap.longitude.isFinite()
+        if (snap.hasRotVector && snap.quatNorm.isFinite() && snap.quatNorm in 0.95f..1.05f) {
+            activeEskf.setInitialOrientation(
+                EskfQuaternion(
+                    snap.quatW.toDouble(), snap.quatX.toDouble(),
+                    snap.quatY.toDouble(), snap.quatZ.toDouble()
+                )
+            )
+        }
+        sensorEngine.getPhoneToVehicleRotation()?.let(activeEskf::setPhoneToVehicleRotation)
         if (hasTrustedGnss) {
             val blendWindow = if (gnssMonitor.isGnssDenied()) 0.0 else GNSS_BLEND_SECONDS
             drEngine.injectGnssCorrection(
@@ -163,52 +194,25 @@ class NavigationController(private val context: Context) {
                 accuracyM = snap.gpsAccuracyM,
                 speedMps = snap.gpsSpeedMps,
                 bearingDeg = snap.gpsBearingDeg,
-                blendWindowSeconds = blendWindow
+                blendWindowSeconds = blendWindow,
+                sourceTimestampNs = snap.gpsTimestampNs
             )
         } else if (shouldInjectTcnSpeed(
                 hasTrustedGnss,
                 snap.tcnInferenceActive,
                 drEngine.acceptsTcnSpeedEstimate
             )) {
-            drEngine.injectSpeedEstimate(snap.tcnPredictedSpeedMps)
+            drEngine.injectSpeedEstimate(
+                snap.tcnPredictedSpeedMps,
+                snap.lastCanonicalSample?.timestampNs ?: 0L
+            )
         }
 
-        // Shadow work is serialized away from the UI thread. It receives the
-        // same raw-phone snapshot and trusted measurement decisions, but its
-        // state is never used below for active navigation.
-        if (!eskfShadowStopped && !eskfShadow.isSuspended) {
-            try {
-                eskfShadowExecutor.execute {
-                    runCatching {
-                        if (hasTrustedGnss) {
-                            eskfShadow.injectGnssCorrection(
-                                lat = snap.latitude,
-                                lon = snap.longitude,
-                                accuracyM = snap.gpsAccuracyM,
-                                speedMps = snap.gpsSpeedMps,
-                                bearingDeg = snap.gpsBearingDeg,
-                                blendWindowSeconds = 0.0
-                            )
-                        } else if (snap.tcnInferenceActive && eskfShadow.acceptsTcnSpeedEstimate) {
-                            eskfShadow.injectSpeedEstimate(snap.tcnPredictedSpeedMps)
-                        }
-                        eskfShadow.update(snap, dtSeconds)
-                    }.onFailure { error ->
-                        eskfShadow.markInvalid(error.message ?: error.javaClass.simpleName)
-                    }
-                }
-            } catch (_: RejectedExecutionException) {
-                // stop() won the lifecycle race; shadow shutdown is isolated.
-            }
-        }
-
-        drEngine.update(snap, dtSeconds)
+        dtSeconds?.let { drEngine.update(snap, it) }
         val drPos = drEngine.getEstimatedPosition()
         // Diagnostics only: preserve the raw active DR estimate separately
         // from the display speed, which may intentionally prefer trusted GPS.
-        val diagnosticSpeed = drPos?.speedMps
-            ?: (drEngine as? SimplifiedInsProvider)?.diagnosticSpeedMps
-            ?: Float.NaN
+        val diagnosticSpeed = drPos?.speedMps ?: Float.NaN
         sensorEngine.setEstimatedSpeedForDiagnostics(diagnosticSpeed)
 
         val lat: Double
@@ -223,15 +227,15 @@ class NavigationController(private val context: Context) {
                 lat = drPos.latitude
                 lon = drPos.longitude
                 heading = drPos.heading
-                speed = if (snap.hasGps && hasTrustedGnss) snap.gpsSpeedMps else drPos.speedMps
+                speed = drPos.speedMps
                 accuracy = drPos.estimatedAccuracyM
-                drActive = (gnssQuality == GnssQuality.DENIED || gnssQuality == GnssQuality.RECOVERING)
+                drActive = true
             }
-            snap.hasGps && snap.latitude != 0.0 -> {
+            snap.hasGps && snap.latitude.isFinite() && snap.longitude.isFinite() -> {
                 lat = snap.latitude
                 lon = snap.longitude
-                heading = snap.gpsBearingDeg
-                speed = snap.gpsSpeedMps
+                heading = snap.gpsBearingDeg.takeIf { it.isFinite() } ?: snap.compassBearingDeg
+                speed = snap.gpsSpeedMps.takeIf { it.isFinite() } ?: 0f
                 accuracy = snap.gpsAccuracyM
                 drActive = false
             }
@@ -243,7 +247,9 @@ class NavigationController(private val context: Context) {
                 heading = snap.compassBearingDeg
                 speed = 0f
                 accuracy = snap.gpsAccuracyM
-                drActive = true
+                // No valid ESKF snapshot is available here; retain the last
+                // known point only as a clearly labelled display fallback.
+                drActive = false
             }
             else -> {
                 updateState(_state.value.copy(
@@ -285,13 +291,25 @@ class NavigationController(private val context: Context) {
         var secondManeuver: Maneuver? = current.secondManeuver
         var isOffRoute = current.offRoute
         var isRecalculating = current.recalculating
+        var routeSegmentIndex = current.routeSegmentIndex
+        var routeProgressM = current.routeProgressM
+        var routeLateralErrorM = current.routeLateralErrorM
+        var routeHeadingErrorDeg = current.routeHeadingErrorDeg
+        var turnState = current.turnState
+        var turnYawRateDegS = current.turnYawRateDegS
 
         if (route != null && isDrivingMode) {
             // 1. Segment projection gives cumulative route progress, not vertex distance.
             val routeMatch = RouteGeometry.project(LatLon(lat, lon), route.polyline)
-            distRemaining = routeMatch?.let {
-                (route.distanceM - it.distanceAlongM).coerceAtLeast(0.0)
-            } ?: route.distanceM
+            // Let the continuity-aware detector reject a topology jump before
+            // committing route progress.
+            val offRouteState = offRouteDetector.checkPosition(lat, lon, accuracy, speed, heading, route)
+            val matchedRoute = offRouteDetector.routeMatch ?: routeMatch
+            val routeDistanceAlongM = matchedRoute?.let {
+                max(lastRouteDistanceAlongM, it.distanceAlongM)
+            } ?: lastRouteDistanceAlongM
+            lastRouteDistanceAlongM = routeDistanceAlongM.coerceIn(0.0, route.distanceM)
+            distRemaining = (route.distanceM - lastRouteDistanceAlongM).coerceAtLeast(0.0)
 
             // 2. Exponentially smoothed speed to prevent jitter
             smoothedSpeedMps = 0.05 * speed.toDouble() + 0.95 * smoothedSpeedMps
@@ -316,12 +334,33 @@ class NavigationController(private val context: Context) {
             }
             etaSec = smoothedEtaSec.toLong().coerceAtLeast(0L)
 
-            val pair = findNextManeuvers(routeMatch?.distanceAlongM ?: 0.0, route)
+            val pair = findNextManeuvers(lastRouteDistanceAlongM, route)
             nextManeuver = pair.first
             secondManeuver = pair.second
 
-            // Check off-route
-            val offRouteState = offRouteDetector.checkPosition(lat, lon, accuracy, speed, heading, route)
+            // Apply the route decision using the same association exposed in
+            // the route diagnostics above.
+            if (matchedRoute != null) {
+                routeSegmentIndex = matchedRoute.segmentIndex
+                routeProgressM = lastRouteDistanceAlongM
+                routeLateralErrorM = matchedRoute.lateralDistanceM
+                routeHeadingErrorDeg = TurnDetector.signedBearingDelta(matchedRoute.routeBearingDeg, heading.toDouble())
+                turnYawRateDegS = activeEskfDiagnostics.yawRateDegS
+                turnState = turnDetector.update(
+                    nextManeuver,
+                    heading,
+                    matchedRoute.routeBearingDeg,
+                    turnYawRateDegS,
+                    speed
+                )
+            } else {
+                routeSegmentIndex = -1
+                routeProgressM = lastRouteDistanceAlongM
+                routeLateralErrorM = Double.NaN
+                routeHeadingErrorDeg = Double.NaN
+                turnYawRateDegS = Float.NaN
+                turnState = TurnState.STRAIGHT
+            }
             if (offRouteState == OffRouteState.OFF_ROUTE && !isRecalculating) {
                 isOffRoute = true
                 isRecalculating = true
@@ -348,6 +387,12 @@ class NavigationController(private val context: Context) {
             etaSeconds = etaSec,
             nextManeuver = nextManeuver,
             secondManeuver = secondManeuver,
+            routeSegmentIndex = routeSegmentIndex,
+            routeProgressM = routeProgressM,
+            routeLateralErrorM = routeLateralErrorM,
+            routeHeadingErrorDeg = routeHeadingErrorDeg,
+            turnState = turnState,
+            turnYawRateDegS = turnYawRateDegS,
             offRoute = isOffRoute,
             recalculating = isRecalculating,
             isRecording = sensorEngine.isRecording,
@@ -376,8 +421,16 @@ class NavigationController(private val context: Context) {
                         etaSeconds = newRoute.durationSeconds,
                         nextManeuver = pair.first,
                         secondManeuver = pair.second,
+                        routeSegmentIndex = -1,
+                        routeProgressM = 0.0,
+                        routeLateralErrorM = Double.NaN,
+                        routeHeadingErrorDeg = Double.NaN,
+                        turnState = TurnState.STRAIGHT,
+                        turnYawRateDegS = Float.NaN,
                         routeError = null
                     ))
+                    lastRouteDistanceAlongM = 0.0
+                    turnDetector.reset()
                 } else {
                     updateState(_state.value.copy(
                         recalculating = false,
@@ -411,6 +464,8 @@ class NavigationController(private val context: Context) {
             route = null,
             recentSearches = preferencesRepo.getRecentSearches()
         ))
+        lastRouteDistanceAlongM = 0.0
+        turnDetector.reset()
         routeJob?.cancel()
         routeJob = coroutineScope.launch {
             try {
@@ -422,6 +477,7 @@ class NavigationController(private val context: Context) {
                         navMode = NavMode.IDLE
                     ))
                 } else {
+                    lastRouteDistanceAlongM = 0.0
                     val pair = findNextManeuvers(0.0, route)
                     updateState(_state.value.copy(
                         route = route,
@@ -445,6 +501,8 @@ class NavigationController(private val context: Context) {
     fun beginDriving() {
         if (_state.value.navMode == NavMode.ROUTE_PREVIEW && _state.value.route != null) {
             offRouteDetector.reset()
+            lastRouteDistanceAlongM = 0.0
+            turnDetector.reset()
             updateState(_state.value.copy(navMode = NavMode.NAVIGATING, offRoute = false, recalculating = false))
         }
     }
@@ -453,6 +511,8 @@ class NavigationController(private val context: Context) {
         drEngine.reset()
         gnssMonitor.reset()
         offRouteDetector.reset()
+        lastRouteDistanceAlongM = 0.0
+        turnDetector.reset()
         updateState(NavigationState(
             latitude = _state.value.latitude,
             longitude = _state.value.longitude,
@@ -566,11 +626,49 @@ class NavigationController(private val context: Context) {
     }
 
     companion object {
+        internal fun monotonicDtSeconds(
+            previousTimestampNs: Long,
+            currentTimestampNs: Long,
+            maxDtSeconds: Double = 0.5
+        ): Double? {
+            if (currentTimestampNs <= 0L || previousTimestampNs <= 0L) return null
+            val deltaNs = currentTimestampNs - previousTimestampNs
+            if (deltaNs <= 0L) return null
+            val dtSeconds = deltaNs / 1_000_000_000.0
+            return dtSeconds.takeIf { it.isFinite() && it <= maxDtSeconds }
+        }
+
         internal fun shouldInjectTcnSpeed(
             hasTrustedGnss: Boolean,
             tcnInferenceActive: Boolean,
             acceptsTcnSpeedEstimate: Boolean
         ): Boolean = !hasTrustedGnss && tcnInferenceActive && acceptsTcnSpeedEstimate
+    }
+
+    private fun nextMonotonicDtSeconds(currentTimestampNs: Long): Double? {
+        if (currentTimestampNs <= 0L) return null
+        val previousTimestampNs = lastSensorTimestampNs
+        if (previousTimestampNs == 0L) {
+            lastSensorTimestampNs = currentTimestampNs
+            return null
+        }
+
+        val dtSeconds = monotonicDtSeconds(
+            previousTimestampNs,
+            currentTimestampNs,
+            MAX_MONOTONIC_DT_SECONDS
+        )
+        if (dtSeconds != null) {
+            lastSensorTimestampNs = currentTimestampNs
+        } else if (currentTimestampNs > previousTimestampNs &&
+            currentTimestampNs - previousTimestampNs >
+            (MAX_MONOTONIC_DT_SECONDS * 1_000_000_000L).toLong()
+        ) {
+            // Drop the interval and re-baseline. No synthetic dt is supplied.
+            lastSensorTimestampNs = currentTimestampNs
+            drEngine.rebaselineSensorTimestamp(currentTimestampNs)
+        }
+        return dtSeconds
     }
 
     private fun distanceTo(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
@@ -585,10 +683,23 @@ class NavigationController(private val context: Context) {
 
     private fun findNextManeuvers(distanceAlongM: Double, route: Route): Pair<Maneuver?, Maneuver?> {
         if (route.maneuvers.isEmpty()) return Pair(null, null)
-        val fraction = (distanceAlongM / route.distanceM.coerceAtLeast(1.0)).coerceIn(0.0, 1.0)
-        val mIdx = min((fraction * route.maneuvers.size).toInt(), route.maneuvers.size - 1)
-        val m1 = route.maneuvers.getOrNull(mIdx)
-        val m2 = route.maneuvers.getOrNull(mIdx + 1)
+        val indexed = route.maneuvers.indexOfFirst {
+            !it.distanceAlongM.isNaN() && it.distanceAlongM > distanceAlongM + 1.0
+        }
+        val mIdx = if (indexed >= 0) indexed else {
+            // Preserve a useful fallback for route providers that do not
+            // expose cumulative step distances.
+            val fraction = (distanceAlongM / route.distanceM.coerceAtLeast(1.0)).coerceIn(0.0, 1.0)
+            min((fraction * route.maneuvers.size).toInt(), route.maneuvers.size - 1)
+        }
+        val m1 = route.maneuvers.getOrNull(mIdx)?.let { maneuver ->
+            if (maneuver.distanceAlongM.isNaN()) maneuver
+            else maneuver.copy(distanceM = (maneuver.distanceAlongM - distanceAlongM).coerceAtLeast(0.0))
+        }
+        val m2 = route.maneuvers.getOrNull(mIdx + 1)?.let { maneuver ->
+            if (maneuver.distanceAlongM.isNaN()) maneuver
+            else maneuver.copy(distanceM = (maneuver.distanceAlongM - distanceAlongM).coerceAtLeast(0.0))
+        }
         return Pair(m1, m2)
     }
 

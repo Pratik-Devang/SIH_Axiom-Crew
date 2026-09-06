@@ -58,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     private var fallbackMapLat = 0.0
     private var fallbackMapLon = 0.0
     private var routeDrawn = false
+    private var renderedRoute: Route? = null
 
     // â”€â”€ Floating Search Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private lateinit var floatingSearchBar: LinearLayout
@@ -234,6 +235,7 @@ class MainActivity : AppCompatActivity() {
             navController?.cancelSearch()
             mapWebView.evaluateJavascript("clearRoute();", null)
             routeDrawn = false
+            renderedRoute = null
         }
 
         btnStartNav.setOnClickListener {
@@ -246,6 +248,7 @@ class MainActivity : AppCompatActivity() {
             navController?.stopNavigation()
             mapWebView.evaluateJavascript("clearRoute(); clearPath();", null)
             routeDrawn = false
+            renderedRoute = null
             resetTripCounters()
             cameraState = MapCameraState.FOLLOWING
             updateRecenterButtonAppearance()
@@ -255,6 +258,7 @@ class MainActivity : AppCompatActivity() {
             navController?.stopNavigation()
             mapWebView.evaluateJavascript("clearRoute(); clearPath();", null)
             routeDrawn = false
+            renderedRoute = null
             resetTripCounters()
             cameraState = MapCameraState.FOLLOWING
             updateRecenterButtonAppearance()
@@ -728,7 +732,9 @@ class MainActivity : AppCompatActivity() {
 
         val latDelta = abs(displayLat - lastMapLat)
         val lonDelta = abs(displayLon - lastMapLon)
-        val mapBearing = state.compassBearingDeg
+        // The map marker represents active navigation. Use the authoritative
+        // provider heading rather than the independent phone compass.
+        val mapBearing = state.heading
         val brgDelta = abs(mapBearing - lastMapBearing)
 
         if (latDelta > 0.000015 || lonDelta > 0.000015 || brgDelta > 3f) {
@@ -741,13 +747,17 @@ class MainActivity : AppCompatActivity() {
             mapWebView.evaluateJavascript(js, null)
         }
 
-        if (!routeDrawn && state.route != null) {
-            routeDrawn = true
-            drawRoute(state.route!!, state.destination)
+        if (state.route != null && state.route != renderedRoute) {
+            if (routeDrawn) mapWebView.evaluateJavascript("clearRoute();", null)
+            if (drawRoute(state.route!!, state.destination)) {
+                renderedRoute = state.route
+                routeDrawn = true
+            }
         }
 
         if (routeDrawn && state.route == null) {
             routeDrawn = false
+            renderedRoute = null
             mapWebView.evaluateJavascript("clearRoute();", null)
         }
 
@@ -761,12 +771,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun drawRoute(route: Route, destination: GeocodingResult?) {
+    private fun drawRoute(route: Route, destination: GeocodingResult?): Boolean {
+        if (route.polyline.size < 2) return false
         val coordsJson = route.polyline.joinToString(",") { "[${it.lat},${it.lon}]" }
-        val destLat = destination?.location?.lat ?: route.polyline.lastOrNull()?.lat ?: return
-        val destLon = destination?.location?.lon ?: route.polyline.lastOrNull()?.lon ?: return
+        val destLat = destination?.location?.lat ?: route.polyline.lastOrNull()?.lat ?: return false
+        val destLon = destination?.location?.lon ?: route.polyline.lastOrNull()?.lon ?: return false
         val js = "drawRoute([$coordsJson], $destLat, $destLon);"
         mapWebView.evaluateJavascript(js, null)
+        return true
     }
 
     private fun updateRecenterButtonAppearance() {

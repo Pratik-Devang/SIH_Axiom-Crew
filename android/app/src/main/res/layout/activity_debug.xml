@@ -607,7 +607,7 @@
                     android:id="@+id/tvDbgDrProvider"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="DR Engine: SIMPLIFIED_INS (TCN speed assist available; ESKF inactive)"
+                    android:text="ACTIVE ESTIMATOR: PERCORSA_ESKF"
                     android:textColor="#F59E0B"
                     android:textSize="12sp"
                     android:layout_marginBottom="4dp" />
@@ -616,7 +616,7 @@
                     android:id="@+id/tvDbgGnssQuality"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: NOT ACTIVE | TCN Speed Assist: WARMING UP"
+                    android:text="GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: ACTIVE | TCN: WARMING UP"
                     android:textColor="#94A3B8"
                     android:textSize="11sp"
                     android:layout_marginBottom="4dp" />
