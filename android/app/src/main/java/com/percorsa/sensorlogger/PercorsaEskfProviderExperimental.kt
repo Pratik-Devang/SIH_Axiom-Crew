@@ -93,6 +93,11 @@ class PercorsaEskfProvider(
     private var origin: LatLon? = null
     @Volatile private var diagnostics = EskfProviderDiagnostics()
     private var estimatorInvalid = false
+    /** Counts consecutive high-quality GNSS fixes rejected by the NIS gate.
+     *  When this reaches [GNSS_DIVERGENCE_RECOVERY_THRESHOLD] a controlled
+     *  position/velocity reset is triggered to escape a divergence latch. */
+    private var consecutiveGnssRejections = 0
+
 
     val status: EskfProviderDiagnostics get() = diagnostics
     val currentState: EskfNominalState? get() = state?.copyArrays()
@@ -195,10 +200,16 @@ class PercorsaEskfProvider(
                 ),
                 propagated.quaternion
             )
-            diagnostics = diagnostics.copy(lastDtSeconds = dt, yawRateDegS = Math.toDegrees(correctedGyroWorld.z).toFloat())
+            diagnostics = diagnostics.copy(lastDtSeconds = dt, yawRateDegS = (-Math.toDegrees(correctedGyroWorld.z)).toFloat())
             pendingTcnSpeedMps?.let { speed ->
                 val tcnTimestampNs = pendingTcnTimestampNs
-                if (tcnTimestampNs == 0L || tcnTimestampNs > lastTcnTimestampNs) {
+                // Reject stale TCN measurements: if the pending sample is older than 1.0s
+                // relative to the current propagated state, the velocity estimate is
+                // no longer representative of present motion.
+                val tcnAgeSeconds = if (tcnTimestampNs > 0L)
+                    (propagated.timestampSeconds - tcnTimestampNs / 1e9)
+                else 0.0
+                if (tcnAgeSeconds <= 1.0 && tcnTimestampNs > lastTcnTimestampNs) {
                     val result = tcnUpdater.update(propagated, propagatedCovariance, EskfTcnMeasurement(speed.toDouble(), timestampSeconds = if (tcnTimestampNs > 0L) tcnTimestampNs / 1e9 else propagated.timestampSeconds), phoneToVehicle, vehicleMotionObserved)
                     diagnostics = diagnostics.copy(
                         lastTcnAccepted = result.accepted,
@@ -283,6 +294,7 @@ class PercorsaEskfProvider(
                 quaternionPhoneToWorld = pendingInitialQuaternion
             )
             vehicleMotionObserved = speedMps.isFinite() && speedMps >= 4f && accuracyM <= 15f
+            consecutiveGnssRejections = 0
             diagnostics = diagnostics.copy(
                 lastGnssAccepted = true,
                 lastGnssTimestampSeconds = if (sourceTimestampNs > 0L) sourceTimestampNs / 1e9 else state!!.timestampSeconds
@@ -303,8 +315,39 @@ class PercorsaEskfProvider(
             lastGnssInnovationMagnitudeM = sqrt(result.innovation.sumOf { it * it }),
             lastGnssRejectionReason = if (result.accepted) null else "NIS or innovation rejected"
         )
-        if (result.accepted) { state = result.state; covariance = result.covariance }
-        if (bearingDeg.isFinite() && speedMps.isFinite()) {
+        if (result.accepted) {
+            state = result.state
+            covariance = result.covariance
+            consecutiveGnssRejections = 0
+        } else if (accuracyM <= 10f) {
+            // Only count rejections from high-quality fixes as evidence of divergence.
+            consecutiveGnssRejections++
+            if (consecutiveGnssRejections >= GNSS_DIVERGENCE_RECOVERY_THRESHOLD) {
+                // Controlled recovery: snap position and velocity to the GNSS fix,
+                // inflate their covariance to reflect the jump, but preserve attitude
+                // and IMU biases which are still valid.
+                val bearing = if (bearingDeg.isFinite() && suppliedSpeed >= 1.5f)
+                    Math.toRadians(bearingDeg.toDouble()) else null
+                val recoveryVelocity = if (bearing != null)
+                    doubleArrayOf(suppliedSpeed * sin(bearing), suppliedSpeed * cos(bearing), 0.0)
+                else state!!.velocity
+                state = state!!.copy(
+                    position = doubleArrayOf(position[0], position[1], state!!.position[2]),
+                    velocity = recoveryVelocity
+                )
+                covariance = covariance!!.withInflatedPosVel(
+                    posStd = (accuracyM * 2.0).coerceAtLeast(5.0),
+                    velStd = 3.0
+                )
+                consecutiveGnssRejections = 0
+                diagnostics = diagnostics.copy(lastGnssRejectionReason = "Divergence recovery applied")
+                gnssAccepted = true
+            }
+        }
+        // Only inject GNSS velocity when speed is reliable (≥ 1.5 m/s).
+        // Below this threshold GNSS course is undefined or heavily quantised
+        // and injects false velocity innovations that degrade the filter.
+        if (bearingDeg.isFinite() && speedMps.isFinite() && suppliedSpeed >= 1.5f) {
             val bearing = Math.toRadians(bearingDeg.toDouble())
             val velocityResult = gnssUpdater.updateVelocity(
                 state!!,
@@ -327,7 +370,9 @@ class PercorsaEskfProvider(
         if (!isInitialized) return null
         val current = state ?: return null
         val speed = sqrt(current.velocity[0] * current.velocity[0] + current.velocity[1] * current.velocity[1])
-        val vehicleForwardPhone = doubleArrayOf(phoneToVehicle.values[0][0], phoneToVehicle.values[1][0], phoneToVehicle.values[2][0])
+        // Row 0 of R_v_p is the vehicle-forward axis expressed in phone coordinates.
+        // (Previously used column 0 which was the wrong direction, causing a 90° offset.)
+        val vehicleForwardPhone = phoneToVehicle.forwardPhone.asArray()
         val forwardWorld = phoneToWorld(EskfVector3.fromArray(vehicleForwardPhone), current.quaternion).asArray()
         val heading = if (initialOrientationAvailable) attitudeHeading(current) else Float.NaN
         val reference = origin ?: LatLon(0.0, 0.0)
@@ -336,7 +381,7 @@ class PercorsaEskfProvider(
         return DrPosition(ll[0], ll[1], heading, speed.toFloat(), sqrt(max(0.0, positionVariance)).toFloat())
     }
 
-    override fun reset() { state = null; covariance = null; lastTimestampNs = 0L; pendingTcnSpeedMps = null; pendingTcnTimestampNs = 0L; lastTcnTimestampNs = 0L; lastGnssSourceTimestampNs = 0L; pendingInitialQuaternion = EskfQuaternion.IDENTITY; initialOrientationAvailable = false; vehicleMotionObserved = false; stationaryAccumSeconds = 0.0; origin = null; estimatorInvalid = false; diagnostics = EskfProviderDiagnostics(calibrationActive = calibrationActive) }
+    override fun reset() { state = null; covariance = null; lastTimestampNs = 0L; pendingTcnSpeedMps = null; pendingTcnTimestampNs = 0L; lastTcnTimestampNs = 0L; lastGnssSourceTimestampNs = 0L; pendingInitialQuaternion = EskfQuaternion.IDENTITY; initialOrientationAvailable = false; vehicleMotionObserved = false; stationaryAccumSeconds = 0.0; origin = null; estimatorInvalid = false; consecutiveGnssRejections = 0; diagnostics = EskfProviderDiagnostics(calibrationActive = calibrationActive) }
 
     fun markInvalid(message: String) { estimatorInvalid = true; diagnostics = diagnostics.copy(valid = false, runtimeState = EskfRuntimeState.INVALID, degradationReason = message, error = message); refreshDiagnostics() }
     private fun invalidate(message: String) { markInvalid(message) }
@@ -392,7 +437,9 @@ class PercorsaEskfProvider(
     }
 
     private fun attitudeHeading(current: EskfNominalState): Float {
-        val vehicleForwardPhone = doubleArrayOf(phoneToVehicle.values[0][0], phoneToVehicle.values[1][0], phoneToVehicle.values[2][0])
+        // Row 0 of R_v_p = vehicle-forward axis in phone coordinates.
+        // Using column 0 previously gave the vehicle-lateral axis → 90° offset.
+        val vehicleForwardPhone = phoneToVehicle.forwardPhone.asArray()
         val forwardWorld = phoneToWorld(EskfVector3.fromArray(vehicleForwardPhone), current.quaternion).asArray()
         return Math.toDegrees(atan2(forwardWorld[0], forwardWorld[1])).toFloat().let {
             if (it < 0f) it + 360f else it
@@ -412,3 +459,8 @@ class PercorsaEskfProvider(
 private fun defaultProviderPhoneToVehicle(): PhoneToVehicleRotation = PhoneToVehicleRotation(arrayOf(
     doubleArrayOf(1.0, 0.0, 0.0), doubleArrayOf(0.0, 1.0, 0.0), doubleArrayOf(0.0, 0.0, 1.0)
 ))
+
+/** Number of consecutive high-accuracy GNSS position rejections that trigger a controlled
+ *  divergence recovery.  Requires accuracy ≤ 10 m on every rejected fix to prevent a noisy
+ *  GPS epoch from prematurely resetting a healthy estimator. */
+private const val GNSS_DIVERGENCE_RECOVERY_THRESHOLD = 5
