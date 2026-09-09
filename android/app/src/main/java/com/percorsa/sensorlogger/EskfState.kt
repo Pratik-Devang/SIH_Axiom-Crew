@@ -72,6 +72,18 @@ data class EskfCovariance private constructor(val values: Array<DoubleArray>) {
 
     fun copyArray(): Array<DoubleArray> = Array(values.size) { values[it].copyOf() }
 
+    /** Returns a covariance with inflated position and velocity uncertainty for divergence recovery, preserving attitude and bias blocks. */
+    fun withInflatedPosVel(posStd: Double, velStd: Double = 1.0): EskfCovariance {
+        val result = copyArray()
+        val posVar = posStd * posStd
+        val velVar = velStd * velStd
+        for (i in 0 until 3) {
+            result[i][i] = maxOf(result[i][i], posVar)
+            result[3 + i][3 + i] = maxOf(result[3 + i][3 + i], velVar)
+        }
+        return from(result).symmetrized()
+    }
+
     companion object {
         fun from(values: Array<DoubleArray>): EskfCovariance =
             EskfCovariance(Array(values.size) { values[it].copyOf() })

@@ -22,6 +22,49 @@ data class PhoneToVehicleRotation(val values: Array<DoubleArray>) {
     }
 
     fun copyArray(): Array<DoubleArray> = Array(3) { values[it].copyOf() }
+
+    /** Vehicle forward axis (X) in phone coordinates: Row 0 of R_v_p (since v_phone = R_v_p^T * [1, 0, 0]^T). */
+    val forwardPhone: EskfVector3 get() = EskfVector3(values[0][0], values[0][1], values[0][2])
+
+    /** Vehicle lateral axis (Y, Left) in phone coordinates: Row 1 of R_v_p. */
+    val lateralPhone: EskfVector3 get() = EskfVector3(values[1][0], values[1][1], values[1][2])
+
+    /** Vehicle vertical axis (Z, Up) in phone coordinates: Row 2 of R_v_p. */
+    val upPhone: EskfVector3 get() = EskfVector3(values[2][0], values[2][1], values[2][2])
+
+    companion object {
+        val IDENTITY = PhoneToVehicleRotation(arrayOf(
+            doubleArrayOf(1.0, 0.0, 0.0),
+            doubleArrayOf(0.0, 1.0, 0.0),
+            doubleArrayOf(0.0, 0.0, 1.0)
+        ))
+
+        /** Build an orthonormal R_v_p from forward and up vectors in the phone frame. */
+        fun fromForwardAndUp(forwardPhone: EskfVector3, upPhone: EskfVector3): PhoneToVehicleRotation {
+            val uUp = normalize(upPhone)
+            // Left = Up x Forward
+            val uLeft = normalize(cross(uUp, forwardPhone))
+            // Re-orthogonalize Forward = Left x Up
+            val uFwd = normalize(cross(uLeft, uUp))
+            return PhoneToVehicleRotation(arrayOf(
+                doubleArrayOf(uFwd.x, uFwd.y, uFwd.z),
+                doubleArrayOf(uLeft.x, uLeft.y, uLeft.z),
+                doubleArrayOf(uUp.x, uUp.y, uUp.z)
+            ))
+        }
+
+        private fun normalize(v: EskfVector3): EskfVector3 {
+            val len = kotlin.math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+            require(len > 1e-6) { "Cannot normalize zero-length vector" }
+            return EskfVector3(v.x / len, v.y / len, v.z / len)
+        }
+
+        private fun cross(a: EskfVector3, b: EskfVector3): EskfVector3 = EskfVector3(
+            a.y * b.z - a.z * b.y,
+            a.z * b.x - a.x * b.z,
+            a.x * b.y - a.y * b.x
+        )
+    }
 }
 
 private fun multiply(matrix: Array<DoubleArray>, vector: EskfVector3): EskfVector3 =
