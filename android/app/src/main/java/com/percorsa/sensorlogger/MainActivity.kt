@@ -104,6 +104,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var chipHospital: TextView
     private lateinit var chipFood: TextView
 
+    // Live Diagnostics HUD
+    private lateinit var panelDiagnosticsHud: LinearLayout
+    private lateinit var tvHudPhone: TextView
+    private lateinit var tvHudVehicle: TextView
+    private lateinit var tvHudSpeed: TextView
+
     // â”€â”€ Bottom Sheets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private lateinit var bottomSheet: SwipeBottomSheetLayout
     private lateinit var sheetHandle: View
@@ -170,6 +176,13 @@ class MainActivity : AppCompatActivity() {
 
     private val uiRunnable = object : Runnable {
         override fun run() {
+            val currentDisplayRotation = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                display?.rotation ?: android.view.Surface.ROTATION_0
+            } else {
+                @Suppress("DEPRECATION")
+                windowManager.defaultDisplay.rotation
+            }
+            navController?.sensorEngine?.setDisplayRotation(currentDisplayRotation)
             navController?.tick()
             val state = navController?.state?.value
             if (state != null) {
@@ -325,6 +338,11 @@ class MainActivity : AppCompatActivity() {
         btnIdleFuel                 = findViewById(R.id.btnIdleFuel)
         btnIdleHospital             = findViewById(R.id.btnIdleHospital)
         btnIdleFood                 = findViewById(R.id.btnIdleFood)
+
+        panelDiagnosticsHud         = findViewById(R.id.panelDiagnosticsHud)
+        tvHudPhone                  = findViewById(R.id.tvHudPhone)
+        tvHudVehicle                = findViewById(R.id.tvHudVehicle)
+        tvHudSpeed                  = findViewById(R.id.tvHudSpeed)
 
         panelRoutePreviewSheet      = findViewById(R.id.panelRoutePreviewSheet)
         tvDestinationName           = findViewById(R.id.tvDestinationName)
@@ -577,6 +595,7 @@ class MainActivity : AppCompatActivity() {
         renderMap(state)
         renderCompass(state)
         renderInstrumentPanel(state)
+        renderDiagnosticsHud(state)
     }
 
     private fun renderGnssStatusChip(state: NavigationState) {
@@ -722,6 +741,40 @@ class MainActivity : AppCompatActivity() {
         compassIndicator.rotation = -state.compassBearingDeg
     }
 
+    private fun renderDiagnosticsHud(state: NavigationState) {
+        val snap = navController?.sensorEngine?.getSnapshot()
+        val dispRot = when (navController?.sensorEngine?.displayRotation) {
+            android.view.Surface.ROTATION_90  -> "ROT_90"
+            android.view.Surface.ROTATION_180 -> "ROT_180"
+            android.view.Surface.ROTATION_270 -> "ROT_270"
+            else                              -> "ROT_0"
+        }
+        val calib = if (snap?.isCalibrated == true) "LOCKED" else "UNLOCKED"
+        val srcName = when (state.rotationSource) {
+            RotationSource.ROTATION_VECTOR -> "RV"
+            RotationSource.GAME_ROTATION_VECTOR -> "GAME_RV"
+            RotationSource.NONE -> "NONE"
+        }
+        val confName = state.deviceHeadingConfidence.name
+        tvHudPhone.text = "PHONE\nAz: %.1f° [%s]\nSrc: %s | Disp: %s\nCalib: %s".format(
+            Locale.US, state.deviceAzimuthDeg, confName, srcName, dispRot, calib
+        )
+
+        val eskfHeadingStr = if (state.vehicleHeadingDeg.isFinite()) "%.1f°".format(Locale.US, state.vehicleHeadingDeg) else "--°"
+        val gnssCourseStr = if (snap?.gpsBearingDeg?.isFinite() == true) "%.1f°".format(Locale.US, snap.gpsBearingDeg) else "--°"
+        val routeBearingStr = if (state.routeBearingDeg.isFinite()) "%.1f°".format(Locale.US, state.routeBearingDeg) else "--°"
+        tvHudVehicle.text = "VEHICLE\nESKF: %s\nGNSS: %s\nRoute: %s".format(
+            eskfHeadingStr, gnssCourseStr, routeBearingStr
+        )
+
+        val gnssSpeedKmh = if (snap?.gpsSpeedMps?.isFinite() == true) (snap.gpsSpeedMps * 3.6f).toInt() else 0
+        val eskfSpeedKmh = if (state.speed.isFinite()) (state.speed * 3.6f).toInt() else 0
+        val tcnSpeedKmh = (state.mlSpeedMps * 3.6f).toInt()
+        tvHudSpeed.text = "SPEED\nDisp: %d km/h [%s]\nGPS: %d | ESKF: %d\nTCN: %d | Health: %s".format(
+            state.speedKmh, state.speedSource.name, gnssSpeedKmh, eskfSpeedKmh, tcnSpeedKmh, state.eskfHealthState.name
+        )
+    }
+
     private fun renderMap(state: NavigationState) {
         if (!mapReady) return
 
@@ -734,7 +787,7 @@ class MainActivity : AppCompatActivity() {
         val lonDelta = abs(displayLon - lastMapLon)
         // The map marker represents active navigation. Use the authoritative
         // provider heading rather than the independent phone compass.
-        val mapBearing = state.heading
+        val mapBearing = state.deviceAzimuthDeg
         val brgDelta = abs(mapBearing - lastMapBearing)
 
         if (latDelta > 0.000015 || lonDelta > 0.000015 || brgDelta > 3f) {

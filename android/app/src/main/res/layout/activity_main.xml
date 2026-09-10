@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -261,6 +261,51 @@
                 android:textSize="22sp" />
 
         </FrameLayout>
+
+    </LinearLayout>
+
+    <!-- ── Live Diagnostics HUD Panel (Phone, Vehicle, Speed) ─────────────── -->
+    <LinearLayout
+        android:id="@+id/panelDiagnosticsHud"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_gravity="start|top"
+        android:layout_marginTop="75dp"
+        android:layout_marginStart="14dp"
+        android:background="@drawable/card_bg"
+        android:padding="8dp"
+        android:elevation="12dp"
+        android:visibility="visible">
+
+        <TextView
+            android:id="@+id/tvHudPhone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#3DD6F5"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:text="PHONE\nAzimuth: --°\nDisplay: ROT_0\nCalib: UNLOCKED" />
+
+        <TextView
+            android:id="@+id/tvHudVehicle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:textColor="#14B8A6"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:text="VEHICLE\nESKF: --°\nGNSS: --°\nRoute: --°" />
+
+        <TextView
+            android:id="@+id/tvHudSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:textColor="#FFB020"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:text="SPEED\nDisp: 0 km/h [GNSS]\nGPS: 0 | ESKF: 0\nTCN: 0 | Health: OK" />
 
     </LinearLayout>
 

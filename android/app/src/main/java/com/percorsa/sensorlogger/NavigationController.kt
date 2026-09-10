@@ -215,46 +215,73 @@ class NavigationController(private val context: Context) {
         val diagnosticSpeed = drPos?.speedMps ?: Float.NaN
         sensorEngine.setEstimatedSpeedForDiagnostics(diagnosticSpeed)
 
+        val isGnssUnavailable = gnssMonitor.isGnssDenied() || gnssQuality == GnssQuality.DENIED || gnssQuality == GnssQuality.POOR
+
+        val eskfDiag = activeEskfDiagnostics
+        val eskfHealth = when {
+            !activeEskf.isInitialized -> EskfHealthState.UNINITIALIZED
+            !eskfDiag.valid || eskfDiag.runtimeState == EskfRuntimeState.INVALID -> EskfHealthState.DIVERGED
+            eskfDiag.isHealthy -> EskfHealthState.HEALTHY
+            else -> EskfHealthState.DEGRADED
+        }
+
+        // SPEED POLICY:
+        // 1. When trusted GNSS is available, GNSS Doppler speed is the primary ground truth.
+        // 2. When GNSS is degraded or denied, use ESKF dead reckoning ONLY IF strictly HEALTHY.
+        // 3. If ESKF is DEGRADED, DIVERGED, or INVALID, NEVER display it. Explicit fallback to 0.
+        val (speed, speedSource) = when {
+            hasTrustedGnss && snap.gpsSpeedMps.isFinite() && snap.gpsSpeedMps >= 0f -> {
+                Pair(snap.gpsSpeedMps, SpeedSource.GNSS)
+            }
+            drPos != null && drPos.speedMps.isFinite() && drPos.speedMps >= 0f && eskfHealth == EskfHealthState.HEALTHY -> {
+                Pair(drPos.speedMps, SpeedSource.ESKF)
+            }
+            else -> {
+                val fallback = if (hasTrustedGnss && snap.gpsSpeedMps.isFinite() && snap.gpsSpeedMps >= 0f) snap.gpsSpeedMps else 0f
+                Pair(fallback, SpeedSource.FALLBACK)
+            }
+        }
+
+        // POSITION POLICY:
         val lat: Double
         val lon: Double
-        val heading: Float
-        val speed: Float
         val accuracy: Float
         val drActive: Boolean
 
         when {
-            drPos != null -> {
+            drPos != null && isGnssUnavailable -> {
                 lat = drPos.latitude
                 lon = drPos.longitude
-                heading = drPos.heading
-                speed = drPos.speedMps
                 accuracy = drPos.estimatedAccuracyM
                 drActive = true
             }
-            snap.hasGps && snap.latitude.isFinite() && snap.longitude.isFinite() -> {
-                lat = snap.latitude
-                lon = snap.longitude
-                heading = snap.gpsBearingDeg.takeIf { it.isFinite() } ?: snap.compassBearingDeg
-                speed = snap.gpsSpeedMps.takeIf { it.isFinite() } ?: 0f
+            hasTrustedGnss -> {
+                lat = drPos?.latitude ?: snap.latitude
+                lon = drPos?.longitude ?: snap.longitude
                 accuracy = snap.gpsAccuracyM
                 drActive = false
             }
+            drPos != null -> {
+                lat = drPos.latitude
+                lon = drPos.longitude
+                accuracy = drPos.estimatedAccuracyM
+                drActive = false
+            }
             snap.latitude != 0.0 || snap.longitude != 0.0 -> {
-                // Keep the last known point visible during a GPS outage while
-                // the rotation-vector compass continues to update its heading.
                 lat = snap.latitude
                 lon = snap.longitude
-                heading = snap.compassBearingDeg
-                speed = 0f
                 accuracy = snap.gpsAccuracyM
-                // No valid ESKF snapshot is available here; retain the last
-                // known point only as a clearly labelled display fallback.
                 drActive = false
             }
             else -> {
                 updateState(_state.value.copy(
                     compassBearingDeg = snap.compassBearingDeg,
+                    deviceAzimuthDeg = snap.deviceAzimuthDeg,
+                    rotationSource = snap.rotationSource,
+                    deviceHeadingConfidence = snap.deviceHeadingConfidence,
                     gnssQuality = gnssQuality,
+                    speedSource = speedSource,
+                    eskfHealthState = eskfHealth,
                     isRecording = sensorEngine.isRecording,
                     recordedSamples = snap.loggedCsvRows,
                     navigationHealth = computeHealth(snap, gnssQuality)
@@ -262,6 +289,17 @@ class NavigationController(private val context: Context) {
                 return
             }
         }
+
+        // ORIENTATION SIGNALS:
+        // A. Device azimuth = physical direction phone is pointing (controls map pointer)
+        val deviceAzimuth = snap.deviceAzimuthDeg
+        // B. Vehicle heading = direction vehicle is moving/traveling
+        val vehicleHeading = when {
+            drPos != null && drPos.heading.isFinite() -> drPos.heading
+            snap.hasGps && snap.gpsBearingDeg.isFinite() && (snap.gpsSpeedMps.takeIf { it.isFinite() } ?: 0f) >= 1.5f -> snap.gpsBearingDeg
+            else -> deviceAzimuth
+        }
+        val heading = vehicleHeading
 
         val currentMode = current.navMode
         val isDrivingMode = currentMode == NavMode.NAVIGATING ||
@@ -297,6 +335,7 @@ class NavigationController(private val context: Context) {
         var routeHeadingErrorDeg = current.routeHeadingErrorDeg
         var turnState = current.turnState
         var turnYawRateDegS = current.turnYawRateDegS
+        var routeBearingDeg: Double = current.routeBearingDeg
 
         if (route != null && isDrivingMode) {
             // 1. Segment projection gives cumulative route progress, not vertex distance.
@@ -305,6 +344,7 @@ class NavigationController(private val context: Context) {
             // committing route progress.
             val offRouteState = offRouteDetector.checkPosition(lat, lon, accuracy, speed, heading, route)
             val matchedRoute = offRouteDetector.routeMatch ?: routeMatch
+            routeBearingDeg = matchedRoute?.routeBearingDeg ?: Double.NaN
             val routeDistanceAlongM = matchedRoute?.let {
                 max(lastRouteDistanceAlongM, it.distanceAlongM)
             } ?: lastRouteDistanceAlongM
@@ -376,6 +416,13 @@ class NavigationController(private val context: Context) {
             latitude = lat,
             longitude = lon,
             heading = heading,
+            deviceAzimuthDeg = deviceAzimuth,
+            rotationSource = snap.rotationSource,
+            deviceHeadingConfidence = snap.deviceHeadingConfidence,
+            vehicleHeadingDeg = vehicleHeading,
+            routeBearingDeg = routeBearingDeg,
+            speedSource = speedSource,
+            eskfHealthState = eskfHealth,
             compassBearingDeg = snap.compassBearingDeg,
             speed = speed,
             positionAccuracy = accuracy,
