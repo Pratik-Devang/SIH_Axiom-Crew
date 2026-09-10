@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.sqrt
+import android.view.Surface
 
 /** Android elapsed-realtime clock, with a JVM-test fallback for framework stubs. */
 internal fun elapsedRealtimeNanosCompat(): Long = try {
@@ -44,6 +45,9 @@ data class SensorSnapshot(
     val gpsBearingDeg: Float,
     val gpsAccuracyM: Float,
     val compassBearingDeg: Float,
+    val deviceAzimuthDeg: Float = compassBearingDeg,
+    val rotationSource: RotationSource = RotationSource.NONE,
+    val deviceHeadingConfidence: DeviceHeadingConfidence = DeviceHeadingConfidence.LOW,
     val accelX: Float,
     val accelY: Float,
     val accelZ: Float,
@@ -120,9 +124,17 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     private var accelSensor: Sensor? = null
     private var gyroSensor: Sensor? = null
     private var rotVectorSensor: Sensor? = null
+    private var gameRotVectorSensor: Sensor? = null   // Magnetic-disturbance-immune tilt source
     private var linearAccelSensor: Sensor? = null
     private var gravitySensor: Sensor? = null
     private var magSensor: Sensor? = null
+
+    // Latched rotation matrix from best available orientation source:
+    //   TYPE_ROTATION_VECTOR  -> north-referenced; used when magnetometer is reliable
+    //   TYPE_GAME_ROTATION_VECTOR -> magnetic-immune; used for tilt when mag may be distorted
+    private val gameQuaternion = floatArrayOf(1f, 0f, 0f, 0f) // Game RV quat [w, x, y, z]
+    private var hasGameRotVector: Boolean = false
+    private var gameRotVectorTimestampNs: Long = 0L
 
     // Latched sensor states
     private val rawAccel = FloatArray(3)
@@ -281,6 +293,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
                 accelSensor = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
                 gyroSensor = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
                 rotVectorSensor = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+                gameRotVectorSensor = sm.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
                 linearAccelSensor = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
                 gravitySensor = sm.getDefaultSensor(Sensor.TYPE_GRAVITY)
                 magSensor = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
@@ -296,6 +309,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         accelSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
         gyroSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
         rotVectorSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
+        gameRotVectorSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
         linearAccelSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
         gravitySensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
         magSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
@@ -404,7 +418,10 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
                 val canonical = imuPreprocessor.processSnapshot(snap)
                 if (canonical != null && tcnInputBuffer.push(canonical)) {
                     lastCanonicalSample = canonical
-                    if (tcnInputBuffer.isReady && tcnPredictor != null) {
+                    // TCN inference is only meaningful with calibrated vehicle-frame inputs.
+                    // Uncalibrated phone-frame inputs produce ~138 km/h outliers from the
+                    // benchmark-trained model; gate them to prevent spurious diagnostics.
+                    if (canonical.vehicleFrameCalibrated && tcnInputBuffer.isReady && tcnPredictor != null) {
                         scheduleTcnInference(
                             canonical.timestampNs,
                             tcnInputBuffer.getFeatureMatrix()
@@ -458,6 +475,23 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
 
                 rotVectorTimestampNs = timestampNs
                 hasRotVector = true
+            }
+            Sensor.TYPE_GAME_ROTATION_VECTOR -> {
+                val gq1 = values[0]
+                val gq2 = values[1]
+                val gq3 = values[2]
+                val gq0 = if (values.size >= 4) {
+                    values[3]
+                } else {
+                    val s = 1.0f - (gq1 * gq1 + gq2 * gq2 + gq3 * gq3)
+                    if (s > 0f) sqrt(s) else 0f
+                }
+                gameQuaternion[0] = gq0
+                gameQuaternion[1] = gq1
+                gameQuaternion[2] = gq2
+                gameQuaternion[3] = gq3
+                gameRotVectorTimestampNs = timestampNs
+                hasGameRotVector = true
             }
             Sensor.TYPE_LINEAR_ACCELERATION -> {
                 System.arraycopy(values, 0, linearAccel, 0, 3)
@@ -641,6 +675,51 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         navigationDiagnosticsProvider = provider
     }
 
+    @Volatile var displayRotation: Int = Surface.ROTATION_0
+        private set
+
+    fun setDisplayRotation(rotation: Int) {
+        displayRotation = rotation
+    }
+
+    /**
+     * Computes the direction the physical phone's top edge is pointing in world coordinates
+     * (0° North, 90° East, 180° South, 270° West, clockwise).
+     *
+     * Correctly accounts for:
+     * 1. Display rotation (Surface.ROTATION_0, ROTATION_90, ROTATION_180, ROTATION_270).
+     * 2. Vertical/steep car-dock mounts (> 60° pitch): when the phone is mounted upright
+     *    facing the driver, the top edge points to the sky, and the back-normal (-Z) points
+     *    forward through the windshield towards the road.
+     */
+    fun computeDeviceAzimuth(r: FloatArray, rotation: Int): Float {
+        // Remap screen visual top edge vector based on display orientation
+        val (topX, topY, topZ) = when (rotation) {
+            Surface.ROTATION_90  -> Triple(-r[0], -r[3], -r[6]) // -X of device = top of screen
+            Surface.ROTATION_180 -> Triple(-r[1], -r[4], -r[7]) // -Y of device = top of screen
+            Surface.ROTATION_270 -> Triple( r[0],  r[3],  r[6]) // +X of device = top of screen
+            else                 -> Triple( r[1],  r[4],  r[7]) // +Y of device = top of screen
+        }
+
+        val horizNormSq = topX * topX + topY * topY
+        val azimuth = if (horizNormSq > 0.05f) {
+            // Standard handheld or angled mount
+            Math.toDegrees(atan2(topX.toDouble(), topY.toDouble())).toFloat()
+        } else {
+            // Near-vertical upright mount (car holder on dashboard):
+            // Visual top of screen points at roof. The forward view is along the back normal (-Z).
+            // In Android ENU world frame, -Z column is (-r[2], -r[5], -r[8]).
+            val backX = -r[2]
+            val backY = -r[5]
+            if (backX * backX + backY * backY > 0.01f) {
+                Math.toDegrees(atan2(backX.toDouble(), backY.toDouble())).toFloat()
+            } else {
+                Math.toDegrees(atan2(topX.toDouble(), topY.toDouble())).toFloat()
+            }
+        }
+        return normalizeHeading(azimuth)
+    }
+
     private fun transformToVehicleFrame(vPhone: FloatArray, vVehicle: FloatArray) {
         val wx = rCurrent[0] * vPhone[0] + rCurrent[1] * vPhone[1] + rCurrent[2] * vPhone[2]
         val wy = rCurrent[3] * vPhone[0] + rCurrent[4] * vPhone[1] + rCurrent[5] * vPhone[2]
@@ -649,6 +728,14 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         vVehicle[0] = rCal[0] * wx + rCal[3] * wy + rCal[6] * wz
         vVehicle[1] = rCal[1] * wx + rCal[4] * wy + rCal[7] * wz
         vVehicle[2] = rCal[2] * wx + rCal[5] * wy + rCal[8] * wz
+    }
+
+    fun setPhoneToVehicleRotation(r: FloatArray) {
+        require(r.size == 9) { "Rotation matrix must be 9 elements" }
+        synchronized(this) {
+            System.arraycopy(r, 0, rCal, 0, 9)
+            isCalibrated = true
+        }
     }
 
     fun getSnapshot(): SensorSnapshot = synchronized(this) {
@@ -667,9 +754,28 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         val linearMag = sqrt(linearAccel[0] * linearAccel[0] + linearAccel[1] * linearAccel[1] + linearAccel[2] * linearAccel[2])
         val gravMag = sqrt(gravity[0] * gravity[0] + gravity[1] * gravity[1] + gravity[2] * gravity[2])
         val qNorm = sqrt(quaternion[0] * quaternion[0] + quaternion[1] * quaternion[1] + quaternion[2] * quaternion[2] + quaternion[3] * quaternion[3])
-        val compassHeadingDeg = if (hasRotVector) {
-            normalizeHeading(Math.toDegrees(atan2(rCurrent[1].toDouble(), rCurrent[4].toDouble())).toFloat())
+        val deviceAzimuth = if (hasRotVector) {
+            computeDeviceAzimuth(rCurrent, displayRotation)
         } else 0f
+        val compassHeadingDeg = deviceAzimuth
+
+        val magMag = sqrt(rawMag[0] * rawMag[0] + rawMag[1] * rawMag[1] + rawMag[2] * rawMag[2])
+        val (rotSource, headingConf) = when {
+            hasRotVector -> {
+                val conf = when {
+                    hasMag && magMag in 25f..65f -> DeviceHeadingConfidence.HIGH
+                    hasMag && magMag in 15f..80f -> DeviceHeadingConfidence.MEDIUM
+                    hasMag -> DeviceHeadingConfidence.LOW // Severe magnetic anomaly
+                    else -> DeviceHeadingConfidence.MEDIUM
+                }
+                Pair(RotationSource.ROTATION_VECTOR, conf)
+            }
+            hasGameRotVector -> {
+                // Game Rotation Vector provides magnetic-immune tilt/relative orientation, but no geographic north
+                Pair(RotationSource.GAME_ROTATION_VECTOR, DeviceHeadingConfidence.LOW)
+            }
+            else -> Pair(RotationSource.NONE, DeviceHeadingConfidence.LOW)
+        }
 
         if (qNorm.isNaN() || abs(qNorm - 1.0f) > 0.05f) {
             addWarning("Quaternion norm anomaly: %.4f".format(qNorm))
@@ -717,6 +823,9 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             gpsBearingDeg = if (loc != null && hasBearing(loc)) loc.bearing else Float.NaN,
             gpsAccuracyM = loc?.accuracy ?: Float.NaN,
             compassBearingDeg = compassHeadingDeg,
+            deviceAzimuthDeg = deviceAzimuth,
+            rotationSource = rotSource,
+            deviceHeadingConfidence = headingConf,
             accelX = rawAccel[0], accelY = rawAccel[1], accelZ = rawAccel[2], accelMag = accelMag,
             gyroX = rawGyro[0], gyroY = rawGyro[1], gyroZ = rawGyro[2], gyroMag = gyroMag,
             quatW = quaternion[0], quatX = quaternion[1], quatY = quaternion[2], quatZ = quaternion[3], quatNorm = qNorm,

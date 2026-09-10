@@ -61,8 +61,20 @@ data class EskfProviderDiagnostics(
     val calibrationActive: Boolean = false,
     val lastTcnInjected: Boolean = false,
     val yawRateDegS: Float = Float.NaN,
+    val accelBiasMag: Double = 0.0,
+    val gyroBiasMag: Double = 0.0,
+    val consecutiveGnssRejections: Int = 0,
     val error: String? = null
-)
+) {
+    val isHealthy: Boolean get() = valid && stateFinite && covarianceFinite && covariancePsd &&
+            speedMps.isFinite() && speedMps >= 0.0 && speedMps < 50.0 &&
+            covarianceTrace.isFinite() && covarianceTrace < 2500.0 &&
+            quaternionNorm.isFinite() && kotlin.math.abs(quaternionNorm - 1.0) < 0.05 &&
+            accelBiasMag < 5.0 && gyroBiasMag < 0.5 &&
+            consecutiveGnssRejections < 3 &&
+            runtimeState != EskfRuntimeState.INVALID &&
+            runtimeState != EskfRuntimeState.DEGRADED
+}
 
 /** Authoritative active navigation provider backed by the Kotlin 15-state ESKF. */
 class PercorsaEskfProvider(
@@ -180,25 +192,90 @@ class PercorsaEskfProvider(
         val dt = deltaNs / 1e9
         if (!dt.isFinite() || dt > config.maxPropagationDtSeconds) return invalidate("Invalid IMU timestamp delta")
         try {
+            val useLinearAccel = snapshot.hasLinearAccel && snapshot.linearAccelMag.isFinite()
             val sample = EskfImuSample(
                 snapshot.timestampNs / 1e9,
-                EskfVector3(snapshot.accelX.toDouble(), snapshot.accelY.toDouble(), snapshot.accelZ.toDouble()),
+                if (useLinearAccel) {
+                    EskfVector3(snapshot.linearAccelX.toDouble(), snapshot.linearAccelY.toDouble(), snapshot.linearAccelZ.toDouble())
+                } else {
+                    EskfVector3(snapshot.accelX.toDouble(), snapshot.accelY.toDouble(), snapshot.accelZ.toDouble())
+                },
                 EskfVector3(snapshot.gyroX.toDouble(), snapshot.gyroY.toDouble(), snapshot.gyroZ.toDouble()),
-                // accelX/Y/Z are the raw Android accelerometer channels and
-                // intentionally include gravity. Do not use the availability
-                // flag for the representation selector.
-                false
+                useLinearAccel
             )
             val propagated = propagator.propagate(state!!, sample, dt)
             val propagatedCovariance = covariancePropagator.propagate(covariance!!, propagated, sample, dt).covariance
             state = propagated; covariance = propagatedCovariance; lastTimestampNs = snapshot.timestampNs
+
+            // Continuous tilt leveling: keeps pitch and roll strictly aligned to true gravity
+            // without corrupting yaw (since deltaTheta_tilt is perpendicular to Up, deltaTheta . Up = 0).
+            // Dynamic trust gating: attenuate or suspend leveling during aggressive acceleration,
+            // hard braking, potholes, or high angular velocity so dynamic forces are not treated as gravity.
+            if (snapshot.hasRotVector && snapshot.quatNorm in 0.95f..1.05f) {
+                val accelMag = if (snapshot.accelMag.isFinite() && snapshot.accelMag > 0f) {
+                    snapshot.accelMag
+                } else {
+                    kotlin.math.sqrt(snapshot.accelX * snapshot.accelX + snapshot.accelY * snapshot.accelY + snapshot.accelZ * snapshot.accelZ)
+                }
+                val devFromG = kotlin.math.abs(accelMag - 9.81f).toDouble()
+                val gyroMag = snapshot.gyroMag.toDouble()
+
+                // Catch horizontal acceleration directly: during braking/turning/acceleration,
+                // norm ||a|| = sqrt(g^2 + a_h^2) only increases slightly, but linear acceleration
+                // or sqrt(|a^2 - g^2|) directly catches the perturbing vehicle force.
+                val perturbAccel = if (snapshot.hasLinearAccel && snapshot.linearAccelMag.isFinite() && snapshot.linearAccelMag > 0f) {
+                    kotlin.math.max(devFromG, snapshot.linearAccelMag.toDouble())
+                } else {
+                    val aSq = accelMag.toDouble() * accelMag.toDouble()
+                    val gSq = 9.81 * 9.81
+                    kotlin.math.sqrt(kotlin.math.abs(aSq - gSq))
+                }
+
+                // Continuous confidence weights based on physical sensor characteristics:
+                // 1. Gravity weight: full confidence within ±0.4 m/s² noise, decays smoothly to 0 beyond 2.0 m/s²
+                val wGrav = (1.0 - (perturbAccel / 2.0)).coerceIn(0.0, 1.0).let { it * it }
+                // 2. Gyro weight: full confidence when stationary/low-rotation (< 0.1 rad/s), decays smoothly to 0 at 0.8 rad/s (~46°/s)
+                val wGyro = (1.0 - (gyroMag / 0.8)).coerceIn(0.0, 1.0).let { it * it }
+                val dynamicTrust = wGrav * wGyro
+
+                if (dynamicTrust > 0.02) {
+                    val qRv = EskfQuaternion(
+                        snapshot.quatW.toDouble(), snapshot.quatX.toDouble(),
+                        snapshot.quatY.toDouble(), snapshot.quatZ.toDouble()
+                    ).normalized()
+                    val rRv = qRv.toRotationMatrix()
+                    // Row 2 of rotation matrix is the Up unit vector in phone coordinates
+                    val uUpRefX = rRv[2][0]
+                    val uUpRefY = rRv[2][1]
+                    val uUpRefZ = rRv[2][2]
+
+                    val rEskf = state!!.quaternion.toRotationMatrix()
+                    val uUpEskfX = rEskf[2][0]
+                    val uUpEskfY = rEskf[2][1]
+                    val uUpEskfZ = rEskf[2][2]
+
+                    // Correct right-multiplication sign: c = uUpRef × uUpEskf
+                    val cx = uUpRefY * uUpEskfZ - uUpRefZ * uUpEskfY
+                    val cy = uUpRefZ * uUpEskfX - uUpRefX * uUpEskfZ
+                    val cz = uUpRefX * uUpEskfY - uUpRefY * uUpEskfX
+                    val tiltNorm = kotlin.math.sqrt(cx * cx + cy * cy + cz * cz)
+                    if (tiltNorm > 1e-6) {
+                        val baseGain = 0.08
+                        val factor = baseGain * dynamicTrust * dt.coerceIn(0.005, 0.1) * 10.0
+                        val deltaTheta = doubleArrayOf(cx * factor, cy * factor, cz * factor)
+                        val deltaQ = deltaQuaternionFromRotationVector(deltaTheta)
+                        state = state!!.copy(quaternion = (state!!.quaternion * deltaQ).normalized())
+                    }
+                }
+            }
+
             val correctedGyroWorld = phoneToWorld(
                 EskfVector3(
                     snapshot.gyroX.toDouble() - propagated.gyroscopeBias[0],
                     snapshot.gyroY.toDouble() - propagated.gyroscopeBias[1],
                     snapshot.gyroZ.toDouble() - propagated.gyroscopeBias[2]
                 ),
-                propagated.quaternion
+                state!!.quaternion
             )
             diagnostics = diagnostics.copy(lastDtSeconds = dt, yawRateDegS = (-Math.toDegrees(correctedGyroWorld.z)).toFloat())
             pendingTcnSpeedMps?.let { speed ->
@@ -390,29 +467,43 @@ class PercorsaEskfProvider(
         val stateFinite = current?.let {
             it.position.all(Double::isFinite) &&
                     it.velocity.all(Double::isFinite) &&
-                    it.quaternion.norm().isFinite()
+                    it.quaternion.norm().isFinite() &&
+                    it.accelerometerBias.all(Double::isFinite) &&
+                    it.gyroscopeBias.all(Double::isFinite)
         } == true
         val covarianceFinite = p?.values?.all { row -> row.all(Double::isFinite) } == true
         val covariancePsd = p?.let { it.minimumEigenvalue() >= config.covariancePsdTolerance } == true
         val quaternionNorm = current?.quaternion?.norm() ?: Double.NaN
+        val accelBiasMag = current?.let {
+            sqrt(it.accelerometerBias[0] * it.accelerometerBias[0] +
+                 it.accelerometerBias[1] * it.accelerometerBias[1] +
+                 it.accelerometerBias[2] * it.accelerometerBias[2])
+        } ?: 0.0
+        val gyroBiasMag = current?.let {
+            sqrt(it.gyroscopeBias[0] * it.gyroscopeBias[0] +
+                 it.gyroscopeBias[1] * it.gyroscopeBias[1] +
+                 it.gyroscopeBias[2] * it.gyroscopeBias[2])
+        } ?: 0.0
         val runtimeState = when {
             estimatorInvalid -> EskfRuntimeState.INVALID
             current == null -> EskfRuntimeState.UNINITIALIZED
             !stateFinite || !covarianceFinite || !covariancePsd || !quaternionNorm.isFinite() -> EskfRuntimeState.INVALID
+            accelBiasMag >= 5.0 || gyroBiasMag >= 0.5 -> EskfRuntimeState.INVALID
             diagnostics.stationary -> EskfRuntimeState.STATIONARY
             vehicleMotionObserved && !calibrationActive -> EskfRuntimeState.DEGRADED
             vehicleMotionObserved -> EskfRuntimeState.MOVING
             else -> EskfRuntimeState.READY
         }
         val degradationReason = when {
-            runtimeState == EskfRuntimeState.INVALID -> diagnostics.error
+            runtimeState == EskfRuntimeState.INVALID -> diagnostics.error ?: if (accelBiasMag >= 5.0 || gyroBiasMag >= 0.5) "Exploding sensor bias" else null
             runtimeState == EskfRuntimeState.DEGRADED -> "Vehicle-frame calibration required for TCN/NHC"
             else -> null
         }
         diagnostics = diagnostics.copy(
             initialized = current != null,
             valid = !estimatorInvalid && current != null && stateFinite && covarianceFinite &&
-                    covariancePsd && quaternionNorm.isFinite() && abs(quaternionNorm - 1.0) <= 1e-10,
+                    covariancePsd && quaternionNorm.isFinite() && abs(quaternionNorm - 1.0) <= 1e-10 &&
+                    accelBiasMag < 5.0 && gyroBiasMag < 0.5,
             lastPropagationTimestampNs = lastTimestampNs,
             stateFinite = stateFinite,
             covarianceFinite = covarianceFinite,
@@ -421,6 +512,9 @@ class PercorsaEskfProvider(
             calibrationActive = calibrationActive,
             degradationReason = degradationReason,
             vehicleMotionObserved = vehicleMotionObserved,
+            accelBiasMag = accelBiasMag,
+            gyroBiasMag = gyroBiasMag,
+            consecutiveGnssRejections = consecutiveGnssRejections,
             positionWorldEnu = current?.position?.map { it } ?: listOf(Double.NaN, Double.NaN, Double.NaN),
             velocityWorldEnu = current?.velocity?.map { it } ?: listOf(Double.NaN, Double.NaN, Double.NaN),
             speedMps = current?.let { sqrt(it.velocity[0] * it.velocity[0] + it.velocity[1] * it.velocity[1]) } ?: Double.NaN,
