@@ -1,4 +1,4 @@
-package com.percorsa.sensorlogger
+sxdcvfbnm,./'package com.percorsa.sensorlogger
 
 import android.content.Context
 import android.hardware.Sensor
