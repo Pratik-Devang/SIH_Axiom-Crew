@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.percorsa.sensorlogger"
-        minSdk = 21
+        minSdk = 24
         targetSdk = 34
         versionCode = 4
         versionName = "2.1-ml"
@@ -100,7 +100,8 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
 
     // On-device TCN speed inference
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.20.0")
+    // 1.22+ ships native libraries aligned for Android devices using 16 KB pages.
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.22.0")
 
     testImplementation("junit:junit:4.13.2")
 }

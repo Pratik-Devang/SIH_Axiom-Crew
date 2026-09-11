@@ -191,7 +191,10 @@ class DebugActivity : AppCompatActivity() {
         tvDbgQuat.text = "W: %+.3f  X: %+.3f  Y: %+.3f  Z: %+.3f (Norm: %.3f • %s)".format(
             Locale.US, snap.quatW, snap.quatX, snap.quatY, snap.quatZ, quatNorm, quatValidStr)
 
-        val magMag = sqrt(snap.magX * snap.magX + snap.magY * snap.magY + snap.magZ * snap.magZ)
+        val mx = snap.magX.toDouble()
+        val my = snap.magY.toDouble()
+        val mz = snap.magZ.toDouble()
+        val magMag = sqrt(mx * mx + my * my + mz * mz).toFloat()
         tvDbgMag.text = "X: %+.1f  Y: %+.1f  Z: %+.1f µT (Mag: %.1f µT)".format(
             Locale.US, snap.magX, snap.magY, snap.magZ, magMag)
 
