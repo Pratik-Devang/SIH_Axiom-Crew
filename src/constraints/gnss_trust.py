@@ -1,4 +1,4 @@
-"""
+ """
 gnss_trust.py
 =============
 GNSS Trust Manager — score, accept, or reject incoming GNSS fixes.
