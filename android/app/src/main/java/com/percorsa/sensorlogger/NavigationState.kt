@@ -1,5 +1,7 @@
 package com.percorsa.sensorlogger
 
+import kotlin.math.roundToInt
+
 enum class NavMode {
     IDLE,
     SEARCHING,
@@ -33,6 +35,40 @@ enum class DrProviderType {
     NONE
 }
 
+enum class TurnState {
+    STRAIGHT,
+    APPROACHING_LEFT,
+    APPROACHING_RIGHT,
+    TURNING_LEFT,
+    TURNING_RIGHT,
+    U_TURN
+}
+
+enum class SpeedSource {
+    GNSS,
+    ESKF,
+    FALLBACK
+}
+
+enum class RotationSource {
+    ROTATION_VECTOR,
+    GAME_ROTATION_VECTOR,
+    NONE
+}
+
+enum class DeviceHeadingConfidence {
+    HIGH,
+    MEDIUM,
+    LOW
+}
+
+enum class EskfHealthState {
+    HEALTHY,
+    DEGRADED,
+    DIVERGED,
+    UNINITIALIZED
+}
+
 data class NavigationState(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
@@ -40,6 +76,21 @@ data class NavigationState(
     val heading: Float = 0f,
     val speed: Float = 0f,
     val positionAccuracy: Float = Float.MAX_VALUE,
+
+    /** Direction the physical phone is pointing (degrees clockwise from North, 0..360). */
+    val deviceAzimuthDeg: Float = 0f,
+    /** Direction the vehicle is traveling/facing (degrees clockwise from North, 0..360). */
+    val vehicleHeadingDeg: Float = 0f,
+    /** Direction of the active matched road segment (degrees clockwise from North, 0..360). */
+    val routeBearingDeg: Double = Double.NaN,
+    /** Active source driving the user-facing speed display. */
+    val speedSource: SpeedSource = SpeedSource.GNSS,
+    /** Health state of the internal ESKF dead reckoning estimator. */
+    val eskfHealthState: EskfHealthState = EskfHealthState.UNINITIALIZED,
+    /** Sensor source driving the device attitude and azimuth. */
+    val rotationSource: RotationSource = RotationSource.NONE,
+    /** Confidence in the device azimuth's absolute geographic alignment. */
+    val deviceHeadingConfidence: DeviceHeadingConfidence = DeviceHeadingConfidence.LOW,
 
     val navMode: NavMode = NavMode.IDLE,
     val gnssQuality: GnssQuality = GnssQuality.DENIED,
@@ -67,6 +118,12 @@ data class NavigationState(
     val etaSeconds: Long = 0L,
     val nextManeuver: Maneuver? = null,
     val secondManeuver: Maneuver? = null,
+    val routeSegmentIndex: Int = -1,
+    val routeProgressM: Double = 0.0,
+    val routeLateralErrorM: Double = Double.NaN,
+    val routeHeadingErrorDeg: Double = Double.NaN,
+    val turnState: TurnState = TurnState.STRAIGHT,
+    val turnYawRateDegS: Float = Float.NaN,
     val offRoute: Boolean = false,
     val recalculating: Boolean = false,
 
@@ -91,31 +148,33 @@ data class NavigationState(
 
     val distanceFormatted: String get() = when {
         distanceRemainingM <= 0.0 -> "--"
-        distanceRemainingM < 1000 -> "%.0f m".format(distanceRemainingM)
+        distanceRemainingM < 1000.0 -> "%.0f m".format(distanceRemainingM)
         else -> "%.1f km".format(distanceRemainingM / 1000.0)
     }
 
-    val statusLine: String get() = when {
-        recalculating ->
-            "Off route - recalculating..."
-        drActive && mlInferenceActive ->
-            "GNSS unavailable - ML speed fused at %.1f km/h".format(mlSpeedMps * 3.6f)
-        drActive && gnssQuality == GnssQuality.DENIED && drProvider == DrProviderType.PERCORSA_ESKF ->
-            "GNSS unavailable - Percorsa ESKF active"
-        drActive && gnssQuality == GnssQuality.DENIED ->
-            "GNSS unavailable - continuing with Percorsa"
-        gnssQuality == GnssQuality.RECOVERING ->
-            "GNSS returned - smoothly fusing position"
-        gnssQuality == GnssQuality.POOR ->
-            "Weak GPS signal - accuracy reduced"
-        else -> ""
+    val estimatedArrivalFormatted: String get() {
+        if (etaSeconds <= 0L) return "--:--"
+        val arrivalTimeMillis = System.currentTimeMillis() + (etaSeconds * 1000L)
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = arrivalTimeMillis }
+        val hour = cal.get(java.util.Calendar.HOUR)
+        val displayHour = if (hour == 0) 12 else hour
+        val min = cal.get(java.util.Calendar.MINUTE)
+        val amPm = if (cal.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "AM" else "PM"
+        return "%d:%02d %s".format(displayHour, min, amPm)
     }
 
-    val mlStatusLabel: String get() = when {
-        mlInferenceActive -> "ML ACTIVE"
-        mlError != null -> "ML ERROR"
-        mlModelLoaded && mlBufferReady -> "ML READY"
-        mlModelLoaded -> "ML WARMING"
-        else -> "ML LOADING"
+    val routeProgressPercent: Int get() {
+        val total = route?.distanceM ?: return 0
+        if (total <= 0.0) return 0
+        val progress = (routeProgressM / total) * 100.0
+        return progress.roundToInt().coerceIn(0, 100)
+    }
+
+    val statusLine: String get() = when {
+        offRoute -> "Off route â€” recalculating"
+        drActive && mlInferenceActive -> "Dead reckoning â€” ML speed active"
+        drActive -> "Dead reckoning â€” IMU tracking"
+        gnssQuality == GnssQuality.POOR -> "Weak GPS signal"
+        else -> ""
     }
 }

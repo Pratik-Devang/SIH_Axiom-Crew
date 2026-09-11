@@ -17,18 +17,24 @@ class TcnInputBuffer(val capacity: Int = DEFAULT_CAPACITY) {
     val isReady: Boolean get() = samples.size >= capacity
     val windowSeconds: Float get() = capacity.toFloat() / SAMPLE_RATE_HZ
     val lastUpdateAgeMs: Long
-        get() = if (lastSampleTimestampNs > 0) (System.nanoTime() - lastSampleTimestampNs) / 1_000_000L else -1L
+        get() = if (lastSampleTimestampNs > 0) {
+            (elapsedRealtimeNanosCompat() - lastSampleTimestampNs).coerceAtLeast(0L) / 1_000_000L
+        } else -1L
 
     /**
      * Push a new 10 Hz canonical sample into the sliding window.
      */
-    fun push(sample: CanonicalImuSample) {
+    fun push(sample: CanonicalImuSample): Boolean {
         synchronized(this) {
+            if (lastSampleTimestampNs > 0L && sample.timestampNs <= lastSampleTimestampNs) {
+                return false
+            }
             if (samples.size >= capacity) {
                 samples.removeFirst()
             }
             samples.addLast(sample)
-            lastSampleTimestampNs = System.nanoTime()
+            lastSampleTimestampNs = sample.timestampNs
+            return true
         }
     }
 

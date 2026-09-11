@@ -1,4 +1,4 @@
-package com.percorsa.sensorlogger
+﻿package com.percorsa.sensorlogger
 
 /**
  * Resamples raw 200 Hz IMU callbacks into a synchronized 10 Hz canonical stream
@@ -16,11 +16,13 @@ class ImuPreprocessor {
     fun processSnapshot(snapshot: SensorSnapshot): CanonicalImuSample? {
         val sampleTimeNs = snapshot.timestampNs
         if (sampleTimeNs <= 0L) return null
+        if (lastSampleTimeNs > 0L && sampleTimeNs <= lastSampleTimeNs) return null
 
         if (lastSampleTimeNs == 0L || (sampleTimeNs - lastSampleTimeNs) >= TARGET_INTERVAL_NS) {
             lastSampleTimeNs = sampleTimeNs
             return CanonicalImuSample(
                 timestampNs = sampleTimeNs,
+                // Raw phone-frame values (preserved for logging/debugging)
                 accelX = snapshot.accelX,
                 accelY = snapshot.accelY,
                 accelZ = snapshot.accelZ,
@@ -30,9 +32,16 @@ class ImuPreprocessor {
                 linearAccelX = snapshot.linearAccelX,
                 linearAccelY = snapshot.linearAccelY,
                 linearAccelZ = snapshot.linearAccelZ,
-                vehicleAccelForward = snapshot.correctedLinearForward,
-                vehicleAccelLeft = snapshot.correctedLinearLeft,
-                vehicleAccelUp = snapshot.correctedLinearUp
+                // Vehicle-benchmark-frame raw accel (gravity included, Z-Up ~+9.81 stationary).
+                // correctedAccel* = raw accel rotated by R_v_p (not linear accel).
+                vehicleAccelForward = snapshot.correctedAccelForward,
+                vehicleAccelLeft = snapshot.correctedAccelLeft,
+                vehicleAccelUp = snapshot.correctedAccelUp,
+                // Vehicle-benchmark-frame gyro
+                vehicleGyroLeft = snapshot.correctedGyroLeft,
+                vehicleGyroForward = snapshot.correctedGyroForward,
+                vehicleGyroUp = snapshot.correctedGyroUp,
+                vehicleFrameCalibrated = snapshot.isCalibrated
             )
         }
         return null

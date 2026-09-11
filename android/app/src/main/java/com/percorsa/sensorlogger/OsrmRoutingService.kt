@@ -84,6 +84,7 @@ class OsrmRoutingService : RoutingService {
             // Parse turn-by-turn steps
             val legs = route["legs"] as? List<*> ?: emptyList<Any>()
             val maneuvers = mutableListOf<Maneuver>()
+            var distanceAlongM = 0.0
             for (leg in legs) {
                 val legMap = leg as? Map<String, Any> ?: continue
                 val steps = legMap["steps"] as? List<*> ?: continue
@@ -91,13 +92,14 @@ class OsrmRoutingService : RoutingService {
                     val stepMap = step as? Map<String, Any> ?: continue
                     val stepDist = (stepMap["distance"] as? Double) ?: 0.0
                     val stepDur = ((stepMap["duration"] as? Double) ?: 0.0).toLong()
+                    distanceAlongM += stepDist
                     val maneuverMap = stepMap["maneuver"] as? Map<String, Any>
                     val maneuverType = maneuverMap?.get("type") as? String ?: "straight"
                     val modifier = maneuverMap?.get("modifier") as? String ?: ""
                     val instruction = buildInstruction(maneuverType, modifier)
                     val type = classifyManeuver(maneuverType, modifier)
                     if (stepDist > 1.0) {
-                        maneuvers.add(Maneuver(instruction, stepDist, stepDur, type))
+                        maneuvers.add(Maneuver(instruction, stepDist, stepDur, type, distanceAlongM))
                     }
                 }
             }

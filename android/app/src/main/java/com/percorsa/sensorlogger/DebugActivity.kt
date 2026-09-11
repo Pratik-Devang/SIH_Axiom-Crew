@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import java.io.File
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
@@ -231,12 +232,12 @@ class DebugActivity : AppCompatActivity() {
             state.gnssQuality.name, snap.gpsAccuracyM, snap.gpsFixAgeMs, if (hasGps) "GPS" else "NONE")
 
         if (hasGps) {
-            tvDbgGpsCoords.text = "Raw Lat: %.5f  Lon: %.5f\nKF  Lat: %.5f  Lon: %.5f".format(
+            tvDbgGpsCoords.text = "Raw Lat: %.5f  Lon: %.5f\nESKF Lat: %.5f  Lon: %.5f".format(
                 Locale.US, snap.latitude, snap.longitude, state.latitude, state.longitude)
             tvDbgGpsAccuracy.text = "Accuracy: %.0f m".format(Locale.US, snap.gpsAccuracyM)
             tvDbgGpsSpeed.text   = "Speed: %.1f km/h (%.1f m/s)".format(Locale.US, snap.gpsSpeedMps * 3.6f, snap.gpsSpeedMps)
         } else {
-            tvDbgGpsCoords.text  = "Raw Lat: --  Lon: --\nKF  Lat: --  Lon: --"
+            tvDbgGpsCoords.text  = "Raw Lat: --  Lon: --\nESKF Lat: --  Lon: --"
             tvDbgGpsAccuracy.text = "Accuracy: --"
             tvDbgGpsSpeed.text   = "Speed: --"
         }
@@ -279,10 +280,41 @@ class DebugActivity : AppCompatActivity() {
 
         // ── 9. Navigation Engine & Future Fusion Status ──────────────────────
         tvDbgNavMode.text = "Nav Mode: ${state.navMode}"
-        tvDbgDrProvider.text = "DR Engine: ${state.drProvider}" +
-                if (state.drProvider == DrProviderType.SIMPLIFIED_INS)
-                    " (${if (snap.tcnInferenceActive) "TCN speed assisted" else "inertial fallback"}; ESKF inactive)" else ""
-        tvDbgGnssQuality.text = "GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: NOT ACTIVE | TCN Speed Assist: ${if (snap.tcnInferenceActive) "ACTIVE" else "INACTIVE"}"
+        val eskf = nc.eskfDiagnostics
+        val activeProviderText = "ACTIVE ESTIMATOR: ESKF | status=${eskf.runtimeState} | initialized=${eskf.initialized} | valid=${eskf.valid}"
+        tvDbgDrProvider.text = activeProviderText
+        tvDbgGnssQuality.text = "GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: ACTIVE | status=${eskf.runtimeState} | Vehicle motion: ${eskf.vehicleMotionObserved} (trusted GNSS >=4.0 m/s, accuracy <=15 m) | TCN: ${if (snap.tcnInferenceActive) "ACTIVE %.2f m/s".format(Locale.US, snap.tcnPredictedSpeedMps) else "INACTIVE"} | ESKF TCN injected: ${if (eskf.lastTcnInjected) "YES" else "NO"} | ESKF TCN accepted: ${eskf.lastTcnAccepted} | DR/ESKF: %.2f m/s".format(
+            Locale.US, eskf.speedMps
+        )
+        tvDbgDrProvider.text = activeProviderText + "\nROUTE: segment=%d progress=%.1fm lateral=%.1fm headingError=%.1f° turn=%s yaw=%.1f°/s offRoute=%s rerouting=%s\nACTIVE ESKF: calibration=%s pos=%s vel=(%.2f, %.2f, %.2f) speed=%.2f m/s heading=%.1f° dt=%.3fs covTrace=%.3g qNorm=%.6f GNSS=%s/NIS %.2f/Innovation %.1fm/t=%.2fs TCN=%s/NIS %.2f/t=%.2fs NHC=%s ZUPT=%s reason=%s".format(
+            Locale.US,
+            state.routeSegmentIndex,
+            state.routeProgressM,
+            state.routeLateralErrorM,
+            state.routeHeadingErrorDeg,
+            state.turnState,
+            state.turnYawRateDegS,
+            state.offRoute,
+            state.recalculating,
+            eskf.calibrationActive,
+            if (!eskf.positionLatitude.isFinite() || !eskf.positionLongitude.isFinite()) "--" else "%.5f,%.5f".format(Locale.US, eskf.positionLatitude, eskf.positionLongitude),
+            eskf.velocityWorldEnu[0], eskf.velocityWorldEnu[1], eskf.velocityWorldEnu[2],
+            eskf.speedMps,
+            eskf.headingDeg,
+            eskf.lastDtSeconds,
+            eskf.covarianceTrace,
+            eskf.quaternionNorm,
+            eskf.lastGnssAccepted,
+            eskf.lastGnssNis,
+            eskf.lastGnssInnovationMagnitudeM,
+            eskf.lastGnssTimestampSeconds,
+            eskf.lastTcnAccepted,
+            eskf.lastTcnNis,
+            eskf.lastTcnTimestampSeconds,
+            "accepted=%s/enabled=%s/NIS=%.2f".format(Locale.US, eskf.lastNhcAccepted, eskf.nhcEnabled, eskf.lastNhcNis),
+            "accepted=%s/enabled=%s/NIS=%.2f".format(Locale.US, eskf.lastZuptAccepted, eskf.zuptEnabled, eskf.lastZuptNis),
+            eskf.degradationReason ?: "none"
+        )
         tvDbgAccuracy.text = if (state.positionAccuracy < Float.MAX_VALUE)
             "Position Accuracy: %.0f m | Position Source: RAW GNSS / KF GNSS".format(Locale.US, state.positionAccuracy)
         else "Position Accuracy: -- | Position Source: RAW GNSS / KF GNSS"
@@ -294,6 +326,16 @@ class DebugActivity : AppCompatActivity() {
         tvDbgTripStatus.text = if (recording) "● RECORDING" else "● IDLE"
         tvDbgTripStatus.setTextColor(if (recording) 0xFFEF4444.toInt() else 0xFF64748B.toInt())
         tvDbgSampleCount.text = "${snap.loggedCsvRows} logged"
+    }
+
+    private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
+        val radius = 6_371_000.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = kotlin.math.sin(dLat / 2).let { it * it } +
+                kotlin.math.cos(Math.toRadians(lat1)) * kotlin.math.cos(Math.toRadians(lat2)) *
+                kotlin.math.sin(dLon / 2).let { it * it }
+        return (radius * 2.0 * kotlin.math.asin(sqrt(a))).toFloat()
     }
 
     private fun shareLastCsv() {

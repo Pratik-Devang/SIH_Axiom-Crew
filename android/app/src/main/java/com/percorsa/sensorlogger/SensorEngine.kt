@@ -9,13 +9,24 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import android.os.Build
 import android.os.SystemClock
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.sqrt
+import android.view.Surface
+
+/** Android elapsed-realtime clock, with a JVM-test fallback for framework stubs. */
+internal fun elapsedRealtimeNanosCompat(): Long = try {
+    SystemClock.elapsedRealtimeNanos()
+} catch (_: RuntimeException) {
+    System.nanoTime()
+}
 
 data class SensorSnapshot(
     val timestampNs: Long,
@@ -26,12 +37,17 @@ data class SensorSnapshot(
     val hasGravity: Boolean,
     val hasMag: Boolean,
     val hasGps: Boolean,
+    val gpsTimestampNs: Long = 0L,
     val latitude: Double,
     val longitude: Double,
     val altitude: Double,
     val gpsSpeedMps: Float,
     val gpsBearingDeg: Float,
     val gpsAccuracyM: Float,
+    val compassBearingDeg: Float,
+    val deviceAzimuthDeg: Float = compassBearingDeg,
+    val rotationSource: RotationSource = RotationSource.NONE,
+    val deviceHeadingConfidence: DeviceHeadingConfidence = DeviceHeadingConfidence.LOW,
     val accelX: Float,
     val accelY: Float,
     val accelZ: Float,
@@ -108,9 +124,17 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     private var accelSensor: Sensor? = null
     private var gyroSensor: Sensor? = null
     private var rotVectorSensor: Sensor? = null
+    private var gameRotVectorSensor: Sensor? = null   // Magnetic-disturbance-immune tilt source
     private var linearAccelSensor: Sensor? = null
     private var gravitySensor: Sensor? = null
     private var magSensor: Sensor? = null
+
+    // Latched rotation matrix from best available orientation source:
+    //   TYPE_ROTATION_VECTOR  -> north-referenced; used when magnetometer is reliable
+    //   TYPE_GAME_ROTATION_VECTOR -> magnetic-immune; used for tilt when mag may be distorted
+    private val gameQuaternion = floatArrayOf(1f, 0f, 0f, 0f) // Game RV quat [w, x, y, z]
+    private var hasGameRotVector: Boolean = false
+    private var gameRotVectorTimestampNs: Long = 0L
 
     // Latched sensor states
     private val rawAccel = FloatArray(3)
@@ -178,7 +202,10 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
 
     // Recording & Diagnostics
     var isRecording: Boolean = false; private set
-    var csvRecorder: CsvRecorder? = null; private set
+    private var csvRecorder: CsvRecorder? = null
+    @Volatile private var estimatedSpeedMps: Float = Float.NaN
+    @Volatile private var estimatedSpeedProvider: (() -> Float)? = null
+    @Volatile private var navigationDiagnosticsProvider: (() -> CsvNavigationDiagnostics)? = null
 
     private val totalCallbackCount = AtomicInteger(0)
     private val primaryImuSampleCount = AtomicInteger(0)
@@ -195,7 +222,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     private var currentImuHz: Float = 0f
     private var currentRawCallbackHz: Float = 0f
 
-    private var lastGpsFixTimestampMs: Long = 0L
+    private var lastGpsFixMonotonicNs: Long = 0L
 
     val imuPreprocessor = ImuPreprocessor()
     val tcnInputBuffer = TcnInputBuffer()
@@ -209,8 +236,9 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     private val tcnInferenceInFlight = AtomicBoolean(false)
     private val tcnRejectedPredictionCount = AtomicLong(0L)
     private val tcnSpeedFilter = TcnSpeedFilter()
-    private var tcnRawSpeedMps: Float = 0f
-    private var tcnPredictedSpeedMps: Float = 0f
+    // TCN is independent and must remain empty until a real model output exists.
+    private var tcnRawSpeedMps: Float = Float.NaN
+    private var tcnPredictedSpeedMps: Float = Float.NaN
     private var lastTcnInferenceTimestampNs: Long = 0L
     private var tcnInferenceLatencyMs: Float = 0f
     private var tcnPredictionRateLimited: Boolean = false
@@ -219,14 +247,15 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     private val locationListener = object : LocationListener {
         override fun onLocationChanged(loc: Location) {
             if (loc.provider == LocationManager.NETWORK_PROVIDER && loc.accuracy > 30f) return
-            if (loc.accuracy > 100f) return
+            if (!loc.latitude.isFinite() || !loc.longitude.isFinite() ||
+                !loc.accuracy.isFinite() || loc.accuracy <= 0f || loc.accuracy > 100f) return
             kalmanUpdateGps(loc.latitude, loc.longitude, loc.accuracy, loc.speed)
             val smoothed = Location(loc).also {
                 it.latitude = kfLat
                 it.longitude = kfLon
             }
             synchronized(this@SensorEngine) {
-                lastGpsFixTimestampMs = System.currentTimeMillis()
+                lastGpsFixMonotonicNs = loc.elapsedRealtimeNanos.takeIf { it > 0L } ?: elapsedRealtimeNanosCompat()
                 rawLastLocation = loc
                 lastLocation = smoothed
             }
@@ -242,8 +271,12 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             tcnExecutor.execute {
                 runCatching { TcnSpeedPredictor(appContext) }
                     .onSuccess { predictor ->
-                        tcnPredictor = predictor
-                        synchronized(this@SensorEngine) { tcnInferenceError = null }
+                        if (tcnExecutor.isShutdown) {
+                            runCatching { predictor.close() }
+                        } else {
+                            tcnPredictor = predictor
+                            synchronized(this@SensorEngine) { tcnInferenceError = null }
+                        }
                     }
                     .onFailure { error ->
                         synchronized(this@SensorEngine) {
@@ -260,6 +293,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
                 accelSensor = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
                 gyroSensor = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
                 rotVectorSensor = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+                gameRotVectorSensor = sm.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
                 linearAccelSensor = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
                 gravitySensor = sm.getDefaultSensor(Sensor.TYPE_GRAVITY)
                 magSensor = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
@@ -275,6 +309,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         accelSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
         gyroSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
         rotVectorSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
+        gameRotVectorSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
         linearAccelSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
         gravitySensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
         magSensor?.let { sm.registerListener(this, it, samplingPeriodUs) }
@@ -339,6 +374,21 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         }
     }
 
+    /**
+     * Fixed R_v_p for ESKF vehicle-frame measurements.  The calibrated vehicle
+     * frame is the frame captured by the existing orientation calibration;
+     * therefore R_v_p is the transpose of that phone-to-world basis.
+     */
+    @Synchronized
+    fun getPhoneToVehicleRotation(): PhoneToVehicleRotation? {
+        if (!isCalibrated) return null
+        return PhoneToVehicleRotation(arrayOf(
+            doubleArrayOf(rCal[0].toDouble(), rCal[3].toDouble(), rCal[6].toDouble()),
+            doubleArrayOf(rCal[1].toDouble(), rCal[4].toDouble(), rCal[7].toDouble()),
+            doubleArrayOf(rCal[2].toDouble(), rCal[5].toDouble(), rCal[8].toDouble())
+        ))
+    }
+
     override fun onSensorChanged(event: SensorEvent?) {
         if (event == null) return
         handleSensorData(event.sensor.type, event.timestamp, event.values)
@@ -351,6 +401,13 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
 
         when (sensorType) {
             Sensor.TYPE_ACCELEROMETER -> {
+                if (isRecording) {
+                    csvRecorder?.writeRawImuEvent(
+                        sensorType = "accelerometer",
+                        timestampNs = timestampNs,
+                        accelX = values[0], accelY = values[1], accelZ = values[2]
+                    )
+                }
                 System.arraycopy(values, 0, rawAccel, 0, 3)
                 accelTimestampNs = timestampNs
                 hasAccel = true
@@ -359,10 +416,12 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
 
                 val snap = getSnapshot()
                 val canonical = imuPreprocessor.processSnapshot(snap)
-                if (canonical != null) {
+                if (canonical != null && tcnInputBuffer.push(canonical)) {
                     lastCanonicalSample = canonical
-                    tcnInputBuffer.push(canonical)
-                    if (tcnInputBuffer.isReady && tcnPredictor != null) {
+                    // TCN inference is only meaningful with calibrated vehicle-frame inputs.
+                    // Uncalibrated phone-frame inputs produce ~138 km/h outliers from the
+                    // benchmark-trained model; gate them to prevent spurious diagnostics.
+                    if (canonical.vehicleFrameCalibrated && tcnInputBuffer.isReady && tcnPredictor != null) {
                         scheduleTcnInference(
                             canonical.timestampNs,
                             tcnInputBuffer.getFeatureMatrix()
@@ -375,6 +434,13 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
                 }
             }
             Sensor.TYPE_GYROSCOPE -> {
+                if (isRecording) {
+                    csvRecorder?.writeRawImuEvent(
+                        sensorType = "gyroscope",
+                        timestampNs = timestampNs,
+                        gyroX = values[0], gyroY = values[1], gyroZ = values[2]
+                    )
+                }
                 System.arraycopy(values, 0, rawGyro, 0, 3)
                 gyroTimestampNs = timestampNs
                 hasGyro = true
@@ -410,6 +476,23 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
                 rotVectorTimestampNs = timestampNs
                 hasRotVector = true
             }
+            Sensor.TYPE_GAME_ROTATION_VECTOR -> {
+                val gq1 = values[0]
+                val gq2 = values[1]
+                val gq3 = values[2]
+                val gq0 = if (values.size >= 4) {
+                    values[3]
+                } else {
+                    val s = 1.0f - (gq1 * gq1 + gq2 * gq2 + gq3 * gq3)
+                    if (s > 0f) sqrt(s) else 0f
+                }
+                gameQuaternion[0] = gq0
+                gameQuaternion[1] = gq1
+                gameQuaternion[2] = gq2
+                gameQuaternion[3] = gq3
+                gameRotVectorTimestampNs = timestampNs
+                hasGameRotVector = true
+            }
             Sensor.TYPE_LINEAR_ACCELERATION -> {
                 System.arraycopy(values, 0, linearAccel, 0, 3)
                 linearAccelTimestampNs = timestampNs
@@ -432,31 +515,35 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         channelMajorFeatures: Array<FloatArray>
     ) {
         if (!tcnInferenceInFlight.compareAndSet(false, true)) return
-        tcnExecutor.execute {
-            val startedNs = System.nanoTime()
-            try {
-                val predictor = tcnPredictor ?: return@execute
-                val rawSpeed = predictor.predictSpeedMps(channelMajorFeatures)
-                val filtered = tcnSpeedFilter.update(rawSpeed, sampleTimestampNs)
-                synchronized(this@SensorEngine) {
-                    if (sampleTimestampNs >= lastTcnInferenceTimestampNs) {
-                        tcnRawSpeedMps = filtered.rawSpeedMps
-                        tcnPredictedSpeedMps = filtered.speedMps
-                        tcnPredictionRateLimited = filtered.rateLimited
-                        lastTcnInferenceTimestampNs = sampleTimestampNs
-                        tcnInferenceLatencyMs =
-                            (System.nanoTime() - startedNs) / 1_000_000f
-                        tcnInferenceError = null
+        try {
+            tcnExecutor.execute {
+                val startedNs = System.nanoTime()
+                try {
+                    val predictor = tcnPredictor ?: return@execute
+                    val rawSpeed = predictor.predictSpeedMps(channelMajorFeatures)
+                    val filtered = tcnSpeedFilter.update(rawSpeed, sampleTimestampNs)
+                    synchronized(this@SensorEngine) {
+                        if (sampleTimestampNs >= lastTcnInferenceTimestampNs) {
+                            tcnRawSpeedMps = filtered.rawSpeedMps
+                            tcnPredictedSpeedMps = filtered.speedMps
+                            tcnPredictionRateLimited = filtered.rateLimited
+                            lastTcnInferenceTimestampNs = sampleTimestampNs
+                            tcnInferenceLatencyMs =
+                                (System.nanoTime() - startedNs) / 1_000_000f
+                            tcnInferenceError = null
+                        }
                     }
+                } catch (error: Exception) {
+                    tcnRejectedPredictionCount.incrementAndGet()
+                    synchronized(this@SensorEngine) {
+                        tcnInferenceError = error.message ?: error.javaClass.simpleName
+                    }
+                } finally {
+                    tcnInferenceInFlight.set(false)
                 }
-            } catch (error: Exception) {
-                tcnRejectedPredictionCount.incrementAndGet()
-                synchronized(this@SensorEngine) {
-                    tcnInferenceError = error.message ?: error.javaClass.simpleName
-                }
-            } finally {
-                tcnInferenceInFlight.set(false)
             }
+        } catch (_: RejectedExecutionException) {
+            tcnInferenceInFlight.set(false)
         }
     }
 
@@ -513,6 +600,17 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
     }
 
     private fun recordCurrentState(timestampNs: Long) {
+        val diagnosticEstimatedSpeed = estimatedSpeedProvider?.invoke() ?: estimatedSpeedMps
+        csvRecorder?.setEstimatedSpeedMps(diagnosticEstimatedSpeed)
+        csvRecorder?.setTcnSpeedMps(tcnRawSpeedMps)
+        csvRecorder?.setRawTimestamps(accelTimestampNs, gyroTimestampNs)
+        val locForMetadata = rawLastLocation ?: lastLocation
+        csvRecorder?.setGnssMetadata(
+            timestampMs = locForMetadata?.time ?: 0L,
+            elapsedRealtimeNs = locForMetadata?.elapsedRealtimeNanos ?: 0L,
+            altitudeM = if (locForMetadata != null && hasAltitude(locForMetadata)) locForMetadata.altitude else Double.NaN
+        )
+        csvRecorder?.setNavigationDiagnostics(navigationDiagnosticsProvider?.invoke() ?: CsvNavigationDiagnostics())
         val corrAccel = FloatArray(3)
         val corrLinear = FloatArray(3)
         val corrGyro = FloatArray(3)
@@ -523,34 +621,103 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             transformToVehicleFrame(rawGyro, corrGyro)
         }
 
+        // A latched zero is not a measurement. Keep the navigation row
+        // explicit about which asynchronous sensor channels were available.
+        val loggedLinear = if (hasLinearAccel) linearAccel.copyOf() else FloatArray(3) { Float.NaN }
+        val loggedGravity = if (hasGravity) gravity.copyOf() else FloatArray(3) { Float.NaN }
+        val loggedGyro = if (hasGyro) rawGyro.copyOf() else FloatArray(3) { Float.NaN }
+        val loggedQuaternion = if (hasRotVector) quaternion.copyOf() else FloatArray(4) { Float.NaN }
+        val loggedCorrAccel = if (isCalibrated) corrAccel else FloatArray(3) { Float.NaN }
+        val loggedCorrLinear = if (isCalibrated && hasLinearAccel) corrLinear else FloatArray(3) { Float.NaN }
+        val loggedCorrGyro = if (isCalibrated && hasGyro) corrGyro else FloatArray(3) { Float.NaN }
+
         val loc = rawLastLocation ?: lastLocation
         if (loc != null) {
             csvRecorder?.writeRow(
                 timestampNs = timestampNs,
                 accelX = rawAccel[0], accelY = rawAccel[1], accelZ = rawAccel[2],
-                linearX = linearAccel[0], linearY = linearAccel[1], linearZ = linearAccel[2],
-                gravX = gravity[0], gravY = gravity[1], gravZ = gravity[2],
-                gyroX = rawGyro[0], gyroY = rawGyro[1], gyroZ = rawGyro[2],
-                qw = quaternion[0], qx = quaternion[1], qy = quaternion[2], qz = quaternion[3],
-                corrAccelFwd = corrAccel[0], corrAccelLeft = corrAccel[1], corrAccelUp = corrAccel[2],
-                corrLinearFwd = corrLinear[0], corrLinearLeft = corrLinear[1], corrLinearUp = corrLinear[2],
-                corrGyroFwd = corrGyro[0], corrGyroLeft = corrGyro[1], corrGyroUp = corrGyro[2],
+                linearX = loggedLinear[0], linearY = loggedLinear[1], linearZ = loggedLinear[2],
+                gravX = loggedGravity[0], gravY = loggedGravity[1], gravZ = loggedGravity[2],
+                gyroX = loggedGyro[0], gyroY = loggedGyro[1], gyroZ = loggedGyro[2],
+                qw = loggedQuaternion[0], qx = loggedQuaternion[1], qy = loggedQuaternion[2], qz = loggedQuaternion[3],
+                corrAccelFwd = loggedCorrAccel[0], corrAccelLeft = loggedCorrAccel[1], corrAccelUp = loggedCorrAccel[2],
+                corrLinearFwd = loggedCorrLinear[0], corrLinearLeft = loggedCorrLinear[1], corrLinearUp = loggedCorrLinear[2],
+                corrGyroFwd = loggedCorrGyro[0], corrGyroLeft = loggedCorrGyro[1], corrGyroUp = loggedCorrGyro[2],
                 latitude = loc.latitude, longitude = loc.longitude,
-                gpsAccuracyM = loc.accuracy, gpsSpeedMps = loc.speed, gpsBearingDeg = loc.bearing
+                gpsAccuracyM = loc.accuracy,
+                gpsSpeedMps = if (hasSpeed(loc)) loc.speed else Float.NaN,
+                gpsBearingDeg = if (hasBearing(loc)) loc.bearing else Float.NaN
             )
         } else {
             csvRecorder?.writeRow(
                 timestampNs = timestampNs,
                 accelX = rawAccel[0], accelY = rawAccel[1], accelZ = rawAccel[2],
-                linearX = linearAccel[0], linearY = linearAccel[1], linearZ = linearAccel[2],
-                gravX = gravity[0], gravY = gravity[1], gravZ = gravity[2],
-                gyroX = rawGyro[0], gyroY = rawGyro[1], gyroZ = rawGyro[2],
-                qw = quaternion[0], qx = quaternion[1], qy = quaternion[2], qz = quaternion[3],
-                corrAccelFwd = corrAccel[0], corrAccelLeft = corrAccel[1], corrAccelUp = corrAccel[2],
-                corrLinearFwd = corrLinear[0], corrLinearLeft = corrLinear[1], corrLinearUp = corrLinear[2],
-                corrGyroFwd = corrGyro[0], corrGyroLeft = corrGyro[1], corrGyroUp = corrGyro[2]
+                linearX = loggedLinear[0], linearY = loggedLinear[1], linearZ = loggedLinear[2],
+                gravX = loggedGravity[0], gravY = loggedGravity[1], gravZ = loggedGravity[2],
+                gyroX = loggedGyro[0], gyroY = loggedGyro[1], gyroZ = loggedGyro[2],
+                qw = loggedQuaternion[0], qx = loggedQuaternion[1], qy = loggedQuaternion[2], qz = loggedQuaternion[3],
+                corrAccelFwd = loggedCorrAccel[0], corrAccelLeft = loggedCorrAccel[1], corrAccelUp = loggedCorrAccel[2],
+                corrLinearFwd = loggedCorrLinear[0], corrLinearLeft = loggedCorrLinear[1], corrLinearUp = loggedCorrLinear[2],
+                corrGyroFwd = loggedCorrGyro[0], corrGyroLeft = loggedCorrGyro[1], corrGyroUp = loggedCorrGyro[2]
             )
         }
+    }
+
+    fun setEstimatedSpeedForDiagnostics(speedMps: Float) {
+        estimatedSpeedMps = speedMps
+    }
+
+    fun setEstimatedSpeedProviderForDiagnostics(provider: (() -> Float)?) {
+        estimatedSpeedProvider = provider
+    }
+
+    fun setNavigationDiagnosticsProvider(provider: (() -> CsvNavigationDiagnostics)?) {
+        navigationDiagnosticsProvider = provider
+    }
+
+    @Volatile var displayRotation: Int = Surface.ROTATION_0
+        private set
+
+    fun setDisplayRotation(rotation: Int) {
+        displayRotation = rotation
+    }
+
+    /**
+     * Computes the direction the physical phone's top edge is pointing in world coordinates
+     * (0° North, 90° East, 180° South, 270° West, clockwise).
+     *
+     * Correctly accounts for:
+     * 1. Display rotation (Surface.ROTATION_0, ROTATION_90, ROTATION_180, ROTATION_270).
+     * 2. Vertical/steep car-dock mounts (> 60° pitch): when the phone is mounted upright
+     *    facing the driver, the top edge points to the sky, and the back-normal (-Z) points
+     *    forward through the windshield towards the road.
+     */
+    fun computeDeviceAzimuth(r: FloatArray, rotation: Int): Float {
+        // Remap screen visual top edge vector based on display orientation
+        val (topX, topY, topZ) = when (rotation) {
+            Surface.ROTATION_90  -> Triple(-r[0], -r[3], -r[6]) // -X of device = top of screen
+            Surface.ROTATION_180 -> Triple(-r[1], -r[4], -r[7]) // -Y of device = top of screen
+            Surface.ROTATION_270 -> Triple( r[0],  r[3],  r[6]) // +X of device = top of screen
+            else                 -> Triple( r[1],  r[4],  r[7]) // +Y of device = top of screen
+        }
+
+        val horizNormSq = topX * topX + topY * topY
+        val azimuth = if (horizNormSq > 0.05f) {
+            // Standard handheld or angled mount
+            Math.toDegrees(atan2(topX.toDouble(), topY.toDouble())).toFloat()
+        } else {
+            // Near-vertical upright mount (car holder on dashboard):
+            // Visual top of screen points at roof. The forward view is along the back normal (-Z).
+            // In Android ENU world frame, -Z column is (-r[2], -r[5], -r[8]).
+            val backX = -r[2]
+            val backY = -r[5]
+            if (backX * backX + backY * backY > 0.01f) {
+                Math.toDegrees(atan2(backX.toDouble(), backY.toDouble())).toFloat()
+            } else {
+                Math.toDegrees(atan2(topX.toDouble(), topY.toDouble())).toFloat()
+            }
+        }
+        return normalizeHeading(azimuth)
     }
 
     private fun transformToVehicleFrame(vPhone: FloatArray, vVehicle: FloatArray) {
@@ -561,6 +728,14 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         vVehicle[0] = rCal[0] * wx + rCal[3] * wy + rCal[6] * wz
         vVehicle[1] = rCal[1] * wx + rCal[4] * wy + rCal[7] * wz
         vVehicle[2] = rCal[2] * wx + rCal[5] * wy + rCal[8] * wz
+    }
+
+    fun setPhoneToVehicleRotation(r: FloatArray) {
+        require(r.size == 9) { "Rotation matrix must be 9 elements" }
+        synchronized(this) {
+            System.arraycopy(r, 0, rCal, 0, 9)
+            isCalibrated = true
+        }
     }
 
     fun getSnapshot(): SensorSnapshot = synchronized(this) {
@@ -579,6 +754,28 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         val linearMag = sqrt(linearAccel[0] * linearAccel[0] + linearAccel[1] * linearAccel[1] + linearAccel[2] * linearAccel[2])
         val gravMag = sqrt(gravity[0] * gravity[0] + gravity[1] * gravity[1] + gravity[2] * gravity[2])
         val qNorm = sqrt(quaternion[0] * quaternion[0] + quaternion[1] * quaternion[1] + quaternion[2] * quaternion[2] + quaternion[3] * quaternion[3])
+        val deviceAzimuth = if (hasRotVector) {
+            computeDeviceAzimuth(rCurrent, displayRotation)
+        } else 0f
+        val compassHeadingDeg = deviceAzimuth
+
+        val magMag = sqrt(rawMag[0] * rawMag[0] + rawMag[1] * rawMag[1] + rawMag[2] * rawMag[2])
+        val (rotSource, headingConf) = when {
+            hasRotVector -> {
+                val conf = when {
+                    hasMag && magMag in 25f..65f -> DeviceHeadingConfidence.HIGH
+                    hasMag && magMag in 15f..80f -> DeviceHeadingConfidence.MEDIUM
+                    hasMag -> DeviceHeadingConfidence.LOW // Severe magnetic anomaly
+                    else -> DeviceHeadingConfidence.MEDIUM
+                }
+                Pair(RotationSource.ROTATION_VECTOR, conf)
+            }
+            hasGameRotVector -> {
+                // Game Rotation Vector provides magnetic-immune tilt/relative orientation, but no geographic north
+                Pair(RotationSource.GAME_ROTATION_VECTOR, DeviceHeadingConfidence.LOW)
+            }
+            else -> Pair(RotationSource.NONE, DeviceHeadingConfidence.LOW)
+        }
 
         if (qNorm.isNaN() || abs(qNorm - 1.0f) > 0.05f) {
             addWarning("Quaternion norm anomaly: %.4f".format(qNorm))
@@ -595,11 +792,16 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
         }
 
         val loc = lastLocation
-        val fixAgeMs = if (lastGpsFixTimestampMs > 0) System.currentTimeMillis() - lastGpsFixTimestampMs else -1L
+        val nowMonotonicNs = elapsedRealtimeNanosCompat()
+        val fixAgeMs = if (lastGpsFixMonotonicNs > 0L) {
+            ((nowMonotonicNs - lastGpsFixMonotonicNs).coerceAtLeast(0L) / 1_000_000L)
+        } else {
+            -1L
+        }
         val hasGps = loc != null && fixAgeMs in 0..10000L
 
         val tcnAgeMs = if (lastTcnInferenceTimestampNs > 0L) {
-            (System.nanoTime() - lastTcnInferenceTimestampNs).coerceAtLeast(0L) / 1_000_000L
+            (elapsedRealtimeNanosCompat() - lastTcnInferenceTimestampNs).coerceAtLeast(0L) / 1_000_000L
         } else {
             -1L
         }
@@ -613,12 +815,17 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             hasGravity = hasGravity,
             hasMag = hasMag,
             hasGps = hasGps,
+            gpsTimestampNs = lastGpsFixMonotonicNs,
             latitude = loc?.latitude ?: 0.0,
             longitude = loc?.longitude ?: 0.0,
-            altitude = loc?.altitude ?: 0.0,
-            gpsSpeedMps = loc?.speed ?: 0f,
-            gpsBearingDeg = loc?.bearing ?: 0f,
-            gpsAccuracyM = loc?.accuracy ?: 0f,
+            altitude = if (loc != null && hasAltitude(loc)) loc.altitude else Double.NaN,
+            gpsSpeedMps = if (loc != null && hasSpeed(loc)) loc.speed else Float.NaN,
+            gpsBearingDeg = if (loc != null && hasBearing(loc)) loc.bearing else Float.NaN,
+            gpsAccuracyM = loc?.accuracy ?: Float.NaN,
+            compassBearingDeg = compassHeadingDeg,
+            deviceAzimuthDeg = deviceAzimuth,
+            rotationSource = rotSource,
+            deviceHeadingConfidence = headingConf,
             accelX = rawAccel[0], accelY = rawAccel[1], accelZ = rawAccel[2], accelMag = accelMag,
             gyroX = rawGyro[0], gyroY = rawGyro[1], gyroZ = rawGyro[2], gyroMag = gyroMag,
             quatW = quaternion[0], quatX = quaternion[1], quatY = quaternion[2], quatZ = quaternion[3], quatNorm = qNorm,
@@ -635,7 +842,7 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             imuHz = currentImuHz,
             rawCallbackHz = currentRawCallbackHz,
             totalCallbacks = totalCallbackCount.get(),
-            gpsFixAgeMs = if (lastGpsFixTimestampMs > 0) System.currentTimeMillis() - lastGpsFixTimestampMs else -1L,
+            gpsFixAgeMs = fixAgeMs,
             tcnBufferCount = tcnInputBuffer.size,
             tcnBufferCapacity = tcnInputBuffer.capacity,
             tcnWindowSeconds = tcnInputBuffer.windowSeconds,
@@ -663,4 +870,21 @@ open class SensorEngine(private val context: Context?) : SensorEventListener {
             warnings = ArrayList(currentWarnings)
         )
     }
+
+    private fun normalizeHeading(valueDeg: Float): Float {
+        val normalized = valueDeg % 360f
+        return if (normalized < 0f) normalized + 360f else normalized
+    }
+
+    // Location.has*() was added in API 26. On older devices the platform does
+    // not expose a reliable presence bit, so report those optional fields as
+    // missing rather than treating a default zero as a measurement.
+    private fun hasAltitude(location: Location): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && location.hasAltitude()
+
+    private fun hasSpeed(location: Location): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && location.hasSpeed() && location.speed.isFinite()
+
+    private fun hasBearing(location: Location): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && location.hasBearing() && location.bearing.isFinite()
 }

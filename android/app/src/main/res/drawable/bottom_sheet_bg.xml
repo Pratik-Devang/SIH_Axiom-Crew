@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/surface_card"/>
-    <stroke android:width="1dp" android:color="@color/divider"/>
+    <gradient
+        android:startColor="#B8272C33"
+        android:endColor="#99171A1F"
+        android:angle="90" />
+    <stroke android:width="1dp" android:color="#668B949F"/>
     <corners
         android:topLeftRadius="@dimen/sheet_top_radius"
         android:topRightRadius="@dimen/sheet_top_radius"

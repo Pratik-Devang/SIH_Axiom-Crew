@@ -1,40 +1,40 @@
 {
-  "mae": 5.299407958984375,
-  "rmse": 6.26608419418335,
+  "mae": 5.400608539581299,
+  "rmse": 6.907324314117432,
   "sample_rate_hz": 10,
   "window_seconds": 5,
   "window_samples": 50,
   "input_channels": 6,
   "target_source_column": "vehicle_speed",
   "target_unit": "m/s",
-  "test_samples": 5731,
-  "test_trips": 5,
+  "test_samples": 72591,
+  "test_trips": 6,
   "motion_state_method": "Derived from reference speed, acceleration, and vehicle yaw rate; not official labels.",
   "by_motion_state": {
     "acceleration": {
-      "samples": 597,
-      "mae": 4.254408359527588,
-      "rmse": 5.357923984527588
+      "samples": 12660,
+      "mae": 4.78200101852417,
+      "rmse": 6.012664318084717
     },
     "braking": {
-      "samples": 747,
-      "mae": 5.131062984466553,
-      "rmse": 5.9897661209106445
+      "samples": 11331,
+      "mae": 5.234485149383545,
+      "rmse": 6.534946918487549
     },
     "cruising": {
-      "samples": 1163,
-      "mae": 4.953693389892578,
-      "rmse": 5.907407760620117
+      "samples": 33428,
+      "mae": 5.043572425842285,
+      "rmse": 6.577392578125
     },
     "stationary": {
-      "samples": 137,
-      "mae": 7.833876609802246,
-      "rmse": 8.732254981994629
+      "samples": 8552,
+      "mae": 8.179695129394531,
+      "rmse": 9.547966957092285
     },
     "turning": {
-      "samples": 3087,
-      "mae": 5.560004711151123,
-      "rmse": 6.490629196166992
+      "samples": 6620,
+      "mae": 5.080694675445557,
+      "rmse": 6.686995029449463
     }
   }
 }

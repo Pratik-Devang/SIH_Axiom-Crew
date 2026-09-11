@@ -45,7 +45,8 @@ import android.util.Log
  * - /src/navigation/constraints.py — vehicle constraint updates
  * - /src/navigation/ai_update.py   — TCN speed measurement injection
  */
-class PercorsaEskfProvider : DeadReckoningProvider {
+@Deprecated("Retained only as the historical stub source; use the experimental provider implementation.")
+class PercorsaEskfProviderStub : DeadReckoningProvider {
 
     override val providerType: DrProviderType = DrProviderType.PERCORSA_ESKF
 
@@ -64,7 +65,8 @@ class PercorsaEskfProvider : DeadReckoningProvider {
         accuracyM: Float,
         speedMps: Float,
         bearingDeg: Float,
-        blendWindowSeconds: Double
+        blendWindowSeconds: Double,
+        sourceTimestampNs: Long
     ) {
         // TODO: implement ESKF GNSS measurement update
         Log.w("PercorsaESKF", "injectGnssCorrection() called but ESKF not yet implemented")
@@ -75,7 +77,7 @@ class PercorsaEskfProvider : DeadReckoningProvider {
         return null
     }
 
-    override fun injectSpeedEstimate(speedMps: Float) {
+    override fun injectSpeedEstimate(speedMps: Float, timestampNs: Long) {
         Log.w("PercorsaESKF", "TCN speed received but ESKF measurement update is not yet implemented")
     }
 

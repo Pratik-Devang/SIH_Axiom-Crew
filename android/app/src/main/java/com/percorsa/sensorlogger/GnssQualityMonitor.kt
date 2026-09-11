@@ -22,7 +22,7 @@ class GnssQualityMonitor {
 
     private var previousQuality: GnssQuality = GnssQuality.DENIED
     private var _currentQuality: GnssQuality = GnssQuality.DENIED
-    private var recoveryStartMs: Long = 0L
+    private var recoveryStartMonotonicNs: Long = 0L
 
     val currentQuality: GnssQuality get() = _currentQuality
 
@@ -34,7 +34,8 @@ class GnssQualityMonitor {
         val fixAgeMs = snapshot.gpsFixAgeMs
 
         // 1. Check fix age timeouts (handles GPS turned OFF or satellite loss)
-        if (fixAgeMs < 0 || fixAgeMs > GNSS_DENIED_TIMEOUT_MS || !snapshot.hasGps || snapshot.latitude == 0.0) {
+        if (fixAgeMs < 0 || fixAgeMs > GNSS_DENIED_TIMEOUT_MS || !snapshot.hasGps ||
+            !snapshot.latitude.isFinite() || !snapshot.longitude.isFinite()) {
             previousQuality = _currentQuality
             _currentQuality = GnssQuality.DENIED
             return _currentQuality
@@ -43,13 +44,13 @@ class GnssQualityMonitor {
         // 2. Handle GNSS Return & Smooth Recovery
         if (previousQuality == GnssQuality.DENIED) {
             _currentQuality = GnssQuality.RECOVERING
-            recoveryStartMs = System.currentTimeMillis()
+            recoveryStartMonotonicNs = System.nanoTime()
             previousQuality = GnssQuality.RECOVERING
             return _currentQuality
         }
 
         if (_currentQuality == GnssQuality.RECOVERING) {
-            if (System.currentTimeMillis() - recoveryStartMs < 3000L) {
+            if ((System.nanoTime() - recoveryStartMonotonicNs) / 1_000_000L < 3000L) {
                 return GnssQuality.RECOVERING
             }
         }
@@ -75,6 +76,6 @@ class GnssQualityMonitor {
     fun reset() {
         previousQuality = GnssQuality.DENIED
         _currentQuality = GnssQuality.DENIED
-        recoveryStartMs = 0L
+        recoveryStartMonotonicNs = 0L
     }
 }

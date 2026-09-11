@@ -23,7 +23,9 @@ data class Maneuver(
     val instruction: String,
     val distanceM: Double,
     val durationSeconds: Long,
-    val type: ManeuverType = ManeuverType.STRAIGHT
+    val type: ManeuverType = ManeuverType.STRAIGHT,
+    /** Cumulative route distance at the end of this maneuver step, when known. */
+    val distanceAlongM: Double = Double.NaN
 )
 
 enum class ManeuverType {
@@ -69,6 +71,10 @@ interface SearchService {
      * Throws [SearchException] on network or provider error.
      */
     suspend fun search(query: String, near: LatLon? = null): List<GeocodingResult>
+
+    /** Search a category in a small area around the current position. */
+    suspend fun searchNearby(category: String, near: LatLon): List<GeocodingResult> =
+        search(category, near)
 }
 
 class SearchException(message: String, cause: Throwable? = null) : Exception(message, cause)
