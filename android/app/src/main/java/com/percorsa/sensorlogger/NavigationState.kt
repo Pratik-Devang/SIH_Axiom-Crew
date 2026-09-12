@@ -87,6 +87,10 @@ data class NavigationState(
     val speedSource: SpeedSource = SpeedSource.GNSS,
     /** Health state of the internal ESKF dead reckoning estimator. */
     val eskfHealthState: EskfHealthState = EskfHealthState.UNINITIALIZED,
+    /** Primary reason when ESKF is not healthy. */
+    val eskfHealthReason: EskfHealthReason = EskfHealthReason.NOT_INITIALIZED,
+    /** Raw velocity magnitude estimated by the ESKF (unclamped, independent of display selection). */
+    val eskfRawSpeedMps: Float = Float.NaN,
     /** Sensor source driving the device attitude and azimuth. */
     val rotationSource: RotationSource = RotationSource.NONE,
     /** Confidence in the device azimuth's absolute geographic alignment. */
