@@ -768,10 +768,15 @@ class MainActivity : AppCompatActivity() {
         )
 
         val gnssSpeedKmh = if (snap?.gpsSpeedMps?.isFinite() == true) (snap.gpsSpeedMps * 3.6f).toInt() else 0
-        val eskfSpeedKmh = if (state.speed.isFinite()) (state.speed * 3.6f).toInt() else 0
+        val eskfSpeedKmh = if (state.eskfRawSpeedMps.isFinite()) (state.eskfRawSpeedMps * 3.6f).toInt() else if (state.speed.isFinite()) (state.speed * 3.6f).toInt() else 0
         val tcnSpeedKmh = (state.mlSpeedMps * 3.6f).toInt()
-        tvHudSpeed.text = "SPEED\nDisp: %d km/h [%s]\nGPS: %d | ESKF: %d\nTCN: %d | Health: %s".format(
-            state.speedKmh, state.speedSource.name, gnssSpeedKmh, eskfSpeedKmh, tcnSpeedKmh, state.eskfHealthState.name
+        val healthStr = if (state.eskfHealthState == EskfHealthState.HEALTHY) {
+            "HEALTHY"
+        } else {
+            "${state.eskfHealthState.name}(${state.eskfHealthReason.name})"
+        }
+        tvHudSpeed.text = "SPEED\nDisp: %d km/h [%s]\nGPS: %d | ESKF: %d\nTCN: %d | %s".format(
+            state.speedKmh, state.speedSource.name, gnssSpeedKmh, eskfSpeedKmh, tcnSpeedKmh, healthStr
         )
     }
 

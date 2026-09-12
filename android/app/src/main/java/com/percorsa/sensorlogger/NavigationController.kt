@@ -224,6 +224,8 @@ class NavigationController(private val context: Context) {
             eskfDiag.isHealthy -> EskfHealthState.HEALTHY
             else -> EskfHealthState.DEGRADED
         }
+        val rawEskfSpeed = if (eskfDiag.speedMps.isFinite()) eskfDiag.speedMps.toFloat() else Float.NaN
+        val eskfHealthReason = eskfDiag.healthReason
 
         // SPEED POLICY:
         // 1. When trusted GNSS is available, GNSS Doppler speed is the primary ground truth.
@@ -282,6 +284,8 @@ class NavigationController(private val context: Context) {
                     gnssQuality = gnssQuality,
                     speedSource = speedSource,
                     eskfHealthState = eskfHealth,
+                    eskfHealthReason = eskfHealthReason,
+                    eskfRawSpeedMps = rawEskfSpeed,
                     isRecording = sensorEngine.isRecording,
                     recordedSamples = snap.loggedCsvRows,
                     navigationHealth = computeHealth(snap, gnssQuality)
@@ -423,6 +427,8 @@ class NavigationController(private val context: Context) {
             routeBearingDeg = routeBearingDeg,
             speedSource = speedSource,
             eskfHealthState = eskfHealth,
+            eskfHealthReason = eskfHealthReason,
+            eskfRawSpeedMps = rawEskfSpeed,
             compassBearingDeg = snap.compassBearingDeg,
             speed = speed,
             positionAccuracy = accuracy,

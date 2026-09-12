@@ -18,6 +18,24 @@ enum class EskfRuntimeState {
     INVALID
 }
 
+/**
+ * Structured reasons why [EskfProviderDiagnostics.isHealthy] is false.
+ */
+enum class EskfHealthReason {
+    NONE,
+    NOT_INITIALIZED,
+    STATE_NONFINITE,
+    COVARIANCE_NONFINITE,
+    COVARIANCE_NON_PSD,
+    SPEED_IMPLAUSIBLE,
+    COVARIANCE_EXPLODING,
+    ACCEL_BIAS_EXPLODING,
+    GYRO_BIAS_EXPLODING,
+    GNSS_REJECTIONS,
+    QUATERNION_NORM,
+    FILTER_INVALID
+}
+
 data class EskfProviderDiagnostics(
     val initialized: Boolean = false,
     val valid: Boolean = false,
@@ -72,8 +90,26 @@ data class EskfProviderDiagnostics(
             quaternionNorm.isFinite() && kotlin.math.abs(quaternionNorm - 1.0) < 0.05 &&
             accelBiasMag < 5.0 && gyroBiasMag < 0.5 &&
             consecutiveGnssRejections < 3 &&
-            runtimeState != EskfRuntimeState.INVALID &&
-            runtimeState != EskfRuntimeState.DEGRADED
+            runtimeState != EskfRuntimeState.INVALID
+
+    val healthReasons: List<EskfHealthReason> get() {
+        if (isHealthy) return listOf(EskfHealthReason.NONE)
+        val reasons = mutableListOf<EskfHealthReason>()
+        if (!valid || !initialized) reasons += EskfHealthReason.NOT_INITIALIZED
+        if (!stateFinite) reasons += EskfHealthReason.STATE_NONFINITE
+        if (!covarianceFinite) reasons += EskfHealthReason.COVARIANCE_NONFINITE
+        if (!covariancePsd) reasons += EskfHealthReason.COVARIANCE_NON_PSD
+        if (!speedMps.isFinite() || speedMps < 0.0 || speedMps >= 50.0) reasons += EskfHealthReason.SPEED_IMPLAUSIBLE
+        if (covarianceTrace.isFinite() && covarianceTrace >= 2500.0) reasons += EskfHealthReason.COVARIANCE_EXPLODING
+        if (accelBiasMag >= 5.0) reasons += EskfHealthReason.ACCEL_BIAS_EXPLODING
+        if (gyroBiasMag >= 0.5) reasons += EskfHealthReason.GYRO_BIAS_EXPLODING
+        if (consecutiveGnssRejections >= 3) reasons += EskfHealthReason.GNSS_REJECTIONS
+        if (!quaternionNorm.isFinite() || kotlin.math.abs(quaternionNorm - 1.0) >= 0.05) reasons += EskfHealthReason.QUATERNION_NORM
+        if (runtimeState == EskfRuntimeState.INVALID) reasons += EskfHealthReason.FILTER_INVALID
+        return reasons.ifEmpty { listOf(EskfHealthReason.NONE) }
+    }
+
+    val healthReason: EskfHealthReason get() = healthReasons.firstOrNull { it != EskfHealthReason.NONE } ?: EskfHealthReason.NONE
 }
 
 /** Authoritative active navigation provider backed by the Kotlin 15-state ESKF. */
