@@ -47,6 +47,11 @@ enum class TurnState {
 enum class SpeedSource {
     GNSS,
     ESKF,
+    /** A recent GNSS speed held briefly while the inertial estimator becomes available. */
+    LAST_TRUSTED_GNSS,
+    /** No trustworthy speed estimate is currently available. */
+    UNAVAILABLE,
+    /** Retained for compatibility with older logs. New code should use an explicit source. */
     FALLBACK
 }
 
@@ -141,6 +146,10 @@ data class NavigationState(
 ) {
     val speedKmh: Int get() = (speed * 3.6f).toInt()
 
+    /** User-facing speed which does not misrepresent an unknown value as zero. */
+    val speedKmhDisplay: String get() =
+        if (speed.isFinite() && speed >= 0f) speedKmh.toString() else "--"
+
     val hasValidPosition: Boolean get() = latitude != 0.0 || longitude != 0.0
 
     val etaFormatted: String get() {
@@ -176,6 +185,8 @@ data class NavigationState(
 
     val statusLine: String get() = when {
         offRoute -> "Off route â€” recalculating"
+        speedSource == SpeedSource.LAST_TRUSTED_GNSS -> "Sensor handover - holding recent GPS speed"
+        speedSource == SpeedSource.UNAVAILABLE -> "Speed unavailable - estimator not ready"
         drActive && mlInferenceActive -> "Dead reckoning â€” ML speed active"
         drActive -> "Dead reckoning â€” IMU tracking"
         gnssQuality == GnssQuality.POOR -> "Weak GPS signal"

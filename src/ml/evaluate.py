@@ -18,6 +18,7 @@ from src.ml.preprocessing import (
     load_split_trips,
     load_standardized_trip,
     save_json,
+    split_trip_names,
 )
 from src.ml.tcn import build_model
 
@@ -65,7 +66,14 @@ def main() -> None:
 
     ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     config = ckpt["config"]
-    
+    configured_splits = split_trip_names(config)
+    checkpoint_splits = ckpt.get("split_trips")
+    if checkpoint_splits and checkpoint_splits != configured_splits:
+        raise RuntimeError(
+            "The configured dataset split differs from the checkpoint split; "
+            "refusing to publish mismatched metrics"
+        )
+
     split_trips = load_split_trips(config)
     test_raw_trips = split_trips["test"]
     _, meta = load_standardized_trip(config)
@@ -92,9 +100,12 @@ def main() -> None:
     target = np.concatenate(targets) if targets else np.array([], dtype=np.float32)
     log_var = np.concatenate(log_vars) if log_vars else None
 
-    result = metrics(pred, target) if len(pred) > 0 else {"mae": 0.0, "rmse": 0.0}
+    if len(pred) == 0:
+        raise RuntimeError("Test split produced no windows; refusing to publish zero-valued metrics")
+    result = metrics(pred, target)
     result.update(
         {
+            "run_id": ckpt.get("run_id", "legacy-untracked"),
             "sample_rate_hz": config["data"]["sample_rate_hz"],
             "window_seconds": config["data"]["window_seconds"],
             "window_samples": config["data"]["window_samples"],
@@ -103,6 +114,7 @@ def main() -> None:
             "target_unit": "m/s",
             "test_samples": int(len(target)),
             "test_trips": len(test_raw_trips),
+            "test_trip_names": ckpt.get("split_trips", {}).get("test", []),
             "motion_state_method": "Derived from reference speed, acceleration, and vehicle yaw rate; not official labels.",
         }
     )

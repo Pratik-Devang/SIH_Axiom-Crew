@@ -8,6 +8,58 @@ import org.junit.Test
 class NavigationSpeedHandoffTest {
 
     @Test
+    fun speedPolicyHoldsRecentTrustedSpeedWhileEskfHandoverIsUnavailable() {
+        val (speed, source) = NavigationController.selectSpeed(
+            hasTrustedGnss = false,
+            gpsSpeedMps = Float.NaN,
+            eskfSpeedMps = Float.NaN,
+            eskfHealth = EskfHealthState.UNINITIALIZED,
+            lastTrustedSpeedMps = 13f,
+            lastTrustedSpeedAgeMs = 500L
+        )
+
+        assertEquals(13f, speed, 0f)
+        assertEquals(SpeedSource.LAST_TRUSTED_GNSS, source)
+    }
+
+    @Test
+    fun speedPolicyNeverTurnsUnknownSpeedIntoFalseStationaryReading() {
+        val (speed, source) = NavigationController.selectSpeed(
+            hasTrustedGnss = false,
+            gpsSpeedMps = Float.NaN,
+            eskfSpeedMps = 100f,
+            eskfHealth = EskfHealthState.DIVERGED,
+            lastTrustedSpeedMps = 13f,
+            lastTrustedSpeedAgeMs = NavigationController.LAST_TRUSTED_SPEED_MAX_AGE_MS + 1L
+        )
+
+        assertTrue(speed.isNaN())
+        assertEquals(SpeedSource.UNAVAILABLE, source)
+    }
+
+    @Test
+    fun speedPolicyPrefersHealthyEskfDuringGnssOutage() {
+        val (speed, source) = NavigationController.selectSpeed(
+            hasTrustedGnss = false,
+            gpsSpeedMps = Float.NaN,
+            eskfSpeedMps = 11f,
+            eskfHealth = EskfHealthState.HEALTHY,
+            lastTrustedSpeedMps = 13f,
+            lastTrustedSpeedAgeMs = 100L
+        )
+
+        assertEquals(11f, speed, 0f)
+        assertEquals(SpeedSource.ESKF, source)
+    }
+
+    @Test
+    fun monotonicAgeRejectsMissingOrMismatchedTimestamps() {
+        assertEquals(250L, NavigationController.monotonicAgeMs(1_250_000_000L, 1_000_000_000L))
+        assertEquals(Long.MAX_VALUE, NavigationController.monotonicAgeMs(0L, 1L))
+        assertEquals(Long.MAX_VALUE, NavigationController.monotonicAgeMs(1L, 2L))
+    }
+
+    @Test
     fun tcnIsInjectedOnlyWhenGnssIsUntrustedAndInferenceIsActive() {
         assertFalse(NavigationController.shouldInjectTcnSpeed(false, true, false))
         assertTrue(NavigationController.shouldInjectTcnSpeed(false, true, true))

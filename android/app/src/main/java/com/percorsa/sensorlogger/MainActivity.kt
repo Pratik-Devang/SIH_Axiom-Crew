@@ -703,7 +703,7 @@ class MainActivity : AppCompatActivity() {
             }
             NavMode.NAVIGATING, NavMode.GNSS_DEGRADED, NavMode.GNSS_DENIED -> {
                 show(panelNavigatingSheet)
-                tvNavSpeed.text = state.speedKmh.toString()
+                tvNavSpeed.text = state.speedKmhDisplay
                 tvNavDistance.text = state.distanceFormatted
                 tvNavEta.text = state.estimatedArrivalFormatted
                 navRouteProgress.progress = state.routeProgressPercent
@@ -729,7 +729,7 @@ class MainActivity : AppCompatActivity() {
         if (panelIdleSheet.visibility != View.VISIBLE) return
 
         // Update speed display
-        tvMetricSpeed.text = state.speedKmh.toString()
+        tvMetricSpeed.text = state.speedKmhDisplay
         tvIdleLocationStatus.text = when {
             !state.hasValidPosition -> "Waiting for location"
             state.gnssQuality == GnssQuality.DENIED -> "Location estimate from sensors"
@@ -767,16 +767,16 @@ class MainActivity : AppCompatActivity() {
             eskfHeadingStr, gnssCourseStr, routeBearingStr
         )
 
-        val gnssSpeedKmh = if (snap?.gpsSpeedMps?.isFinite() == true) (snap.gpsSpeedMps * 3.6f).toInt() else 0
-        val eskfSpeedKmh = if (state.eskfRawSpeedMps.isFinite()) (state.eskfRawSpeedMps * 3.6f).toInt() else if (state.speed.isFinite()) (state.speed * 3.6f).toInt() else 0
-        val tcnSpeedKmh = (state.mlSpeedMps * 3.6f).toInt()
+        val gnssSpeedKmh = if (snap?.gpsSpeedMps?.isFinite() == true) (snap.gpsSpeedMps * 3.6f).toInt().toString() else "--"
+        val eskfSpeedKmh = if (state.eskfRawSpeedMps.isFinite()) (state.eskfRawSpeedMps * 3.6f).toInt().toString() else "--"
+        val tcnSpeedKmh = if (state.mlInferenceActive && state.mlSpeedMps.isFinite()) (state.mlSpeedMps * 3.6f).toInt().toString() else "--"
         val healthStr = if (state.eskfHealthState == EskfHealthState.HEALTHY) {
             "HEALTHY"
         } else {
             "${state.eskfHealthState.name}(${state.eskfHealthReason.name})"
         }
-        tvHudSpeed.text = "SPEED\nDisp: %d km/h [%s]\nGPS: %d | ESKF: %d\nTCN: %d | %s".format(
-            state.speedKmh, state.speedSource.name, gnssSpeedKmh, eskfSpeedKmh, tcnSpeedKmh, healthStr
+        tvHudSpeed.text = "SPEED\nDisp: %s km/h [%s]\nGPS: %s | ESKF: %s\nTCN: %s | %s".format(
+            state.speedKmhDisplay, state.speedSource.name, gnssSpeedKmh, eskfSpeedKmh, tcnSpeedKmh, healthStr
         )
     }
 

@@ -58,7 +58,7 @@ class ResidualBlock(nn.Module):
 
 
 class SpeedTCN(nn.Module):
-    """Predict vehicle forward speed from a 2 second IMU window."""
+    """Predict vehicle forward speed from a configurable causal IMU window."""
 
     def __init__(
         self,

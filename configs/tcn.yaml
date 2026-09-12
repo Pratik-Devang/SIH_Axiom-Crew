@@ -8,9 +8,14 @@ model:
 
 data:
   raw_dir: data/raw
+  split_manifest: data/splits/io_vnbd_splits.yaml
   smartphone_glob: "S-Vta1a*"
   vehicle_glob: "V-Vta1a*"
   sample_rate_hz: 10
+  input_frame: vehicle_aligned_x_lateral_y_forward_z_up
+  accelerometer_unit: m/s^2
+  gyroscope_unit: rad/s
+  gravity_included: true
   window_seconds: 5
   window_samples: 50
   stride: 1

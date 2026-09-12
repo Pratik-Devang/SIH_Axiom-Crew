@@ -1,5 +1,10 @@
-"""Train and evaluate a baseline PyTorch speed model."""
+"""Train a pointwise research baseline that is not Android-deployable.
 
+The production 50-sample TCN is trained with ``python -m src.ml.train``.
+This legacy MLP is retained only for explicitly requested comparisons.
+"""
+
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -13,7 +18,7 @@ from torch.utils.data import DataLoader, TensorDataset
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data" / "processed" / "io_vnbd" / "trips"
 MODEL_DIR = PROJECT_ROOT / "models"
-MODEL_PATH = MODEL_DIR / "speed_model.pt"
+MODEL_PATH = MODEL_DIR / "speed_mlp_baseline.pt"
 
 FEATURES = [
     "accel_x",
@@ -88,6 +93,19 @@ def load_trips():
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--allow-baseline",
+        action="store_true",
+        help="Explicitly run the legacy pointwise MLP comparison",
+    )
+    args = parser.parse_args()
+    if not args.allow_baseline:
+        raise SystemExit(
+            "This script is not the deployable TCN trainer. "
+            "Run `python -m src.ml.train`, or pass --allow-baseline for research only."
+        )
+
     torch.manual_seed(SEED)
     np.random.seed(SEED)
 

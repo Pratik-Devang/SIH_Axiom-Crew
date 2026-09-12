@@ -19,7 +19,7 @@ from src.ml.preprocessing import INPUT_COLUMNS, TARGET_COLUMN, standardize_trip_
 
 
 class SpeedWindowDataset(Dataset):
-    """Return tensors shaped [6, 20] and one scalar speed target.
+    """Return tensors shaped [channels, configured window] and one speed target.
     
     Supports a single DataFrame or a list of trip DataFrames without cross-trip leakage.
     """
@@ -51,7 +51,7 @@ class SpeedWindowDataset(Dataset):
         self.trips_targets: list[np.ndarray] = []
         self.index_map: list[tuple[int, int]] = []  # maps index -> (trip_idx, start_idx)
 
-        for trip_idx, trip in enumerate(trip_list):
+        for trip in trip_list:
             df = standardize_trip_dataframe(trip).reset_index(drop=True)
             inputs = df[self.input_columns].to_numpy(dtype=np.float32)
             targets = df[self.target_column].to_numpy(dtype=np.float32)
@@ -60,12 +60,13 @@ class SpeedWindowDataset(Dataset):
             if n_rows < self.window_samples:
                 continue
 
+            stored_trip_idx = len(self.trips_inputs)
             self.trips_inputs.append(inputs)
             self.trips_targets.append(targets)
 
             starts = range(0, n_rows - self.window_samples + 1, self.stride)
             for start in starts:
-                self.index_map.append((trip_idx, start))
+                self.index_map.append((stored_trip_idx, start))
 
     def __len__(self) -> int:
         return len(self.index_map)
@@ -76,7 +77,7 @@ class SpeedWindowDataset(Dataset):
         targets = self.trips_targets[trip_idx]
 
         end = start + self.window_samples
-        # PyTorch Conv1D expects [channels, time]: [6, 20]
+        # PyTorch Conv1D expects [channels, time], deployed as [6, 50].
         x = inputs[start:end].T.copy()
         y = float(targets[end - 1])
         return torch.from_numpy(x), torch.tensor(y, dtype=torch.float32)

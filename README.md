@@ -112,7 +112,7 @@ SIH_Axiom-Crew/
 │   ├── run_api.py                    # Launches FastAPI ingestion server
 │   ├── run_dashboard.py              # Launches Streamlit interactive dashboard
 │   ├── run_replay.py                 # CLI trajectory replay under controlled GNSS outages
-│   └── train_speed_model.py          # End-to-end TCN training pipeline
+│   └── train_speed_model.py          # Legacy pointwise MLP baseline (not deployable)
 ├── src/                  # Core modular source code
 │   ├── api/              # FastAPI endpoints for real-time sensor uploads
 │   ├── constraints/      # Non-holonomic vehicle constraints, ZUPT, and map snapping
@@ -190,7 +190,7 @@ The speed model uses a **Temporal Convolutional Network (TCN)** trained with cau
 # Train the TCN model
 python -m src.ml.train
 
-# Evaluate on test set (5 unseen OOD trips)
+# Evaluate using the explicit, family-disjoint split manifest
 python -m src.ml.evaluate
 
 # Export to optimized ONNX format for mobile deployment
@@ -199,9 +199,17 @@ python -m src.ml.export_onnx
 # Verify strict numerical parity between PyTorch & ONNX
 python -m src.ml.verify_onnx
 
+# Copy only a matching model/normalization/metrics bundle into Android
+python scripts/deploy_android_tcn.py
+
 # Run inference latency benchmark
 python scripts/benchmark.py
 ```
+
+The canonical split is declared in `data/splits/io_vnbd_splits.yaml`. Training
+fails if a processed trip is missing, duplicated, or assigned to more than one
+split. The older `scripts/train_speed_model.py` is a pointwise MLP baseline and
+must not be used to produce Android assets.
 
 ---
 

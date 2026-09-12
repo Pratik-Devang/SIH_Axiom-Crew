@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import sys
+import hashlib
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +23,8 @@ from src.ml.preprocessing import (
     load_standardized_trip,
     save_json,
     set_seed,
+    split_trip_names,
+    validate_training_input_contract,
 )
 from src.ml.tcn import build_model, count_parameters
 
@@ -90,7 +95,16 @@ def main() -> None:
     ARTIFACTS_V2.mkdir(parents=True, exist_ok=True)
 
     split_trips = load_split_trips(config)
+    split_names = split_trip_names(config)
+    input_contract_summary = validate_training_input_contract(split_trips["train"])
     _, meta = load_standardized_trip(config)
+    run_started_at = datetime.now(timezone.utc).isoformat()
+    run_payload = json.dumps(
+        {"config": config, "splits": split_names, "started_at": run_started_at},
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    run_id = hashlib.sha256(run_payload).hexdigest()[:16]
     
     stats = fit_normalization(split_trips["train"], INPUT_COLUMNS)
     
@@ -156,6 +170,9 @@ def main() -> None:
                 "metadata": meta,
                 "best_validation_loss": best_val,
                 "best_epoch": epoch,
+                "run_id": run_id,
+                "split_trips": split_names,
+                "input_contract_summary": input_contract_summary,
             }
             torch.save(ckpt_dict, ARTIFACTS / "tcn_best.pt")
             torch.save(ckpt_dict, ARTIFACTS_V2 / "tcn_best.pt")
@@ -167,6 +184,8 @@ def main() -> None:
     info = {
         "model": "SpeedTCN",
         "version": "v2",
+        "run_id": run_id,
+        "trained_at_utc": run_started_at,
         "parameters": count_parameters(model),
         "input_shape": [None, config["model"]["input_channels"], config["data"]["window_samples"]],
         "output": "speed_mps" if not uncertainty else ["speed_mean_mps", "log_variance"],
@@ -183,6 +202,14 @@ def main() -> None:
         "warmup_epochs": warmup_epochs,
         "target_column": meta["target_source_column"],
         "target_unit": "m/s",
+        "split_trips": split_names,
+        "input_contract": {
+            "frame": config["data"]["input_frame"],
+            "accelerometer_unit": config["data"]["accelerometer_unit"],
+            "gyroscope_unit": config["data"]["gyroscope_unit"],
+            "gravity_included": config["data"]["gravity_included"],
+            "observed": input_contract_summary,
+        },
     }
     save_json(info, ARTIFACTS / "model_info.json")
     save_json(info, ARTIFACTS_V2 / "model_info.json")

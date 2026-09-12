@@ -18,6 +18,7 @@ CONFIG_PATH = PROJECT_ROOT / "configs" / "tcn.yaml"
 
 INPUT_COLUMNS = ["accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z"]
 TARGET_COLUMN = "speed_mps"
+SPLIT_NAMES = ("train", "validation", "test")
 
 
 def load_config(path: str | Path = CONFIG_PATH) -> dict[str, Any]:
@@ -189,13 +190,73 @@ def load_standardized_trip(config: dict[str, Any]) -> tuple[pd.DataFrame, dict[s
     return trip, metadata
 
 
+def resolve_split_paths(
+    processed_files: list[Path], manifest_path: Path
+) -> dict[str, list[Path]]:
+    """Resolve and validate an explicit complete-trip split manifest.
+
+    Manifest entries may be CSV filenames or filename stems. Every available
+    processed trip must occur exactly once; silent omission or leakage is an
+    error because it makes model metrics irreproducible.
+    """
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        manifest = yaml.safe_load(handle) or {}
+
+    available = {path.stem: path for path in processed_files}
+    resolved: dict[str, list[Path]] = {}
+    assigned: dict[str, str] = {}
+
+    for split_name in SPLIT_NAMES:
+        entries = manifest.get(split_name)
+        if not isinstance(entries, list) or not entries:
+            raise ValueError(f"Split {split_name!r} must contain at least one trip in {manifest_path}")
+        resolved[split_name] = []
+        for raw_name in entries:
+            stem = Path(str(raw_name)).stem
+            if stem not in available:
+                raise ValueError(f"Unknown trip {raw_name!r} in {manifest_path}")
+            if stem in assigned:
+                raise ValueError(
+                    f"Trip {stem!r} is assigned to both {assigned[stem]!r} and {split_name!r}"
+                )
+            assigned[stem] = split_name
+            resolved[split_name].append(available[stem])
+
+    unassigned = sorted(set(available) - set(assigned))
+    if unassigned:
+        raise ValueError(f"Processed trips missing from {manifest_path}: {', '.join(unassigned)}")
+    return resolved
+
+
+def split_trip_names(config: dict[str, Any]) -> dict[str, list[str]]:
+    """Return the validated trip names used by the configured training run."""
+    processed_dir = PROJECT_ROOT / "data" / "processed" / "io_vnbd" / "trips"
+    processed_files = sorted(processed_dir.glob("*.csv")) if processed_dir.exists() else []
+    manifest_setting = config.get("data", {}).get("split_manifest")
+    if not processed_files or not manifest_setting:
+        return {name: [] for name in SPLIT_NAMES}
+    paths = resolve_split_paths(processed_files, PROJECT_ROOT / manifest_setting)
+    return {name: [path.stem for path in values] for name, values in paths.items()}
+
+
 def load_split_trips(config: dict[str, Any]) -> dict[str, list[pd.DataFrame]]:
     """Load prepared trips grouped by dataset splits (train, validation, test)."""
     processed_dir = PROJECT_ROOT / "data" / "processed" / "io_vnbd" / "trips"
     processed_files = sorted(processed_dir.glob("*.csv")) if processed_dir.exists() else []
 
     if processed_files:
-        # Load all processed CSV trips
+        manifest_setting = config.get("data", {}).get("split_manifest")
+        if manifest_setting:
+            manifest_path = PROJECT_ROOT / manifest_setting
+            if not manifest_path.is_file():
+                raise FileNotFoundError(f"Configured split manifest does not exist: {manifest_path}")
+            split_paths = resolve_split_paths(processed_files, manifest_path)
+            return {
+                split_name: [standardize_trip_dataframe(read_csv_flexible(path)) for path in paths]
+                for split_name, paths in split_paths.items()
+            }
+
+        # Legacy fallback for external configurations without a manifest.
         all_trips = [standardize_trip_dataframe(read_csv_flexible(f)) for f in processed_files]
         if len(all_trips) == 1:
             # Single trip available: split by row fractions
@@ -206,16 +267,9 @@ def load_split_trips(config: dict[str, Any]) -> dict[str, list[pd.DataFrame]]:
                 "validation": [splits_dict["validation"]],
                 "test": [splits_dict["test"]],
             }
-        else:
-            # Multiple trips available: split by trip count
-            n = len(all_trips)
-            train_end = int(n * config["data"]["train_fraction"])
-            val_end = train_end + int(n * config["data"]["validation_fraction"])
-            return {
-                "train": all_trips[:train_end],
-                "validation": all_trips[train_end:val_end],
-                "test": all_trips[val_end:],
-            }
+        raise ValueError(
+            "Multiple processed trips require data.split_manifest; filename-order splitting is unsafe"
+        )
 
     # Fallback to single raw pair split chronologically
     trip, _ = load_standardized_trip(config)
@@ -235,6 +289,48 @@ def chronological_split(df: pd.DataFrame, train_fraction: float, validation_frac
         "train": df.iloc[:train_end].reset_index(drop=True),
         "validation": df.iloc[train_end:val_end].reset_index(drop=True),
         "test": df.iloc[val_end:].reset_index(drop=True),
+    }
+
+
+def validate_training_input_contract(frames: list[pd.DataFrame]) -> dict[str, float]:
+    """Fail early when training data cannot match the deployed Android frame.
+
+    The deployed TCN expects SI acceleration and angular-rate units, gravity in
+    the accelerometer, and a vehicle-aligned Z-up frame. These distribution
+    checks catch the most destructive sign, unit, and gravity-removal mistakes.
+    """
+    if not frames:
+        raise ValueError("Training split contains no trips")
+    combined = pd.concat(frames, ignore_index=True)
+    values = combined[INPUT_COLUMNS].to_numpy(dtype=np.float64)
+    if values.size == 0 or not np.isfinite(values).all():
+        raise ValueError("Training IMU data must be non-empty and finite")
+
+    accel = values[:, :3]
+    gyro = values[:, 3:]
+    median_accel_norm = float(np.median(np.linalg.norm(accel, axis=1)))
+    median_accel_z = float(np.median(accel[:, 2]))
+    gyro_abs_p99 = float(np.percentile(np.abs(gyro), 99.0))
+
+    if not 7.0 <= median_accel_norm <= 13.0:
+        raise ValueError(
+            "Accelerometer contract mismatch: expected gravity-inclusive m/s^2 "
+            f"with median norm near 9.81, got {median_accel_norm:.3f}"
+        )
+    if median_accel_z <= 5.0:
+        raise ValueError(
+            "Accelerometer frame mismatch: expected vehicle-aligned Z-up with positive gravity, "
+            f"got median accel_z {median_accel_z:.3f}"
+        )
+    if gyro_abs_p99 >= 10.0:
+        raise ValueError(
+            "Gyroscope contract mismatch: values appear inconsistent with rad/s, "
+            f"99th percentile magnitude component is {gyro_abs_p99:.3f}"
+        )
+    return {
+        "median_accel_norm_mps2": median_accel_norm,
+        "median_accel_z_mps2": median_accel_z,
+        "gyro_abs_component_p99_rad_s": gyro_abs_p99,
     }
 
 

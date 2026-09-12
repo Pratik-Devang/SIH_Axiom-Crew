@@ -70,6 +70,8 @@ class NavigationController(private val context: Context) {
     private var lastRouteDistanceAlongM = 0.0
 
     private var lastSensorTimestampNs: Long = 0L
+    private var lastTrustedSpeedMps: Float = Float.NaN
+    private var lastTrustedSpeedTimestampNs: Long = 0L
     private val ARRIVAL_RADIUS_M = 40.0
     private val GNSS_BLEND_SECONDS = 3.0
     private val MAX_MONOTONIC_DT_SECONDS = 0.5
@@ -177,6 +179,10 @@ class NavigationController(private val context: Context) {
 
         val hasTrustedGnss = gnssMonitor.shouldUseMeasurement() && snap.hasGps &&
                 snap.latitude.isFinite() && snap.longitude.isFinite()
+        if (hasTrustedGnss && snap.gpsSpeedMps.isFinite() && snap.gpsSpeedMps >= 0f) {
+            lastTrustedSpeedMps = snap.gpsSpeedMps
+            lastTrustedSpeedTimestampNs = snap.gpsTimestampNs.takeIf { it > 0L } ?: snap.timestampNs
+        }
         if (snap.hasRotVector && snap.quatNorm.isFinite() && snap.quatNorm in 0.95f..1.05f) {
             activeEskf.setInitialOrientation(
                 EskfQuaternion(
@@ -228,21 +234,24 @@ class NavigationController(private val context: Context) {
         val eskfHealthReason = eskfDiag.healthReason
 
         // SPEED POLICY:
-        // 1. When trusted GNSS is available, GNSS Doppler speed is the primary ground truth.
-        // 2. When GNSS is degraded or denied, use ESKF dead reckoning ONLY IF strictly HEALTHY.
-        // 3. If ESKF is DEGRADED, DIVERGED, or INVALID, NEVER display it. Explicit fallback to 0.
-        val (speed, speedSource) = when {
-            hasTrustedGnss && snap.gpsSpeedMps.isFinite() && snap.gpsSpeedMps >= 0f -> {
-                Pair(snap.gpsSpeedMps, SpeedSource.GNSS)
-            }
-            drPos != null && drPos.speedMps.isFinite() && drPos.speedMps >= 0f && eskfHealth == EskfHealthState.HEALTHY -> {
-                Pair(drPos.speedMps, SpeedSource.ESKF)
-            }
-            else -> {
-                val fallback = if (hasTrustedGnss && snap.gpsSpeedMps.isFinite() && snap.gpsSpeedMps >= 0f) snap.gpsSpeedMps else 0f
-                Pair(fallback, SpeedSource.FALLBACK)
-            }
-        }
+        // 1. Trusted GNSS Doppler speed remains the primary source.
+        // 2. During an outage, prefer a strictly healthy ESKF estimate.
+        // 3. If ESKF handover is not ready, briefly retain the last trusted GNSS
+        //    speed. This prevents an instantaneous false zero at the outage edge.
+        // 4. Once that bounded grace period expires, expose an unknown value
+        //    instead of claiming that the vehicle is stationary.
+        val trustedSpeedAgeMs = monotonicAgeMs(snap.timestampNs, lastTrustedSpeedTimestampNs)
+        val (speed, speedSource) = selectSpeed(
+            hasTrustedGnss = hasTrustedGnss,
+            gpsSpeedMps = snap.gpsSpeedMps,
+            eskfSpeedMps = drPos?.speedMps ?: Float.NaN,
+            eskfHealth = eskfHealth,
+            lastTrustedSpeedMps = lastTrustedSpeedMps,
+            lastTrustedSpeedAgeMs = trustedSpeedAgeMs
+        )
+        // Algorithms that require a numeric speed treat unknown as zero locally;
+        // NavigationState retains NaN so the UI and logs can show "unavailable".
+        val routingSpeed = speed.takeIf { it.isFinite() && it >= 0f } ?: 0f
 
         // POSITION POLICY:
         val lat: Double
@@ -282,12 +291,19 @@ class NavigationController(private val context: Context) {
                     rotationSource = snap.rotationSource,
                     deviceHeadingConfidence = snap.deviceHeadingConfidence,
                     gnssQuality = gnssQuality,
+                    speed = speed,
                     speedSource = speedSource,
                     eskfHealthState = eskfHealth,
                     eskfHealthReason = eskfHealthReason,
                     eskfRawSpeedMps = rawEskfSpeed,
                     isRecording = sensorEngine.isRecording,
                     recordedSamples = snap.loggedCsvRows,
+                    mlModelLoaded = snap.tcnModelLoaded,
+                    mlBufferReady = snap.tcnBufferReady,
+                    mlInferenceActive = snap.tcnInferenceActive,
+                    mlSpeedMps = snap.tcnPredictedSpeedMps,
+                    mlLatencyMs = snap.tcnInferenceLatencyMs,
+                    mlError = snap.tcnInferenceError,
                     navigationHealth = computeHealth(snap, gnssQuality)
                 ))
                 return
@@ -346,7 +362,7 @@ class NavigationController(private val context: Context) {
             val routeMatch = RouteGeometry.project(LatLon(lat, lon), route.polyline)
             // Let the continuity-aware detector reject a topology jump before
             // committing route progress.
-            val offRouteState = offRouteDetector.checkPosition(lat, lon, accuracy, speed, heading, route)
+            val offRouteState = offRouteDetector.checkPosition(lat, lon, accuracy, routingSpeed, heading, route)
             val matchedRoute = offRouteDetector.routeMatch ?: routeMatch
             routeBearingDeg = matchedRoute?.routeBearingDeg ?: Double.NaN
             val routeDistanceAlongM = matchedRoute?.let {
@@ -356,7 +372,7 @@ class NavigationController(private val context: Context) {
             distRemaining = (route.distanceM - lastRouteDistanceAlongM).coerceAtLeast(0.0)
 
             // 2. Exponentially smoothed speed to prevent jitter
-            smoothedSpeedMps = 0.05 * speed.toDouble() + 0.95 * smoothedSpeedMps
+            smoothedSpeedMps = 0.05 * routingSpeed.toDouble() + 0.95 * smoothedSpeedMps
 
             // 3. Robust ETA calculation: route baseline + EMA speed blending
             val routeProgressRatio = (distRemaining / route.distanceM.coerceAtLeast(1.0)).coerceIn(0.0, 1.0)
@@ -395,7 +411,7 @@ class NavigationController(private val context: Context) {
                     heading,
                     matchedRoute.routeBearingDeg,
                     turnYawRateDegS,
-                    speed
+                    routingSpeed
                 )
             } else {
                 routeSegmentIndex = -1
@@ -450,6 +466,12 @@ class NavigationController(private val context: Context) {
             recalculating = isRecalculating,
             isRecording = sensorEngine.isRecording,
             recordedSamples = snap.loggedCsvRows,
+            mlModelLoaded = snap.tcnModelLoaded,
+            mlBufferReady = snap.tcnBufferReady,
+            mlInferenceActive = snap.tcnInferenceActive,
+            mlSpeedMps = snap.tcnPredictedSpeedMps,
+            mlLatencyMs = snap.tcnInferenceLatencyMs,
+            mlError = snap.tcnInferenceError,
             navigationHealth = computeHealth(snap, gnssQuality)
         ))
     }
@@ -563,6 +585,8 @@ class NavigationController(private val context: Context) {
     fun stopNavigation() {
         drEngine.reset()
         gnssMonitor.reset()
+        lastTrustedSpeedMps = Float.NaN
+        lastTrustedSpeedTimestampNs = 0L
         offRouteDetector.reset()
         lastRouteDistanceAlongM = 0.0
         turnDetector.reset()
@@ -696,6 +720,34 @@ class NavigationController(private val context: Context) {
             tcnInferenceActive: Boolean,
             acceptsTcnSpeedEstimate: Boolean
         ): Boolean = !hasTrustedGnss && tcnInferenceActive && acceptsTcnSpeedEstimate
+
+        internal const val LAST_TRUSTED_SPEED_MAX_AGE_MS = 10_000L
+
+        /** Pure speed-source policy, kept here so GNSS handover behavior is unit-testable. */
+        internal fun selectSpeed(
+            hasTrustedGnss: Boolean,
+            gpsSpeedMps: Float,
+            eskfSpeedMps: Float,
+            eskfHealth: EskfHealthState,
+            lastTrustedSpeedMps: Float,
+            lastTrustedSpeedAgeMs: Long
+        ): Pair<Float, SpeedSource> = when {
+            hasTrustedGnss && gpsSpeedMps.isFinite() && gpsSpeedMps >= 0f ->
+                Pair(gpsSpeedMps, SpeedSource.GNSS)
+            eskfHealth == EskfHealthState.HEALTHY && eskfSpeedMps.isFinite() && eskfSpeedMps >= 0f ->
+                Pair(eskfSpeedMps, SpeedSource.ESKF)
+            lastTrustedSpeedMps.isFinite() && lastTrustedSpeedMps >= 0f &&
+                    lastTrustedSpeedAgeMs in 0L..LAST_TRUSTED_SPEED_MAX_AGE_MS ->
+                Pair(lastTrustedSpeedMps, SpeedSource.LAST_TRUSTED_GNSS)
+            else -> Pair(Float.NaN, SpeedSource.UNAVAILABLE)
+        }
+
+        internal fun monotonicAgeMs(currentTimestampNs: Long, sourceTimestampNs: Long): Long {
+            if (currentTimestampNs <= 0L || sourceTimestampNs <= 0L || currentTimestampNs < sourceTimestampNs) {
+                return Long.MAX_VALUE
+            }
+            return (currentTimestampNs - sourceTimestampNs) / 1_000_000L
+        }
     }
 
     private fun nextMonotonicDtSeconds(currentTimestampNs: Long): Double? {
