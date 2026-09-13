@@ -33,3 +33,11 @@ def test_normalization_is_fitted_only_from_train_split():
     source = Path(train.__file__).read_text(encoding="utf-8")
     assert 'fit_normalization(split_trips["train"]' in source
     assert 'fit_normalization(split_trips["test"]' not in source
+
+
+def test_checkpoint_selection_uses_validation_mae():
+    assert train.is_better_validation_mae(10.0, 11.0)
+    assert not train.is_better_validation_mae(11.0, 10.0)
+    source = Path(train.__file__).read_text(encoding="utf-8")
+    assert "is_better_validation_mae(val_metrics[\"mae_kmh\"], best_mae_kmh)" in source
+    assert "best_validation_loss_at_best_mae" in source

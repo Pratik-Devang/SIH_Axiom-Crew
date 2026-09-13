@@ -92,6 +92,11 @@ def validation_metrics(model, frames, stats, config, device):
     result["speed_bins"] = {f"{lo}-{hi if np.isfinite(hi) else 'plus'}_kmh": {"samples": int(q.sum()), "mae_kmh": float(np.mean(abs(err[q])) * 3.6) if q.any() else None} for lo, hi in bins for q in [((speed >= lo) & (speed < hi))]}
     return result
 
+
+def is_better_validation_mae(candidate_mae_kmh: float, best_mae_kmh: float) -> bool:
+    """Primary checkpoint criterion; lower validation MAE is better."""
+    return candidate_mae_kmh < best_mae_kmh
+
 # log_var is clamped tightly so the model cannot escape to high-variance collapse.
 _LOG_VAR_MIN = -4.0  # std ≈ 0.14 m/s floor
 _LOG_VAR_MAX = 2.0   # std ≈ 2.7 m/s ceiling (reasonable for urban driving)
@@ -213,6 +218,8 @@ def main() -> None:
     )
 
     best_val = float("inf")
+    best_mae_kmh = float("inf")
+    best_loss_at_best_mae = float("inf")
     best_epoch = 0
     epochs_without_improvement = 0
     history = []
@@ -229,8 +236,10 @@ def main() -> None:
         print(f"epoch {epoch:02d}/{total_epochs} [{phase}] train={train_loss:.6f} val={val_loss:.6f} lr={lr_now:.2e}")
         history.append({"epoch": epoch, "train_loss": train_loss, "validation_loss": val_loss, "learning_rate": lr_now, "validation_metrics": val_metrics})
         scheduler.step()
-        if val_loss < best_val:
+        if is_better_validation_mae(val_metrics["mae_kmh"], best_mae_kmh):
             best_val = val_loss
+            best_mae_kmh = val_metrics["mae_kmh"]
+            best_loss_at_best_mae = val_loss
             best_metrics = val_metrics
             best_epoch = epoch
             epochs_without_improvement = 0
@@ -240,6 +249,8 @@ def main() -> None:
                 "normalization": stats,
                 "metadata": provenance,
                 "best_validation_loss": best_val,
+                "best_validation_mae_kmh": best_mae_kmh,
+                "best_validation_loss_at_best_mae": best_loss_at_best_mae,
                 "best_epoch": epoch,
                 "run_id": run_id,
                 "split_trips": split_names,
@@ -271,6 +282,8 @@ def main() -> None:
         "train_windows": len(train_ds),
         "validation_windows": len(val_ds),
         "best_validation_loss": best_val,
+        "best_validation_mae_kmh": best_mae_kmh,
+        "best_validation_loss_at_best_mae": best_loss_at_best_mae,
         "warmup_epochs": warmup_epochs,
         "target_column": config["target"]["source_column"],
         "target_unit": "m/s",
@@ -286,7 +299,8 @@ def main() -> None:
     info.update({"best_epoch": best_epoch, "git_commit": provenance["git_commit"], "config_sha256": provenance["config_sha256"], "split_manifest_sha256": provenance["split_manifest_sha256"], "optimizer": "Adam", "learning_rate": config["training"]["learning_rate"], "weight_decay": config["training"]["weight_decay"], "seed": config["training"]["seed"]})
     save_json(info, run_dir / "model_info.json")
     save_json({"run_id": run_id, "device": str(device), "elapsed_seconds": time.perf_counter() - started,
-               "best_epoch": best_epoch, "best_validation_loss": best_val, "best_validation_metrics": best_metrics, "history": history},
+               "best_epoch": best_epoch, "best_validation_loss": best_val, "best_validation_mae_kmh": best_mae_kmh,
+               "best_validation_loss_at_best_mae": best_loss_at_best_mae, "best_validation_metrics": best_metrics, "history": history},
               run_dir / "training_history.json")
     save_json(best_metrics or {}, run_dir / "validation_metrics.json")
     print(f"saved: {run_dir / 'tcn_best.pt'}")
