@@ -1,6 +1,7 @@
 import ast
 from pathlib import Path
 
+import torch
 import src.ml.train as train
 
 
@@ -41,3 +42,29 @@ def test_checkpoint_selection_uses_validation_mae():
     source = Path(train.__file__).read_text(encoding="utf-8")
     assert "is_better_validation_mae(val_metrics[\"mae_kmh\"], best_mae_kmh)" in source
     assert "best_validation_loss_at_best_mae" in source
+
+
+def test_mse_and_huber_are_supported():
+    assert train.regression_loss.__defaults__[-1] == "mse"
+    source = Path(train.__file__).read_text(encoding="utf-8")
+    assert 'choices=("mse", "huber")' in source
+    assert "smooth_l1_loss" in source
+
+
+def test_candidate_architectures_preserve_contract_and_parameter_range():
+    from src.ml.tcn import build_model, count_parameters
+    config = train.load_config()
+    base = count_parameters(build_model(config))
+    config["model"]["channels"] = [208, 208, 208, 208]
+    large = build_model(config)
+    assert 800_000 <= count_parameters(large) <= 1_200_000
+    assert tuple(large(torch.zeros(2, 6, 50)).shape) == (2,)
+    assert base == 348417
+
+
+def test_sweep_and_final_selection_require_four_candidates():
+    from scripts.select_final_tcn import select
+    candidates = [{"run_id": str(i), "best_validation_mae_kmh": float(i)} for i in range(4)]
+    assert select(candidates)["selected_winner"] == "0"
+    source = Path("scripts/run_tcn_sweep.py").read_text(encoding="utf-8")
+    assert "base_mse" in source and "base_huber" in source and "large_mse" in source and "large_huber" in source
