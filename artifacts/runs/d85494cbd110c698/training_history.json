@@ -1,0 +1,27 @@
+{
+  "run_id": "d85494cbd110c698",
+  "device": "cuda",
+  "elapsed_seconds": 180.333564999999,
+  "best_epoch": 2,
+  "best_validation_loss": 18.850984848629345,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 22.285875889651745,
+      "validation_loss": 20.07935793616555,
+      "learning_rate": 0.001
+    },
+    {
+      "epoch": 2,
+      "train_loss": 14.730391151359282,
+      "validation_loss": 18.850984848629345,
+      "learning_rate": 0.0007525
+    },
+    {
+      "epoch": 3,
+      "train_loss": 10.723912572056415,
+      "validation_loss": 22.87858704653653,
+      "learning_rate": 0.00025750000000000013
+    }
+  ]
+}

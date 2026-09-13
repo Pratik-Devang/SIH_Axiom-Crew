@@ -66,6 +66,14 @@ def main() -> None:
 
     ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     config = ckpt["config"]
+    # Legacy checkpoints predate the tracked split manifest. Use the current
+    # repository contract only to restore reproducible data selection; model
+    # weights and checkpoint normalization remain authoritative.
+    if not config.get("data", {}).get("split_manifest"):
+        repository_config = load_config()
+        config = {**repository_config, **config, "data": {
+            **repository_config["data"], **config.get("data", {})
+        }}
     configured_splits = split_trip_names(config)
     checkpoint_splits = ckpt.get("split_trips")
     if checkpoint_splits and checkpoint_splits != configured_splits:

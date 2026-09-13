@@ -131,6 +131,7 @@ def prepare_trip(trip_id: str) -> pd.DataFrame:
     smartphone = smartphone.iloc[:n].reset_index(drop=True)
     vehicle = vehicle.iloc[:n].reset_index(drop=True)
 
+    # Preserve official IO-VNBD order: [Forward, Lateral, Up, gyro_x, gyro_y, gyro_z].
     result = pd.DataFrame(
         {
             "trip_id": trip_id,

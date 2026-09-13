@@ -41,6 +41,9 @@ COMMON_COLUMNS = {
     "MAGNETIC FIELD Z (Î¼T)": "magnetic_z_uT",
 }
 
+# IO-VNBD axes are vehicle-frame X=Forward, Y=Lateral, Z=Up. Preserve this
+# axis identity; do not swap X and Y for the legacy Android deployment order.
+
 
 # ---------------------------------------------------------------------
 # Variant-specific column names
