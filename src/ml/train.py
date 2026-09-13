@@ -5,6 +5,8 @@ import hashlib
 import json
 import argparse
 import time
+import subprocess
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,8 +23,7 @@ from src.ml.preprocessing import (
     apply_normalization,
     fit_normalization,
     load_config,
-    load_split_trips,
-    load_standardized_trip,
+    load_train_validation_trips,
     save_json,
     set_seed,
     split_trip_names,
@@ -33,6 +34,63 @@ from src.ml.tcn import build_model, count_parameters
 
 ARTIFACTS = ROOT / "artifacts"
 ARTIFACTS_V2 = ROOT / "artifacts" / "v2"
+
+
+def create_unique_run(config: dict, split_names: dict[str, list[str]]) -> tuple[str, Path, dict]:
+    config_hash = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
+    manifest_path = ROOT / config["data"]["split_manifest"]
+    manifest_hash = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    try:
+        git_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    except (OSError, subprocess.CalledProcessError):
+        git_sha = "unknown"
+    created_at = datetime.now(timezone.utc).isoformat()
+    for _ in range(10):
+        run_id = f"{created_at.replace(':', '').replace('-', '')[:15]}-{uuid.uuid4().hex[:12]}"
+        run_dir = ARTIFACTS / "runs" / run_id
+        try:
+            run_dir.mkdir(parents=True, exist_ok=False)
+            return run_id, run_dir, {
+                "run_id": run_id, "created_at_utc": created_at,
+                "config_sha256": config_hash, "split_manifest_sha256": manifest_hash,
+                "git_commit": git_sha, "seed": config["training"]["seed"],
+                "split_trips": split_names,
+            }
+        except FileExistsError:
+            continue
+    raise RuntimeError("Could not allocate a unique training run directory")
+
+
+def validation_metrics(model, frames, stats, config, device):
+    bins = [(0, 5), (5, 20), (20, 40), (40, 60), (60, 80), (80, float("inf"))]
+    all_p, all_y, per_trip = [], [], {}
+    model.eval()
+    with torch.no_grad():
+        for frame in frames:
+            normalized = apply_normalization(frame, stats)
+            ds = SpeedWindowDataset([normalized], config["data"]["window_samples"], stride=10)
+            loader = DataLoader(ds, batch_size=config["training"]["batch_size"], pin_memory=device.type == "cuda")
+            predictions, targets = [], []
+            for x, y in loader:
+                predictions.append(model(x.to(device, non_blocking=device.type == "cuda")).cpu().numpy())
+                targets.append(y.numpy())
+            p, y = np.concatenate(predictions), np.concatenate(targets)
+            all_p.append(p); all_y.append(y)
+            err = p - y
+            per_trip[str(frame["trip_id"].iloc[0])] = {"samples": int(len(y)), "mae_mps": float(np.mean(abs(err))), "mae_kmh": float(np.mean(abs(err)) * 3.6)}
+    p, y = np.concatenate(all_p), np.concatenate(all_y); err = p - y; speed = y * 3.6
+    result = {"mae_mps": float(np.mean(abs(err))), "mae_kmh": float(np.mean(abs(err)) * 3.6), "rmse_mps": float(np.sqrt(np.mean(err**2))), "rmse_kmh": float(np.sqrt(np.mean(err**2)) * 3.6), "bias_mps": float(np.mean(err)), "bias_kmh": float(np.mean(err) * 3.6), "median_absolute_error_kmh": float(np.median(abs(err)) * 3.6), "p95_absolute_error_kmh": float(np.percentile(abs(err), 95) * 3.6), "max_absolute_error_kmh": float(np.max(abs(err)) * 3.6), "per_trip": per_trip}
+    result["r2"] = float(1 - np.sum(err**2) / np.sum((y - y.mean())**2)) if np.sum((y-y.mean())**2) else None
+    stationary = speed < 0.5
+    result["stationary"] = {"samples": int(stationary.sum()), "mae_kmh": float(np.mean(abs(err[stationary])) * 3.6) if stationary.any() else None}
+    acceleration = np.gradient(speed) > 0.5
+    braking = np.gradient(speed) < -0.5
+    result["acceleration"] = {"samples": int(acceleration.sum()), "mae_kmh": float(np.mean(abs(err[acceleration])) * 3.6) if acceleration.any() else None}
+    result["braking"] = {"samples": int(braking.sum()), "mae_kmh": float(np.mean(abs(err[braking])) * 3.6) if braking.any() else None}
+    result["cruising"] = {"samples": int((~stationary & ~acceleration & ~braking).sum()), "mae_kmh": float(np.mean(abs(err[~stationary & ~acceleration & ~braking])) * 3.6) if (~stationary & ~acceleration & ~braking).any() else None}
+    result["turning"] = {"samples": 0, "mae_kmh": None}
+    result["speed_bins"] = {f"{lo}-{hi if np.isfinite(hi) else 'plus'}_kmh": {"samples": int(q.sum()), "mae_kmh": float(np.mean(abs(err[q])) * 3.6) if q.any() else None} for lo, hi in bins for q in [((speed >= lo) & (speed < hi))]}
+    return result
 
 # log_var is clamped tightly so the model cannot escape to high-variance collapse.
 _LOG_VAR_MIN = -4.0  # std ≈ 0.14 m/s floor
@@ -101,19 +159,11 @@ def main() -> None:
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     ARTIFACTS_V2.mkdir(parents=True, exist_ok=True)
 
-    split_trips = load_split_trips(config)
     split_names = split_trip_names(config)
+    split_trips = load_train_validation_trips(config)
     input_contract_summary = validate_training_input_contract(split_trips["train"])
-    _, meta = load_standardized_trip(config)
     run_started_at = datetime.now(timezone.utc).isoformat()
-    run_payload = json.dumps(
-        {"config": config, "splits": split_names},
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    run_id = hashlib.sha256(run_payload).hexdigest()[:16]
-    run_dir = ARTIFACTS / "runs" / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
+    run_id, run_dir, provenance = create_unique_run(config, split_names)
     
     stats = fit_normalization(split_trips["train"], INPUT_COLUMNS)
     
@@ -124,6 +174,7 @@ def main() -> None:
         "columns": INPUT_COLUMNS
     }
     save_json(android_stats, run_dir / "normalization.json")
+    save_json({**provenance, "config": config}, run_dir / "run_manifest.json")
 
     norm_trips = {
         name: [apply_normalization(frame, stats) for frame in frames]
@@ -165,6 +216,7 @@ def main() -> None:
     best_epoch = 0
     epochs_without_improvement = 0
     history = []
+    best_metrics = None
     started = time.perf_counter()
     for epoch in range(1, total_epochs + 1):
         mse_only = uncertainty and (epoch <= warmup_epochs)
@@ -172,24 +224,27 @@ def main() -> None:
         train_loss = run_epoch(model, train_loader, device, optimizer, uncertainty, mse_only=mse_only)
         with torch.no_grad():
             val_loss = run_epoch(model, val_loader, device, None, uncertainty, mse_only=mse_only)
+        val_metrics = validation_metrics(model, split_trips["validation"], stats, config, device)
         lr_now = optimizer.param_groups[0]["lr"]
         print(f"epoch {epoch:02d}/{total_epochs} [{phase}] train={train_loss:.6f} val={val_loss:.6f} lr={lr_now:.2e}")
-        history.append({"epoch": epoch, "train_loss": train_loss, "validation_loss": val_loss, "learning_rate": lr_now})
+        history.append({"epoch": epoch, "train_loss": train_loss, "validation_loss": val_loss, "learning_rate": lr_now, "validation_metrics": val_metrics})
         scheduler.step()
         if val_loss < best_val:
             best_val = val_loss
+            best_metrics = val_metrics
             best_epoch = epoch
             epochs_without_improvement = 0
             ckpt_dict = {
                 "model_state_dict": model.state_dict(),
                 "config": config,
                 "normalization": stats,
-                "metadata": meta,
+                "metadata": provenance,
                 "best_validation_loss": best_val,
                 "best_epoch": epoch,
                 "run_id": run_id,
                 "split_trips": split_names,
                 "input_contract_summary": input_contract_summary,
+                "best_validation_metrics": best_metrics,
             }
             torch.save(ckpt_dict, run_dir / "tcn_best.pt")
         else:
@@ -200,7 +255,6 @@ def main() -> None:
 
     total_train_rows = sum(len(f) for f in split_trips["train"])
     total_val_rows = sum(len(f) for f in split_trips["validation"])
-    total_test_rows = sum(len(f) for f in split_trips["test"])
 
     info = {
         "model": "SpeedTCN",
@@ -212,15 +266,13 @@ def main() -> None:
         "output": "speed_mps" if not uncertainty else ["speed_mean_mps", "log_variance"],
         "train_trips": len(split_trips["train"]),
         "validation_trips": len(split_trips["validation"]),
-        "test_trips": len(split_trips["test"]),
         "train_rows": total_train_rows,
         "validation_rows": total_val_rows,
-        "test_rows": total_test_rows,
         "train_windows": len(train_ds),
         "validation_windows": len(val_ds),
         "best_validation_loss": best_val,
         "warmup_epochs": warmup_epochs,
-        "target_column": meta["target_source_column"],
+        "target_column": config["target"]["source_column"],
         "target_unit": "m/s",
         "split_trips": split_names,
         "input_contract": {
@@ -231,11 +283,12 @@ def main() -> None:
             "observed": input_contract_summary,
         },
     }
+    info.update({"best_epoch": best_epoch, "git_commit": provenance["git_commit"], "config_sha256": provenance["config_sha256"], "split_manifest_sha256": provenance["split_manifest_sha256"], "optimizer": "Adam", "learning_rate": config["training"]["learning_rate"], "weight_decay": config["training"]["weight_decay"], "seed": config["training"]["seed"]})
     save_json(info, run_dir / "model_info.json")
     save_json({"run_id": run_id, "device": str(device), "elapsed_seconds": time.perf_counter() - started,
-               "best_epoch": best_epoch, "best_validation_loss": best_val, "history": history},
+               "best_epoch": best_epoch, "best_validation_loss": best_val, "best_validation_metrics": best_metrics, "history": history},
               run_dir / "training_history.json")
-    save_json({"run_id": run_id, "config": config, "split_trips": split_names}, run_dir / "run_manifest.json")
+    save_json(best_metrics or {}, run_dir / "validation_metrics.json")
     print(f"saved: {run_dir / 'tcn_best.pt'}")
     print(f"saved: {run_dir / 'normalization.json'}")
     print(f"saved: {run_dir / 'model_info.json'}")

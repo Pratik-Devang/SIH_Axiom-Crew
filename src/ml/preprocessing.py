@@ -283,6 +283,18 @@ def load_split_trips(config: dict[str, Any]) -> dict[str, list[pd.DataFrame]]:
     }
 
 
+def load_train_validation_trips(config: dict[str, Any]) -> dict[str, list[pd.DataFrame]]:
+    """Load only train/validation trips; never touches the frozen test split."""
+    processed_dir = PROJECT_ROOT / "data" / "processed" / "io_vnbd" / "trips"
+    processed_files = sorted(processed_dir.glob("*.csv"))
+    manifest_path = PROJECT_ROOT / config["data"]["split_manifest"]
+    split_paths = resolve_split_paths(processed_files, manifest_path)
+    return {
+        name: [standardize_trip_dataframe(read_csv_flexible(path)) for path in split_paths[name]]
+        for name in ("train", "validation")
+    }
+
+
 def chronological_split(df: pd.DataFrame, train_fraction: float, validation_fraction: float) -> dict[str, pd.DataFrame]:
     n = len(df)
     train_end = int(n * train_fraction)
