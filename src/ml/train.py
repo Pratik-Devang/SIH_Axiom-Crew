@@ -111,6 +111,7 @@ def regression_loss(
     target: torch.Tensor,
     uncertainty: bool,
     mse_only: bool = False,
+    loss_name: str = "mse",
 ) -> torch.Tensor:
     """Compute training loss.
 
@@ -120,6 +121,8 @@ def regression_loss(
     if not uncertainty or mse_only:
         # Pure MSE on the mean prediction regardless of the second output head.
         mean = pred[:, 0] if uncertainty else pred
+        if loss_name == "huber":
+            return torch.nn.functional.smooth_l1_loss(mean, target, beta=1.0)
         return torch.mean((mean - target) ** 2)
     mean = pred[:, 0]
     log_var = torch.clamp(pred[:, 1], min=_LOG_VAR_MIN, max=_LOG_VAR_MAX)
@@ -136,6 +139,7 @@ def run_epoch(
     optimizer=None,
     uncertainty: bool = False,
     mse_only: bool = False,
+    loss_name: str = "mse",
 ) -> float:
     training = optimizer is not None
     model.train(training)
@@ -145,7 +149,7 @@ def run_epoch(
         if training:
             optimizer.zero_grad(set_to_none=True)
         pred = model(x)
-        loss = regression_loss(pred, y, uncertainty, mse_only=mse_only)
+        loss = regression_loss(pred, y, uncertainty, mse_only=mse_only, loss_name=loss_name)
         if training:
             loss.backward()
             optimizer.step()
@@ -158,8 +162,12 @@ def main() -> None:
     parser.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto")
     parser.add_argument("--max-epochs", type=int, default=None)
     parser.add_argument("--patience", type=int, default=15)
+    parser.add_argument("--loss", choices=("mse", "huber"), default="mse")
+    parser.add_argument("--model-size", choices=("base", "large"), default="base")
     args = parser.parse_args()
     config = load_config()
+    if args.model_size == "large":
+        config["model"]["channels"] = [208, 208, 208, 208]
     set_seed(config["training"]["seed"])
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     ARTIFACTS_V2.mkdir(parents=True, exist_ok=True)
@@ -228,13 +236,13 @@ def main() -> None:
     for epoch in range(1, total_epochs + 1):
         mse_only = uncertainty and (epoch <= warmup_epochs)
         phase = "MSE-warmup" if mse_only else "NLL"
-        train_loss = run_epoch(model, train_loader, device, optimizer, uncertainty, mse_only=mse_only)
+        train_loss = run_epoch(model, train_loader, device, optimizer, uncertainty, mse_only=mse_only, loss_name=args.loss)
         with torch.no_grad():
-            val_loss = run_epoch(model, val_loader, device, None, uncertainty, mse_only=mse_only)
+            val_loss = run_epoch(model, val_loader, device, None, uncertainty, mse_only=mse_only, loss_name=args.loss)
         val_metrics = validation_metrics(model, split_trips["validation"], stats, config, device)
         lr_now = optimizer.param_groups[0]["lr"]
         print(f"epoch {epoch:02d}/{total_epochs} [{phase}] train={train_loss:.6f} val={val_loss:.6f} lr={lr_now:.2e}")
-        history.append({"epoch": epoch, "train_loss": train_loss, "validation_loss": val_loss, "learning_rate": lr_now, "validation_metrics": val_metrics})
+        history.append({"epoch": epoch, "train_loss": train_loss, "validation_loss": val_loss, "loss": args.loss, "learning_rate": lr_now, "validation_metrics": val_metrics})
         scheduler.step()
         if is_better_validation_mae(val_metrics["mae_kmh"], best_mae_kmh):
             best_val = val_loss
@@ -269,6 +277,10 @@ def main() -> None:
 
     info = {
         "model": "SpeedTCN",
+        "model_size": args.model_size,
+        "candidate_name": f"{args.model_size}_{args.loss}",
+        "loss": args.loss,
+        "huber_beta": 1.0 if args.loss == "huber" else None,
         "version": "v2",
         "run_id": run_id,
         "trained_at_utc": run_started_at,
