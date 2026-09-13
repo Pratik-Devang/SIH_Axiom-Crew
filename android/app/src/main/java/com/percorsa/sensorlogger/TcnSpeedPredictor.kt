@@ -130,6 +130,7 @@ class TcnSpeedPredictor(context: Context) : AutoCloseable {
         FloatArray(length()) { index -> getDouble(index).toFloat() }
 
     companion object {
+        // Same semantic order as Python INPUT_COLUMNS and the existing ONNX model.
         private val FEATURE_NAMES = listOf(
             "accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z"
         )

@@ -1,0 +1,76 @@
+{
+  "model": "SpeedTCN",
+  "version": "v2",
+  "run_id": "d85494cbd110c698",
+  "trained_at_utc": "2026-09-13T08:11:23.839760+00:00",
+  "parameters": 348417,
+  "input_shape": [
+    null,
+    6,
+    50
+  ],
+  "output": "speed_mps",
+  "train_trips": 26,
+  "validation_trips": 3,
+  "test_trips": 3,
+  "train_rows": 532441,
+  "validation_rows": 140770,
+  "test_rows": 93538,
+  "train_windows": 531167,
+  "validation_windows": 14064,
+  "best_validation_loss": 18.850984848629345,
+  "warmup_epochs": 0,
+  "target_column": "vehicle_speed",
+  "target_unit": "m/s",
+  "split_trips": {
+    "train": [
+      "S1",
+      "S2",
+      "S3a",
+      "S3b",
+      "S3c",
+      "S4",
+      "Vw1",
+      "Vw2",
+      "Vw3",
+      "Vw4",
+      "Vw5",
+      "Vw6",
+      "Vw7",
+      "Vw8",
+      "Vw9",
+      "Vw10",
+      "Vw11",
+      "Vw12",
+      "Vw13",
+      "Vw14a",
+      "Vw14b",
+      "Vw14c",
+      "Vw15",
+      "Vw16a",
+      "Vw16b",
+      "Vw17"
+    ],
+    "validation": [
+      "M",
+      "Vfa01",
+      "Vfa02"
+    ],
+    "test": [
+      "Vta1a",
+      "Vta1b",
+      "Y1"
+    ]
+  },
+  "input_contract": {
+    "frame": "io_vnbd_x_forward_y_lateral_z_up",
+    "accelerometer_unit": "m/s^2",
+    "gyroscope_unit": "rad/s",
+    "gravity_included": true,
+    "observed": {
+      "median_accel_norm_mps2": 9.977685789884623,
+      "median_accel_z_mps2": 9.86139965057373,
+      "gyro_abs_component_p99_rad_s": 0.6438999772071838
+    }
+  }
+}

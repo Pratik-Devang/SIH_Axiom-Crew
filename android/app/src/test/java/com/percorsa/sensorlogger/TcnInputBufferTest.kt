@@ -37,6 +37,29 @@ class TcnInputBufferTest {
     }
 
     @Test
+    fun calibratedFeaturesMatchIoVnbdForwardLateralUpContract() {
+        val sample = CanonicalImuSample(
+            timestampNs = 1L,
+            accelX = 0f, accelY = 0f, accelZ = 0f,
+            gyroX = 0f, gyroY = 0f, gyroZ = 0f,
+            vehicleAccelForward = 2.5f,
+            vehicleAccelLeft = -1.25f,
+            vehicleAccelUp = 9.81f,
+            vehicleGyroForward = 0.11f,
+            vehicleGyroLeft = -0.22f,
+            vehicleGyroUp = 0.33f,
+            vehicleFrameCalibrated = true
+        )
+
+        assertArrayEquals(
+            floatArrayOf(2.5f, -1.25f, 9.81f, 0.11f, -0.22f, 0.33f),
+            sample.toFeatureArray(),
+            0.0f
+        )
+        assertEquals(9.81f, sample.toFeatureArray()[2], 0.0f)
+    }
+
+    @Test
     fun nonMonotonicCanonicalSampleIsNotAdded() {
         val buffer = TcnInputBuffer(capacity = 3)
         assertTrue(buffer.push(sample(10)))

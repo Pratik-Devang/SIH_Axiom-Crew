@@ -16,6 +16,8 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = PROJECT_ROOT / "configs" / "tcn.yaml"
 
+# Deployed ONNX contract: [Forward, Lateral, Up, gyro_x, gyro_y, gyro_z].
+# Accel is raw gravity-inclusive m/s^2; gyro is rad/s.
 INPUT_COLUMNS = ["accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z"]
 TARGET_COLUMN = "speed_mps"
 SPLIT_NAMES = ("train", "validation", "test")

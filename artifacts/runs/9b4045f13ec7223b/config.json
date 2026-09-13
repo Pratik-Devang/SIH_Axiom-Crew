@@ -1,0 +1,63 @@
+{
+  "model": {
+    "input_channels": 6,
+    "channels": [
+      128,
+      128,
+      128,
+      128
+    ],
+    "kernel_size": 3,
+    "dilations": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "dropout": 0.1,
+    "predict_uncertainty": false
+  },
+  "data": {
+    "raw_dir": "data/raw",
+    "split_manifest": "data/splits/io_vnbd_splits.yaml",
+    "smartphone_glob": "S-Vta1a*",
+    "vehicle_glob": "V-Vta1a*",
+    "sample_rate_hz": 10,
+    "input_frame": "io_vnbd_x_forward_y_lateral_z_up",
+    "accelerometer_unit": "m/s^2",
+    "gyroscope_unit": "rad/s",
+    "gravity_included": true,
+    "window_seconds": 5,
+    "window_samples": 50,
+    "stride": 1,
+    "train_fraction": 0.7,
+    "validation_fraction": 0.15,
+    "test_fraction": 0.15
+  },
+  "training": {
+    "batch_size": 128,
+    "learning_rate": 0.001,
+    "epochs": 100,
+    "weight_decay": 0.0001,
+    "seed": 42
+  },
+  "target": {
+    "name": "indicated_vehicle_speed",
+    "source_column": "Indicated Vehicle Speed (km/hr)",
+    "unit": "m/s"
+  },
+  "deployment": {
+    "input_shape": [
+      1,
+      6,
+      50
+    ],
+    "output_shape_deterministic": [
+      1
+    ],
+    "output_shape_uncertainty": [
+      1,
+      2
+    ]
+  }
+}

@@ -22,7 +22,8 @@ class SpeedWindowDataset(Dataset):
     """Return tensors shaped [channels, configured window] and one speed target.
     
     Supports a single DataFrame or a list of trip DataFrames without cross-trip leakage.
-    """
+Feature order is [Forward, Lateral, Up, gyro_x, gyro_y, gyro_z], matching Android.
+"""
 
     def __init__(
         self,
