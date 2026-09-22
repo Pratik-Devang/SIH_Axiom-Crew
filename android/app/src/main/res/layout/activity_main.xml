@@ -79,10 +79,13 @@
         android:orientation="vertical"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
-        android:layout_marginTop="88dp"
-        android:background="@drawable/card_bg"
-        android:padding="14dp"
-        android:elevation="10dp"
+        android:layout_marginTop="@dimen/search_margin_top"
+        android:background="@drawable/maneuver_card_bg"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:elevation="12dp"
         android:visibility="gone">
 
         <!-- Main Maneuver Row -->
@@ -92,18 +95,20 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
+            <!-- Maneuver Icon -->
             <ImageView
                 android:id="@+id/tvManeuverIcon"
-                android:layout_width="@dimen/maneuver_icon_size"
-                android:layout_height="@dimen/maneuver_icon_size"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:src="@drawable/ic_straight"
-                app:tint="@color/text_primary"
+                app:tint="#F8FAFC"
                 android:gravity="center"
-                android:padding="16dp"
+                android:padding="9dp"
                 android:contentDescription="Next maneuver"
                 android:background="@drawable/maneuver_icon_bg"
-                android:layout_marginEnd="14dp" />
+                android:layout_marginEnd="12dp" />
 
+            <!-- Distance and Instruction Column -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -115,8 +120,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="200 m"
-                    android:textColor="@color/percorsa_primary"
-                    android:textSize="28sp"
+                    android:textColor="#F8FAFC"
+                    android:textSize="24sp"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
@@ -125,61 +130,59 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Continue straight"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
                     android:textStyle="bold"
                     android:singleLine="true"
                     android:ellipsize="end"
-                    android:layout_marginTop="2dp" />
+                    android:layout_marginTop="1dp" />
 
             </LinearLayout>
 
-            <!-- Compact GNSS / DR Pill -->
+            <!-- Compact GNSS / DR Status Pill -->
             <TextView
                 android:id="@+id/tvGnssBadge"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="GPS"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:text="● GNSS"
                 android:textColor="@color/gnss_good"
-                android:textSize="11sp"
+                android:textSize="10sp"
                 android:textStyle="bold"
-                android:background="@drawable/pill_gnss_good"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:paddingTop="5dp"
-                android:paddingBottom="5dp" />
+                android:background="@drawable/gnss_status_bg"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp" />
 
         </LinearLayout>
 
-        <!-- Next Maneuver Preview ("Then:" row) -->
+        <!-- Next Maneuver Preview ("Then:" row) - Subtle, NO nested card -->
         <LinearLayout
             android:id="@+id/rowSecondManeuver"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginTop="10dp"
-            android:paddingTop="10dp"
-            android:background="@drawable/card_bg"
+            android:layout_marginTop="6dp"
+            android:paddingTop="4dp"
             android:visibility="gone">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Then:"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
+                android:text="Then"
+                android:textColor="@color/text_tertiary"
+                android:textSize="11sp"
                 android:textStyle="bold"
-                android:layout_marginEnd="8dp" />
+                android:layout_marginEnd="5dp" />
 
             <ImageView
                 android:id="@+id/tvSecondManeuverIcon"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:src="@drawable/ic_turn_right"
                 app:tint="@color/percorsa_primary"
                 android:contentDescription="Following maneuver"
-                android:layout_marginEnd="6dp" />
+                android:layout_marginEnd="5dp" />
 
             <TextView
                 android:id="@+id/tvSecondManeuverInstruction"
@@ -188,7 +191,7 @@
                 android:layout_weight="1"
                 android:text="Turn right onto Main St"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:singleLine="true"
                 android:ellipsize="end" />
 
@@ -204,15 +207,18 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:layout_gravity="end|center_vertical"
-        android:layout_marginEnd="14dp">
+        android:layout_marginEnd="16dp">
 
-        <!-- Compass (north-up) â€” visible but minimal; long-press recenter resets bearing -->
+        <!-- Compass (north-up) -->
         <FrameLayout
             android:id="@+id/btnCompass"
-            android:layout_width="@dimen/fab_size"
-            android:layout_height="@dimen/fab_size"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@drawable/map_btn_bg"
             android:elevation="@dimen/elevation_fab"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Reset compass to North"
             android:layout_marginBottom="12dp">
 
             <FrameLayout
@@ -222,10 +228,10 @@
 
                 <ImageView
                     android:id="@+id/tvCompassArrow"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
                     android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="7dp"
                     android:src="@drawable/ic_north_arrow"
                     android:contentDescription="North indicator" />
 
@@ -236,78 +242,44 @@
                     android:layout_gravity="center"
                     android:text="N"
                     android:textColor="@color/text_tertiary"
-                    android:textSize="12sp"
+                    android:textSize="11sp"
                     android:textStyle="bold" />
 
             </FrameLayout>
 
         </FrameLayout>
 
-        <!-- Recenter â€” neutral slate color always -->
+        <!-- Recenter / My Location -->
         <FrameLayout
             android:id="@+id/btnRecenter"
-            android:layout_width="@dimen/fab_size"
-            android:layout_height="@dimen/fab_size"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@drawable/map_btn_bg"
-            android:elevation="@dimen/elevation_fab">
+            android:elevation="@dimen/elevation_fab"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Re-center to my location">
 
+            <ImageView
+                android:id="@+id/ivRecenterIcon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_my_location"
+                app:tint="@color/text_secondary"
+                android:contentDescription="My location" />
+
+            <!-- Hidden TextView preserved for fallback/compat -->
             <TextView
                 android:id="@+id/tvRecenterIcon"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="GPS"
-                android:textColor="@color/text_secondary"
-                android:textSize="22sp" />
+                android:visibility="gone" />
 
         </FrameLayout>
 
     </LinearLayout>
 
-    <!-- ── Live Diagnostics HUD Panel (Phone, Vehicle, Speed) ─────────────── -->
-    <LinearLayout
-        android:id="@+id/panelDiagnosticsHud"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_gravity="start|top"
-        android:layout_marginTop="75dp"
-        android:layout_marginStart="14dp"
-        android:background="@drawable/card_bg"
-        android:padding="8dp"
-        android:elevation="12dp"
-        android:visibility="visible">
-
-        <TextView
-            android:id="@+id/tvHudPhone"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="#3DD6F5"
-            android:textSize="10sp"
-            android:fontFamily="monospace"
-            android:text="PHONE\nAzimuth: --°\nDisplay: ROT_0\nCalib: UNLOCKED" />
-
-        <TextView
-            android:id="@+id/tvHudVehicle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:textColor="#14B8A6"
-            android:textSize="10sp"
-            android:fontFamily="monospace"
-            android:text="VEHICLE\nESKF: --°\nGNSS: --°\nRoute: --°" />
-
-        <TextView
-            android:id="@+id/tvHudSpeed"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:textColor="#FFB020"
-            android:textSize="10sp"
-            android:fontFamily="monospace"
-            android:text="SPEED\nDisp: 0 km/h [GNSS]\nGPS: 0 | ESKF: 0\nTCN: 0 | Health: OK" />
-
-    </LinearLayout>
 
     <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
          DEDICATED FULL SEARCH OVERLAY SCREEN (accessed via Navigate button)
@@ -522,23 +494,24 @@
             android:orientation="vertical"
             android:visibility="visible">
 
+            <!-- GNSS status chip — always visible -->
             <LinearLayout
                 android:id="@+id/gnssStatusChip"
-                android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
                 android:layout_marginBottom="@dimen/space_sm"
                 android:background="@drawable/gnss_status_bg"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="12dp"
+                android:paddingStart="10dp"
                 android:paddingEnd="12dp">
 
                 <TextView
                     android:id="@+id/tvGnssStatusDot"
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
-                    android:background="@drawable/drag_handle_bg"
-                    android:layout_marginEnd="8dp" />
+                    android:layout_width="7dp"
+                    android:layout_height="7dp"
+                    android:background="@drawable/dot_indicator"
+                    android:layout_marginEnd="7dp" />
 
                 <TextView
                     android:id="@+id/tvGnssStatusText"
@@ -553,22 +526,25 @@
                     android:id="@+id/tvNavModeText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="FUSED"
+                    android:text=" · FUSED"
                     android:textColor="@color/text_tertiary"
                     android:textSize="@dimen/text_micro"
-                    android:layout_marginStart="8dp" />
+                    android:layout_marginStart="4dp" />
 
             </LinearLayout>
 
-            <!-- Simple speed display -->
+            <!-- Status row: title + inline speed -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/idle_status_bg"
-                android:padding="@dimen/card_padding_sm"
-                android:layout_marginBottom="0dp">
+                android:paddingStart="@dimen/card_padding_sm"
+                android:paddingEnd="@dimen/card_padding_sm"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:layout_marginBottom="@dimen/space_sm">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -592,8 +568,16 @@
                         android:text="Waiting for location"
                         android:textColor="@color/text_secondary"
                         android:textSize="@dimen/text_body_sm"
-                        android:layout_marginTop="@dimen/space_xs"
-                        android:layout_marginBottom="@dimen/space_sm" />
+                        android:layout_marginTop="2dp" />
+
+                </LinearLayout>
+
+                <!-- Speed pill (compact, right-aligned) -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal">
 
                     <TextView
                         android:id="@+id/tvMetricSpeed"
@@ -608,55 +592,33 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Speed now"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="@dimen/text_micro" />
+                        android:text="km/h"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="@dimen/text_micro"
+                        android:gravity="center" />
 
                 </LinearLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="km/h"
-                    android:textColor="@color/text_tertiary"
-                    android:textSize="@dimen/text_caption"
-                    android:layout_marginStart="@dimen/space_md" />
-
             </LinearLayout>
 
-            <LinearLayout
-                android:id="@+id/idleExpandedContent"
+            <!-- Primary CTA — always visible in collapsed state -->
+            <Button
+                android:id="@+id/btnNavigate"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginTop="@dimen/space_sm"
-                android:visibility="gone">
+                android:layout_height="@dimen/touch_lg"
+                android:text="Search destination"
+                android:textColor="@color/text_inverse"
+                android:textSize="@dimen/text_body_sm"
+                android:textStyle="bold"
+                android:layout_marginBottom="@dimen/space_sm"
+                app:backgroundTint="@null"
+                android:background="@drawable/btn_primary_bg" />
 
-            <!-- Action buttons - simplified -->
+            <!-- Category quick-access — always visible -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btnNavigate"
-                    android:layout_width="0dp"
-                    android:layout_height="@dimen/touch_lg"
-                    android:layout_weight="1"
-                    android:text="Search destination"
-                    android:textColor="@color/text_inverse"
-                    android:textSize="@dimen/text_body_sm"
-                    android:textStyle="bold"
-                    app:backgroundTint="@null"
-                    android:background="@drawable/btn_primary_bg" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="@dimen/space_sm">
 
                 <Button
                     android:id="@+id/btnIdleFuel"
@@ -695,7 +657,14 @@
 
             </LinearLayout>
 
-            </LinearLayout>
+            <!-- Expandable section: kept for swipe-to-expand additional content -->
+            <LinearLayout
+                android:id="@+id/idleExpandedContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/space_sm"
+                android:visibility="gone" />
 
         </LinearLayout>
 
@@ -860,31 +829,30 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <!-- Primary Navigation Stats Row (ETA, Distance, Speed) -->
+            <!-- ── Primary Collapsed Navigation Bar ── -->
             <LinearLayout
+                android:id="@+id/navStatsRow"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="@dimen/space_md">
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="4dp">
 
-                <!-- ETA -->
+                <!-- ETA Column -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1.2"
-                    android:orientation="vertical"
-                    android:background="@drawable/card_bg"
-                    android:gravity="center"
-                    android:padding="@dimen/card_padding"
-                    android:layout_marginEnd="@dimen/space_sm">
+                    android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/tvNavEta"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="--"
-                        android:textColor="@color/nav_success"
-                        android:textSize="@dimen/text_h2"
+                        android:textColor="#F8FAFC"
+                        android:textSize="22sp"
                         android:textStyle="bold"
                         android:includeFontPadding="false" />
 
@@ -892,50 +860,50 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="ETA"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="@dimen/text_caption" />
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginTop="1dp" />
 
                 </LinearLayout>
 
-                <!-- Distance Remaining -->
+                <!-- Remaining Distance Column -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:background="@drawable/card_bg"
-                    android:gravity="center"
-                    android:padding="@dimen/card_padding"
-                    android:layout_marginEnd="@dimen/space_sm">
+                    android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/tvNavDistance"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="--"
-                        android:textColor="@color/nav_warning"
-                        android:textSize="@dimen/text_h3"
+                        android:textColor="#F8FAFC"
+                        android:textSize="22sp"
                         android:textStyle="bold"
-                        android:singleLine="true" />
+                        android:singleLine="true"
+                        android:includeFontPadding="false" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="remaining"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="@dimen/text_caption" />
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginTop="1dp" />
 
                 </LinearLayout>
 
-                <!-- Speed -->
+                <!-- Speed Column -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:background="@drawable/card_bg"
-                    android:gravity="center"
-                    android:padding="@dimen/card_padding">
+                    android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/tvNavSpeed"
@@ -943,7 +911,7 @@
                         android:layout_height="wrap_content"
                         android:text="0"
                         android:textColor="@color/percorsa_primary"
-                        android:textSize="@dimen/text_h3"
+                        android:textSize="22sp"
                         android:textStyle="bold"
                         android:includeFontPadding="false" />
 
@@ -951,57 +919,159 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="km/h"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="@dimen/text_caption" />
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginTop="1dp" />
 
                 </LinearLayout>
 
+                <!-- Compact One-Touch Exit Button -->
+                <FrameLayout
+                    android:id="@+id/btnEndNavQuick"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/close_btn_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="Stop navigation">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_close"
+                        app:tint="#F87171"
+                        android:contentDescription="Stop navigation" />
+
+                </FrameLayout>
+
             </LinearLayout>
 
+            <!-- Thin Subtle Route Progress Line -->
             <ProgressBar
                 android:id="@+id/navRouteProgress"
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="4dp"
+                android:layout_height="2.5dp"
                 android:max="100"
                 android:progress="0"
                 android:progressTint="@color/percorsa_primary"
-                android:progressBackgroundTint="@color/divider_subtle"
-                android:layout_marginBottom="@dimen/space_xs" />
+                android:progressBackgroundTint="#1E2638"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="4dp" />
 
+            <!-- Hidden/Micro progress percentage kept for compatibility -->
             <TextView
                 android:id="@+id/tvNavProgress"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0% complete"
-                android:textColor="@color/text_secondary"
-                android:textSize="@dimen/text_micro"
-                android:layout_marginBottom="@dimen/space_md" />
+                android:textColor="@color/text_tertiary"
+                android:textSize="10sp"
+                android:visibility="gone" />
 
-            <!-- Percorsa DR / Status Line Banner -->
+            <!-- Compact System / Dead Reckoning Status Line (subtle inline indicator) -->
             <TextView
                 android:id="@+id/tvDrStatusLine"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="@color/nav_warning"
-                android:textSize="@dimen/text_body_sm"
+                android:textSize="11sp"
                 android:textStyle="bold"
-                android:background="@drawable/pill_gnss_poor"
-                android:padding="@dimen/card_padding_sm"
-                android:gravity="center"
-                android:visibility="gone"
-                android:layout_marginBottom="@dimen/space_md" />
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:visibility="gone" />
 
-            <!-- End Navigation Button -->
-            <Button
-                android:id="@+id/btnEndNav"
+            <!-- ── Expanded Navigation Details (swipe/tap to view) ── -->
+            <LinearLayout
+                android:id="@+id/navExpandedContent"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/touch_lg"
-                android:text="End Navigation"
-                android:textColor="@color/text_inverse"
-                android:textStyle="bold"
-                android:background="@drawable/btn_danger_bg" />
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="8dp"
+                android:visibility="gone">
+
+                <!-- Divider line -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1E2638"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Destination Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_destination"
+                        app:tint="@color/percorsa_primary"
+                        android:layout_marginEnd="10dp"
+                        android:contentDescription="Destination" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvNavDestName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Destination"
+                            android:textColor="#F8FAFC"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:singleLine="true"
+                            android:ellipsize="end" />
+
+                        <TextView
+                            android:id="@+id/tvNavDestAddress"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:singleLine="true"
+                            android:ellipsize="end"
+                            android:layout_marginTop="1dp" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvNavRouteSummary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="11sp"
+                        android:layout_marginStart="8dp" />
+
+                </LinearLayout>
+
+                <!-- Restrained Secondary End Navigation Action -->
+                <Button
+                    android:id="@+id/btnEndNav"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="End navigation"
+                    android:textColor="#FCA5A5"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@null"
+                    android:background="@drawable/btn_secondary_danger_bg" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
