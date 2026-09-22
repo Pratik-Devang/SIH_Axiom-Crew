@@ -87,8 +87,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvCompassNeedle: TextView
     private lateinit var btnRecenter: FrameLayout
     private lateinit var tvRecenterIcon: TextView
+    private var ivRecenterIcon: ImageView? = null
 
-    // â”€â”€ Full Search Overlay Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Full Search Overlay Screen ──────────────────────────────────────────
     private lateinit var panelSearchOverlay: LinearLayout
     private lateinit var btnSearchBack: ImageButton
     private lateinit var etSearchInput: EditText
@@ -104,36 +105,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var chipHospital: TextView
     private lateinit var chipFood: TextView
 
-    // Live Diagnostics HUD
-    private lateinit var panelDiagnosticsHud: LinearLayout
-    private lateinit var tvHudPhone: TextView
-    private lateinit var tvHudVehicle: TextView
-    private lateinit var tvHudSpeed: TextView
-
     // â”€â”€ Bottom Sheets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private lateinit var bottomSheet: SwipeBottomSheetLayout
     private lateinit var sheetHandle: View
 
-    // Instrument panel (IDLE state â€” was panelIdleSheet, kept same ID)
+    // Instrument panel (IDLE state — was panelIdleSheet, kept same ID)
     private lateinit var panelIdleSheet: LinearLayout
     private lateinit var idleExpandedContent: LinearLayout
     private lateinit var tvMetricSpeed: TextView
     private lateinit var tvIdleLocationStatus: TextView
     private lateinit var btnDebugSettings: ImageButton
-    private lateinit var tvMetricImuHz: TextView
-    private lateinit var tvMetricGpsAcc: TextView
-    private lateinit var tvMetricSamples: TextView
-    private lateinit var tvAccelX: TextView
-    private lateinit var tvAccelY: TextView
-    private lateinit var tvAccelZ: TextView
-    private lateinit var tvOrientPitch: TextView
-    private lateinit var tvOrientRoll: TextView
-    private lateinit var tvOrientYaw: TextView
-    private lateinit var tvTripMode: TextView
-    private lateinit var tvTripDrDistance: TextView
-    private lateinit var tvTripDuration: TextView
-    private lateinit var btnClearPath: Button
-    private lateinit var btnExportCsv: Button
     private lateinit var btnNavigate: Button
     private lateinit var btnIdleFuel: Button
     private lateinit var btnIdleHospital: Button
@@ -151,6 +132,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnStartNav: Button
 
     private lateinit var panelNavigatingSheet: LinearLayout
+    private lateinit var navStatsRow: LinearLayout
     private lateinit var tvNavSpeed: TextView
     private lateinit var tvNavDistance: TextView
     private lateinit var tvNavEta: TextView
@@ -158,6 +140,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navRouteProgress: ProgressBar
     private lateinit var tvNavProgress: TextView
     private lateinit var btnEndNav: Button
+    private lateinit var btnEndNavQuick: FrameLayout
+    private lateinit var navExpandedContent: LinearLayout
+    private lateinit var tvNavDestName: TextView
+    private lateinit var tvNavDestAddress: TextView
+    private lateinit var tvNavRouteSummary: TextView
+    private var isNavSheetExpanded = false
 
     private lateinit var panelArrivedSheet: LinearLayout
     private lateinit var tvArrivedDestName: TextView
@@ -252,12 +240,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnStartNav.setOnClickListener {
+            isNavSheetExpanded = false
+            navExpandedContent.visibility = View.GONE
             navController?.beginDriving()
             cameraState = MapCameraState.FOLLOWING
             updateRecenterButtonAppearance()
         }
 
         btnEndNav.setOnClickListener {
+            isNavSheetExpanded = false
+            navExpandedContent.visibility = View.GONE
             navController?.stopNavigation()
             mapWebView.evaluateJavascript("clearRoute(); clearPath();", null)
             routeDrawn = false
@@ -308,6 +300,7 @@ class MainActivity : AppCompatActivity() {
         tvCompassNeedle             = findViewById(R.id.tvCompassNeedle)
         btnRecenter                 = findViewById(R.id.btnRecenter)
         tvRecenterIcon              = findViewById(R.id.tvRecenterIcon)
+        ivRecenterIcon              = findViewById(R.id.ivRecenterIcon)
 
         // Search overlay
         panelSearchOverlay          = findViewById(R.id.panelSearchOverlay)
@@ -339,11 +332,6 @@ class MainActivity : AppCompatActivity() {
         btnIdleHospital             = findViewById(R.id.btnIdleHospital)
         btnIdleFood                 = findViewById(R.id.btnIdleFood)
 
-        panelDiagnosticsHud         = findViewById(R.id.panelDiagnosticsHud)
-        tvHudPhone                  = findViewById(R.id.tvHudPhone)
-        tvHudVehicle                = findViewById(R.id.tvHudVehicle)
-        tvHudSpeed                  = findViewById(R.id.tvHudSpeed)
-
         panelRoutePreviewSheet      = findViewById(R.id.panelRoutePreviewSheet)
         tvDestinationName           = findViewById(R.id.tvDestinationName)
         tvDestinationAddress        = findViewById(R.id.tvDestinationAddress)
@@ -355,6 +343,7 @@ class MainActivity : AppCompatActivity() {
         btnStartNav                 = findViewById(R.id.btnStartNav)
 
         panelNavigatingSheet        = findViewById(R.id.panelNavigatingSheet)
+        navStatsRow                 = findViewById(R.id.navStatsRow)
         tvNavSpeed                  = findViewById(R.id.tvNavSpeed)
         tvNavDistance               = findViewById(R.id.tvNavDistance)
         tvNavEta                    = findViewById(R.id.tvNavEta)
@@ -362,6 +351,11 @@ class MainActivity : AppCompatActivity() {
         navRouteProgress            = findViewById(R.id.navRouteProgress)
         tvNavProgress               = findViewById(R.id.tvNavProgress)
         btnEndNav                   = findViewById(R.id.btnEndNav)
+        btnEndNavQuick              = findViewById(R.id.btnEndNavQuick)
+        navExpandedContent          = findViewById(R.id.navExpandedContent)
+        tvNavDestName               = findViewById(R.id.tvNavDestName)
+        tvNavDestAddress            = findViewById(R.id.tvNavDestAddress)
+        tvNavRouteSummary           = findViewById(R.id.tvNavRouteSummary)
 
         panelArrivedSheet           = findViewById(R.id.panelArrivedSheet)
         tvArrivedDestName           = findViewById(R.id.tvArrivedDestName)
@@ -437,13 +431,32 @@ class MainActivity : AppCompatActivity() {
             openSearchOverlay()
         }
 
+        btnEndNavQuick.setOnClickListener {
+            btnEndNav.performClick()
+        }
+
+        navStatsRow.setOnClickListener {
+            if (panelNavigatingSheet.visibility == View.VISIBLE) {
+                isNavSheetExpanded = !isNavSheetExpanded
+                updateNavSheetExpansion()
+            }
+        }
+
         sheetHandle.setOnClickListener {
-            isIdleSheetExpanded = !isIdleSheetExpanded
-            updateIdleSheetExpansion()
+            if (panelNavigatingSheet.visibility == View.VISIBLE) {
+                isNavSheetExpanded = !isNavSheetExpanded
+                updateNavSheetExpansion()
+            } else if (panelIdleSheet.visibility == View.VISIBLE) {
+                isIdleSheetExpanded = !isIdleSheetExpanded
+                updateIdleSheetExpansion()
+            }
         }
 
         bottomSheet.onVerticalSwipe = { expand ->
-            if (panelIdleSheet.visibility == View.VISIBLE && isIdleSheetExpanded != expand) {
+            if (panelNavigatingSheet.visibility == View.VISIBLE && isNavSheetExpanded != expand) {
+                isNavSheetExpanded = expand
+                updateNavSheetExpansion()
+            } else if (panelIdleSheet.visibility == View.VISIBLE && isIdleSheetExpanded != expand) {
                 isIdleSheetExpanded = expand
                 updateIdleSheetExpansion()
             }
@@ -521,6 +534,39 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateNavSheetExpansion() {
+        navExpandedContent.animate().cancel()
+        val travel = 12f * resources.displayMetrics.density
+        if (isNavSheetExpanded) {
+            navExpandedContent.visibility = View.VISIBLE
+            navExpandedContent.alpha = 0f
+            navExpandedContent.translationY = travel
+            navExpandedContent.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(220L)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        } else {
+            navExpandedContent.animate()
+                .alpha(0f)
+                .translationY(travel)
+                .setDuration(170L)
+                .setInterpolator(DecelerateInterpolator())
+                .withEndAction {
+                    navExpandedContent.visibility = View.GONE
+                    navExpandedContent.alpha = 1f
+                    navExpandedContent.translationY = 0f
+                }
+                .start()
+        }
+        sheetHandle.contentDescription = if (isNavSheetExpanded) {
+            "Collapse navigation details"
+        } else {
+            "Expand navigation details"
+        }
+    }
+
     private fun resetTripCounters() {
         tripStartMs = 0L
         drPathDistanceM = 0.0
@@ -589,13 +635,19 @@ class MainActivity : AppCompatActivity() {
     // â”€â”€ State Rendering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun renderState(state: NavigationState) {
+        val isNavigating = state.navMode == NavMode.NAVIGATING ||
+                state.navMode == NavMode.GNSS_DEGRADED ||
+                state.navMode == NavMode.GNSS_DENIED
+
+        // In active navigation, hide the full-size search bar to give maximum map dominance
+        floatingSearchBar.visibility = if (isNavigating) View.GONE else View.VISIBLE
+
         renderGnssStatusChip(state)
         renderBottomSheet(state)
         renderManeuverCard(state)
         renderMap(state)
         renderCompass(state)
         renderInstrumentPanel(state)
-        renderDiagnosticsHud(state)
     }
 
     private fun renderGnssStatusChip(state: NavigationState) {
@@ -647,17 +699,17 @@ class MainActivity : AppCompatActivity() {
                 rowSecondManeuver.visibility = View.GONE
             }
 
-            // Update GNSS badge in maneuver card
-            val gnssBadgeText = when (state.gnssQuality) {
-                GnssQuality.GOOD -> "GNSS"
-                GnssQuality.FAIR -> "FAIR"
-                GnssQuality.POOR -> "POOR"
-                GnssQuality.DENIED -> "SENSORS"
-                GnssQuality.RECOVERING -> "BACK"
+            // Compact status badge in maneuver card (● GNSS / ● DR / ● DEGRADED)
+            val (badgeText, badgeColor) = when {
+                state.drActive -> Pair("● DR", ContextCompat.getColor(this, R.color.nav_warning))
+                state.gnssQuality == GnssQuality.GOOD -> Pair("● GNSS", ContextCompat.getColor(this, R.color.gnss_good))
+                state.gnssQuality == GnssQuality.FAIR || state.gnssQuality == GnssQuality.POOR -> Pair("● DEGRADED", ContextCompat.getColor(this, R.color.nav_warning))
+                state.gnssQuality == GnssQuality.DENIED -> Pair("● DR", ContextCompat.getColor(this, R.color.gnss_denied))
+                state.gnssQuality == GnssQuality.RECOVERING -> Pair("● RECOVERING", ContextCompat.getColor(this, R.color.nav_warning))
+                else -> Pair("● GNSS", ContextCompat.getColor(this, R.color.gnss_good))
             }
-            tvGnssBadge.text = gnssBadgeText
-            tvGnssBadge.setTextColor(gnssColor(state.gnssQuality))
-            tvGnssBadge.setBackgroundResource(gnssPillBackground(state.gnssQuality))
+            tvGnssBadge.text = badgeText
+            tvGnssBadge.setTextColor(badgeColor)
         }
     }
 
@@ -681,7 +733,10 @@ class MainActivity : AppCompatActivity() {
         when (state.navMode) {
             NavMode.IDLE -> {
                 show(panelIdleSheet)
-                // Instrument panel is rendered by renderInstrumentPanel()
+                if (isNavSheetExpanded) {
+                    isNavSheetExpanded = false
+                    navExpandedContent.visibility = View.GONE
+                }
             }
             NavMode.SEARCHING -> {
                 // Search overlay is already full-screen; keep instrument panel visible beneath
@@ -709,17 +764,47 @@ class MainActivity : AppCompatActivity() {
                 navRouteProgress.progress = state.routeProgressPercent
                 tvNavProgress.text = "%d%% complete".format(Locale.US, state.routeProgressPercent)
 
-                val statusLine = state.statusLine
-                tvDrStatusLine.text = statusLine
-                tvDrStatusLine.visibility = if (statusLine.isNotEmpty()) View.VISIBLE else View.GONE
+                // Populate expanded navigation details
+                tvNavDestName.text = state.destination?.name ?: "Current Route"
+                tvNavDestAddress.text = state.destination?.address ?: ""
+                val duration = state.route?.durationFormatted ?: state.etaFormatted
+                val distance = state.route?.distanceFormatted ?: state.distanceFormatted
+                tvNavRouteSummary.text = if (duration != "--" && distance != "--") "$distance · $duration" else ""
+
+                // Compact subtle status line
+                val rawStatus = state.statusLine
+                if (rawStatus.isNotEmpty()) {
+                    val cleanStatus = rawStatus.replace("â€”", "·").replace("—", "·").replace(" - ", " · ")
+                    tvDrStatusLine.text = "● $cleanStatus"
+                    val statusColor = when {
+                        state.navMode == NavMode.GNSS_DENIED || state.drActive || state.offRoute ->
+                            ContextCompat.getColor(this, R.color.nav_warning)
+                        state.speedSource == SpeedSource.UNAVAILABLE ->
+                            ContextCompat.getColor(this, R.color.nav_error)
+                        else ->
+                            ContextCompat.getColor(this, R.color.nav_warning)
+                    }
+                    tvDrStatusLine.setTextColor(statusColor)
+                    tvDrStatusLine.visibility = View.VISIBLE
+                } else {
+                    tvDrStatusLine.visibility = View.GONE
+                }
             }
             NavMode.ARRIVED -> {
                 show(panelArrivedSheet)
                 tvArrivedDestName.text = state.destination?.name ?: ""
+                if (isNavSheetExpanded) {
+                    isNavSheetExpanded = false
+                    navExpandedContent.visibility = View.GONE
+                }
             }
             NavMode.ERROR -> {
                 show(panelIdleSheet)
                 state.errorMessage?.let { Toast.makeText(this, it, Toast.LENGTH_LONG).show() }
+                if (isNavSheetExpanded) {
+                    isNavSheetExpanded = false
+                    navExpandedContent.visibility = View.GONE
+                }
             }
         }
     }
@@ -741,44 +826,6 @@ class MainActivity : AppCompatActivity() {
         compassIndicator.rotation = -state.compassBearingDeg
     }
 
-    private fun renderDiagnosticsHud(state: NavigationState) {
-        val snap = navController?.sensorEngine?.getSnapshot()
-        val dispRot = when (navController?.sensorEngine?.displayRotation) {
-            android.view.Surface.ROTATION_90  -> "ROT_90"
-            android.view.Surface.ROTATION_180 -> "ROT_180"
-            android.view.Surface.ROTATION_270 -> "ROT_270"
-            else                              -> "ROT_0"
-        }
-        val calib = if (snap?.isCalibrated == true) "LOCKED" else "UNLOCKED"
-        val srcName = when (state.rotationSource) {
-            RotationSource.ROTATION_VECTOR -> "RV"
-            RotationSource.GAME_ROTATION_VECTOR -> "GAME_RV"
-            RotationSource.NONE -> "NONE"
-        }
-        val confName = state.deviceHeadingConfidence.name
-        tvHudPhone.text = "PHONE\nAz: %.1f° [%s]\nSrc: %s | Disp: %s\nCalib: %s".format(
-            Locale.US, state.deviceAzimuthDeg, confName, srcName, dispRot, calib
-        )
-
-        val eskfHeadingStr = if (state.vehicleHeadingDeg.isFinite()) "%.1f°".format(Locale.US, state.vehicleHeadingDeg) else "--°"
-        val gnssCourseStr = if (snap?.gpsBearingDeg?.isFinite() == true) "%.1f°".format(Locale.US, snap.gpsBearingDeg) else "--°"
-        val routeBearingStr = if (state.routeBearingDeg.isFinite()) "%.1f°".format(Locale.US, state.routeBearingDeg) else "--°"
-        tvHudVehicle.text = "VEHICLE\nESKF: %s\nGNSS: %s\nRoute: %s".format(
-            eskfHeadingStr, gnssCourseStr, routeBearingStr
-        )
-
-        val gnssSpeedKmh = if (snap?.gpsSpeedMps?.isFinite() == true) (snap.gpsSpeedMps * 3.6f).toInt().toString() else "--"
-        val eskfSpeedKmh = if (state.eskfRawSpeedMps.isFinite()) (state.eskfRawSpeedMps * 3.6f).toInt().toString() else "--"
-        val tcnSpeedKmh = if (state.mlInferenceActive && state.mlSpeedMps.isFinite()) (state.mlSpeedMps * 3.6f).toInt().toString() else "--"
-        val healthStr = if (state.eskfHealthState == EskfHealthState.HEALTHY) {
-            "HEALTHY"
-        } else {
-            "${state.eskfHealthState.name}(${state.eskfHealthReason.name})"
-        }
-        tvHudSpeed.text = "SPEED\nDisp: %s km/h [%s]\nGPS: %s | ESKF: %s\nTCN: %s | %s".format(
-            state.speedKmhDisplay, state.speedSource.name, gnssSpeedKmh, eskfSpeedKmh, tcnSpeedKmh, healthStr
-        )
-    }
 
     private fun renderMap(state: NavigationState) {
         if (!mapReady) return
@@ -840,8 +887,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateRecenterButtonAppearance() {
-        // Always neutral â€” recenter is not a state indicator, just an action
+        // Always neutral — recenter is not a state indicator, just an action
         tvRecenterIcon.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+        ivRecenterIcon?.setColorFilter(ContextCompat.getColor(this, R.color.text_primary))
     }
 
     // â”€â”€ Leaflet HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -869,7 +917,7 @@ class MainActivity : AppCompatActivity() {
     }
     .leaflet-control-zoom a:hover { background:#182238!important; color:#3DD6F5!important; }
     .leaflet-control-attribution {
-      font-size:8px; opacity:0.3; background:transparent!important; color:#8A93A6!important; margin-bottom: 260px!important;
+      font-size:8px; opacity:0.3; background:transparent!important; color:#8A93A6!important; margin-bottom: 95px!important;
     }
     .leaflet-tile-pane { filter: brightness(0.58) contrast(1.14) saturate(0.72); }
     @keyframes snapPulse {
@@ -943,28 +991,28 @@ class MainActivity : AppCompatActivity() {
     }
   });
 
-  // â”€â”€ Signature Percorsa Vehicle Marker: Trust Halo & Expanding Uncertainty Cone â”€â”€
+  // ── Signature Percorsa Vehicle Marker: Clean Navigation Puck & Covariance Ring ──
   function makeVehicleIcon(bearing, isDr) {
     var haloColor = isDr ? '#FFB020' : '#3DD6F5';
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">';
     
     if (isDr) {
       // Widening translucent uncertainty cone projecting forward
-      svg += '<polygon points="48,48 20,2 76,2" fill="url(#coneGradient)" opacity="0.45"/>' +
+      svg += '<polygon points="48,48 24,6 72,6" fill="url(#coneGradient)" opacity="0.35"/>' +
              '<defs><linearGradient id="coneGradient" x1="0" y1="1" x2="0" y2="0">' +
-             '<stop offset="0%" stop-color="#FFB020" stop-opacity="0.8"/>' +
-             '<stop offset="100%" stop-color="#FFB020" stop-opacity="0.05"/>' +
+             '<stop offset="0%" stop-color="#FFB020" stop-opacity="0.6"/>' +
+             '<stop offset="100%" stop-color="#FFB020" stop-opacity="0.02"/>' +
              '</linearGradient></defs>' +
              // Amber outer trust ring
-             '<circle cx="48" cy="48" r="22" fill="#FFB020" fill-opacity="0.18" stroke="#FFB020" stroke-width="2.5"/>';
+             '<circle cx="48" cy="48" r="20" fill="#FFB020" fill-opacity="0.12" stroke="#FFB020" stroke-width="1.5"/>';
     } else {
-      // Thin steady cyan trust ring (tight covariance)
-      svg += '<circle cx="48" cy="48" r="18" fill="#3DD6F5" fill-opacity="0.15" stroke="#3DD6F5" stroke-width="2"/>';
+      // Thin steady cyan trust ring
+      svg += '<circle cx="48" cy="48" r="18" fill="#3DD6F5" fill-opacity="0.12" stroke="#3DD6F5" stroke-width="1.5"/>';
     }
 
-    // Vehicle Core Geometry
-    svg += '<circle cx="48" cy="48" r="13" fill="#F8FAFC" stroke="' + haloColor + '" stroke-width="3"/>' +
-           '<path d="M48 23 L62 61 L48 54 L34 61 Z" fill="#0F172A" stroke="' + haloColor + '" stroke-width="2" stroke-linejoin="round"/>' +
+    // Vehicle Core Geometry: Modern clean navigation puck (dark disc + white border + vibrant chevron)
+    svg += '<circle cx="48" cy="48" r="14" fill="#0D1524" stroke="#FFFFFF" stroke-width="2.5"/>' +
+           '<path d="M48 24 L60 58 L48 51 L36 58 Z" fill="' + haloColor + '"/>' +
            '</svg>';
 
     return L.divIcon({
@@ -972,6 +1020,7 @@ class MainActivity : AppCompatActivity() {
       iconSize:[96,96], iconAnchor:[48,48], className:''
     });
   }
+
 
   function makeDestIcon() {
     return L.divIcon({

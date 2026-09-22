@@ -24,7 +24,7 @@
     <!-- ── Card / Sheet Elevation ────────────────────────────────────────── -->
     <dimen name="card_padding">20dp</dimen>
     <dimen name="card_padding_sm">16dp</dimen>
-    <dimen name="sheet_padding_h">24dp</dimen>
+    <dimen name="sheet_padding_h">16dp</dimen>
     <dimen name="elevation_card">8dp</dimen>
     <dimen name="elevation_sheet">16dp</dimen>
     <dimen name="elevation_fab">12dp</dimen>
@@ -56,9 +56,9 @@
     <dimen name="sheet_top_radius">28dp</dimen>
 
     <!-- ── Search Bar ─────────────────────────────────────────────────────── -->
-    <dimen name="search_bar_height">56dp</dimen>
-    <dimen name="search_margin_top">40dp</dimen>
-    <dimen name="search_margin_horizontal">20dp</dimen>
+    <dimen name="search_bar_height">48dp</dimen>
+    <dimen name="search_margin_top">44dp</dimen>
+    <dimen name="search_margin_horizontal">16dp</dimen>
 
     <!-- ── Status Chips ───────────────────────────────────────────────────── -->
     <dimen name="chip_height">32dp</dimen>
