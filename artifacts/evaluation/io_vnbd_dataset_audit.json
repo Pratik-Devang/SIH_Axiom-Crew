@@ -1,0 +1,1260 @@
+{
+  "source": {
+    "processed_dir": "C:\\Users\\Parth\\Desktop\\Github\\Percorsa\\data\\processed\\io_vnbd\\trips",
+    "manifest": "C:\\Users\\Parth\\Desktop\\Github\\Percorsa\\data\\splits\\io_vnbd_splits.yaml",
+    "raw_dir": "C:\\Users\\Parth\\Desktop\\Github\\Percorsa\\data\\raw\\io_vnbd",
+    "available_processed_trips": [
+      "M",
+      "S1",
+      "S2",
+      "S3a",
+      "S3b",
+      "S3c",
+      "S4",
+      "Vfa01",
+      "Vfa02",
+      "Vta1a",
+      "Vta1b",
+      "Vw1",
+      "Vw10",
+      "Vw11",
+      "Vw12",
+      "Vw13",
+      "Vw14a",
+      "Vw14b",
+      "Vw14c",
+      "Vw15",
+      "Vw16a",
+      "Vw16b",
+      "Vw17",
+      "Vw2",
+      "Vw3",
+      "Vw4",
+      "Vw5",
+      "Vw6",
+      "Vw7",
+      "Vw8",
+      "Vw9",
+      "Y1"
+    ],
+    "additional_unassigned_trips": []
+  },
+  "split": {
+    "train": [
+      "S1",
+      "S2",
+      "S3a",
+      "S3b",
+      "S3c",
+      "S4",
+      "Vw1",
+      "Vw2",
+      "Vw3",
+      "Vw4",
+      "Vw5",
+      "Vw6",
+      "Vw7",
+      "Vw8",
+      "Vw9",
+      "Vw10",
+      "Vw11",
+      "Vw12",
+      "Vw13",
+      "Vw14a",
+      "Vw14b",
+      "Vw14c",
+      "Vw15",
+      "Vw16a",
+      "Vw16b",
+      "Vw17"
+    ],
+    "validation": [
+      "M",
+      "Vfa01",
+      "Vfa02"
+    ],
+    "test": [
+      "Vta1a",
+      "Vta1b",
+      "Y1"
+    ]
+  },
+  "dataset_size": {
+    "total_trips": 32,
+    "total_samples": 766749,
+    "train_samples": 532441,
+    "train_windows_stride1": 531167,
+    "usable_duration_s": 76671.70000000545
+  },
+  "quality": {
+    "nan_inf": 0,
+    "missing_channels": [],
+    "timestamp_duplicates": 0,
+    "timestamp_non_monotonic": 0,
+    "timestamp_gaps_over_0_2s": 0
+  },
+  "frame_contract": {
+    "channels": [
+      "accel_x",
+      "accel_y",
+      "accel_z",
+      "gyro_x",
+      "gyro_y",
+      "gyro_z"
+    ],
+    "semantic_order": [
+      "forward_accel",
+      "lateral_accel",
+      "up_accel",
+      "gyro_forward",
+      "gyro_left",
+      "gyro_up"
+    ],
+    "units": {
+      "accel": "m/s^2",
+      "gyro": "rad/s"
+    },
+    "gravity_included": true,
+    "vehicle_frame_transform_verified": false,
+    "reason": "processed CSVs contain vehicle-aligned fields but raw transform provenance is not encoded per row"
+  },
+  "label_audit": {
+    "vehicle_speed_source": "Indicated Vehicle Speed (km/hr), converted to vehicle_speed in preparation",
+    "independent_reference_comparison": "not performed; no independent reference field was assumed"
+  },
+  "per_trip": {
+    "M": {
+      "rows": 61761,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 61712,
+      "speed_bins": {
+        "0-5": 3455,
+        "5-20": 7963,
+        "20-40": 24811,
+        "40-60": 17695,
+        "60-80": 7799,
+        "80-plus": 38
+      },
+      "motion_states": {
+        "acceleration": 1839,
+        "braking": 2110,
+        "cruising": 55339,
+        "stationary": 2473
+      },
+      "duration_s": 6176.0,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 2473,
+      "suspicious_imu_values": 0
+    },
+    "S1": {
+      "rows": 51746,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 51697,
+      "speed_bins": {
+        "0-5": 7755,
+        "5-20": 9504,
+        "20-40": 22949,
+        "40-60": 10945,
+        "60-80": 593,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 1405,
+        "braking": 2208,
+        "cruising": 43107,
+        "stationary": 5026
+      },
+      "duration_s": 5174.500000000005,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 5026,
+      "suspicious_imu_values": 0
+    },
+    "S2": {
+      "rows": 92012,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 91963,
+      "speed_bins": {
+        "0-5": 14633,
+        "5-20": 15253,
+        "20-40": 37094,
+        "40-60": 18155,
+        "60-80": 3763,
+        "80-plus": 3114
+      },
+      "motion_states": {
+        "acceleration": 2754,
+        "braking": 4480,
+        "cruising": 74233,
+        "stationary": 10545
+      },
+      "duration_s": 9201.1,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 10545,
+      "suspicious_imu_values": 0
+    },
+    "S3a": {
+      "rows": 24621,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 24572,
+      "speed_bins": {
+        "0-5": 2571,
+        "5-20": 2380,
+        "20-40": 7541,
+        "40-60": 8287,
+        "60-80": 2696,
+        "80-plus": 1146
+      },
+      "motion_states": {
+        "acceleration": 537,
+        "braking": 898,
+        "cruising": 21166,
+        "stationary": 2020
+      },
+      "duration_s": 2462.000000000035,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 2020,
+      "suspicious_imu_values": 0
+    },
+    "S3b": {
+      "rows": 27076,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 27027,
+      "speed_bins": {
+        "0-5": 927,
+        "5-20": 2060,
+        "20-40": 3629,
+        "40-60": 20460,
+        "60-80": 0,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 290,
+        "braking": 502,
+        "cruising": 25746,
+        "stationary": 538
+      },
+      "duration_s": 2707.5,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 538,
+      "suspicious_imu_values": 0
+    },
+    "S3c": {
+      "rows": 37183,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 37134,
+      "speed_bins": {
+        "0-5": 3438,
+        "5-20": 4077,
+        "20-40": 12988,
+        "40-60": 7167,
+        "60-80": 5349,
+        "80-plus": 4164
+      },
+      "motion_states": {
+        "acceleration": 769,
+        "braking": 1420,
+        "cruising": 32546,
+        "stationary": 2448
+      },
+      "duration_s": 3718.200000000846,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 2448,
+      "suspicious_imu_values": 0
+    },
+    "S4": {
+      "rows": 55781,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 55732,
+      "speed_bins": {
+        "0-5": 11515,
+        "5-20": 4766,
+        "20-40": 13621,
+        "40-60": 13334,
+        "60-80": 6552,
+        "80-plus": 5993
+      },
+      "motion_states": {
+        "acceleration": 1890,
+        "braking": 2404,
+        "cruising": 43060,
+        "stationary": 8427
+      },
+      "duration_s": 5578.0,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 8427,
+      "suspicious_imu_values": 0
+    },
+    "Vfa01": {
+      "rows": 11486,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 11437,
+      "speed_bins": {
+        "0-5": 796,
+        "5-20": 331,
+        "20-40": 1263,
+        "40-60": 2474,
+        "60-80": 3798,
+        "80-plus": 2824
+      },
+      "motion_states": {
+        "acceleration": 175,
+        "braking": 431,
+        "cruising": 10247,
+        "stationary": 633
+      },
+      "duration_s": 1148.500000000001,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 633,
+      "suspicious_imu_values": 0
+    },
+    "Vfa02": {
+      "rows": 67523,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 67474,
+      "speed_bins": {
+        "0-5": 1259,
+        "5-20": 1002,
+        "20-40": 3222,
+        "40-60": 3056,
+        "60-80": 2391,
+        "80-plus": 56593
+      },
+      "motion_states": {
+        "acceleration": 535,
+        "braking": 721,
+        "cruising": 65340,
+        "stationary": 927
+      },
+      "duration_s": 6752.200000000001,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 927,
+      "suspicious_imu_values": 0
+    },
+    "Vta1a": {
+      "rows": 25676,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 25627,
+      "speed_bins": {
+        "0-5": 414,
+        "5-20": 443,
+        "20-40": 3884,
+        "40-60": 7817,
+        "60-80": 10585,
+        "80-plus": 2533
+      },
+      "motion_states": {
+        "acceleration": 399,
+        "braking": 990,
+        "cruising": 24201,
+        "stationary": 86
+      },
+      "duration_s": 2567.5,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 86,
+      "suspicious_imu_values": 0
+    },
+    "Vta1b": {
+      "rows": 953,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 904,
+      "speed_bins": {
+        "0-5": 27,
+        "5-20": 32,
+        "20-40": 289,
+        "40-60": 330,
+        "60-80": 275,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 70,
+        "braking": 87,
+        "cruising": 790,
+        "stationary": 6
+      },
+      "duration_s": 95.19999999991342,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 6,
+      "suspicious_imu_values": 0
+    },
+    "Vw1": {
+      "rows": 918,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 869,
+      "speed_bins": {
+        "0-5": 0,
+        "5-20": 0,
+        "20-40": 0,
+        "40-60": 0,
+        "60-80": 0,
+        "80-plus": 918
+      },
+      "motion_states": {
+        "cruising": 918
+      },
+      "duration_s": 91.7,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 0,
+      "suspicious_imu_values": 0
+    },
+    "Vw10": {
+      "rows": 652,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 603,
+      "speed_bins": {
+        "0-5": 0,
+        "5-20": 41,
+        "20-40": 187,
+        "40-60": 424,
+        "60-80": 0,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 13,
+        "braking": 45,
+        "cruising": 594
+      },
+      "duration_s": 65.10000000023683,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 0,
+      "suspicious_imu_values": 0
+    },
+    "Vw11": {
+      "rows": 4909,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 4860,
+      "speed_bins": {
+        "0-5": 896,
+        "5-20": 376,
+        "20-40": 1060,
+        "40-60": 1286,
+        "60-80": 327,
+        "80-plus": 964
+      },
+      "motion_states": {
+        "acceleration": 206,
+        "braking": 286,
+        "cruising": 3735,
+        "stationary": 682
+      },
+      "duration_s": 490.8000000017837,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 682,
+      "suspicious_imu_values": 0
+    },
+    "Vw12": {
+      "rows": 918,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 869,
+      "speed_bins": {
+        "0-5": 0,
+        "5-20": 0,
+        "20-40": 0,
+        "40-60": 0,
+        "60-80": 0,
+        "80-plus": 918
+      },
+      "motion_states": {
+        "cruising": 918
+      },
+      "duration_s": 91.7,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 0,
+      "suspicious_imu_values": 0
+    },
+    "Vw13": {
+      "rows": 284,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 235,
+      "speed_bins": {
+        "0-5": 0,
+        "5-20": 0,
+        "20-40": 0,
+        "40-60": 0,
+        "60-80": 0,
+        "80-plus": 284
+      },
+      "motion_states": {
+        "cruising": 284
+      },
+      "duration_s": 28.300000000000008,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 0,
+      "suspicious_imu_values": 0
+    },
+    "Vw14a": {
+      "rows": 3138,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 3089,
+      "speed_bins": {
+        "0-5": 0,
+        "5-20": 0,
+        "20-40": 0,
+        "40-60": 0,
+        "60-80": 186,
+        "80-plus": 2952
+      },
+      "motion_states": {
+        "acceleration": 1,
+        "braking": 46,
+        "cruising": 3091
+      },
+      "duration_s": 313.70000000000005,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 0,
+      "suspicious_imu_values": 0
+    },
+    "Vw14b": {
+      "rows": 19588,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 19539,
+      "speed_bins": {
+        "0-5": 0,
+        "5-20": 422,
+        "20-40": 1597,
+        "40-60": 1661,
+        "60-80": 6123,
+        "80-plus": 9785
+      },
+      "motion_states": {
+        "acceleration": 111,
+        "braking": 116,
+        "cruising": 19361
+      },
+      "duration_s": 1958.700000000445,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 0,
+      "suspicious_imu_values": 0
+    },
+    "Vw14c": {
+      "rows": 15826,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 15777,
+      "speed_bins": {
+        "0-5": 3237,
+        "5-20": 2954,
+        "20-40": 2545,
+        "40-60": 2293,
+        "60-80": 1987,
+        "80-plus": 2810
+      },
+      "motion_states": {
+        "acceleration": 431,
+        "braking": 616,
+        "cruising": 12611,
+        "stationary": 2168
+      },
+      "duration_s": 1582.4999999985612,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 2168,
+      "suspicious_imu_values": 0
+    },
+    "Vw15": {
+      "rows": 1380,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 1331,
+      "speed_bins": {
+        "0-5": 1380,
+        "5-20": 0,
+        "20-40": 0,
+        "40-60": 0,
+        "60-80": 0,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "stationary": 1380
+      },
+      "duration_s": 137.9,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 1380,
+      "suspicious_imu_values": 0
+    },
+    "Vw16a": {
+      "rows": 5879,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 5830,
+      "speed_bins": {
+        "0-5": 553,
+        "5-20": 249,
+        "20-40": 569,
+        "40-60": 1820,
+        "60-80": 2410,
+        "80-plus": 278
+      },
+      "motion_states": {
+        "acceleration": 136,
+        "braking": 116,
+        "cruising": 5231,
+        "stationary": 396
+      },
+      "duration_s": 587.8000000000001,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 396,
+      "suspicious_imu_values": 0
+    },
+    "Vw16b": {
+      "rows": 1126,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 1077,
+      "speed_bins": {
+        "0-5": 22,
+        "5-20": 35,
+        "20-40": 57,
+        "40-60": 444,
+        "60-80": 287,
+        "80-plus": 281
+      },
+      "motion_states": {
+        "acceleration": 66,
+        "braking": 85,
+        "cruising": 975
+      },
+      "duration_s": 112.50000000002558,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 0,
+      "suspicious_imu_values": 0
+    },
+    "Vw17": {
+      "rows": 329,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 280,
+      "speed_bins": {
+        "0-5": 0,
+        "5-20": 0,
+        "20-40": 16,
+        "40-60": 156,
+        "60-80": 157,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 29,
+        "braking": 62,
+        "cruising": 238
+      },
+      "duration_s": 32.80000000000746,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 0,
+      "suspicious_imu_values": 0
+    },
+    "Vw2": {
+      "rows": 52712,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 52663,
+      "speed_bins": {
+        "0-5": 3386,
+        "5-20": 1436,
+        "20-40": 3970,
+        "40-60": 6639,
+        "60-80": 19945,
+        "80-plus": 17336
+      },
+      "motion_states": {
+        "acceleration": 891,
+        "braking": 1305,
+        "cruising": 47988,
+        "stationary": 2528
+      },
+      "duration_s": 5271.1,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 2528,
+      "suspicious_imu_values": 0
+    },
+    "Vw3": {
+      "rows": 3861,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 3812,
+      "speed_bins": {
+        "0-5": 379,
+        "5-20": 167,
+        "20-40": 761,
+        "40-60": 1430,
+        "60-80": 1124,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 146,
+        "braking": 270,
+        "cruising": 3280,
+        "stationary": 165
+      },
+      "duration_s": 386.00000000140426,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 165,
+      "suspicious_imu_values": 0
+    },
+    "Vw4": {
+      "rows": 126526,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 126477,
+      "speed_bins": {
+        "0-5": 10224,
+        "5-20": 6681,
+        "20-40": 20782,
+        "40-60": 25164,
+        "60-80": 22543,
+        "80-plus": 41132
+      },
+      "motion_states": {
+        "acceleration": 3401,
+        "braking": 4653,
+        "cruising": 110921,
+        "stationary": 7551
+      },
+      "duration_s": 12652.500000000011,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 7551,
+      "suspicious_imu_values": 0
+    },
+    "Vw5": {
+      "rows": 1012,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 963,
+      "speed_bins": {
+        "0-5": 58,
+        "5-20": 192,
+        "20-40": 762,
+        "40-60": 0,
+        "60-80": 0,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 73,
+        "braking": 113,
+        "cruising": 786,
+        "stationary": 40
+      },
+      "duration_s": 101.10000000036962,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 40,
+      "suspicious_imu_values": 0
+    },
+    "Vw6": {
+      "rows": 1281,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 1232,
+      "speed_bins": {
+        "0-5": 14,
+        "5-20": 96,
+        "20-40": 1154,
+        "40-60": 17,
+        "60-80": 0,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 45,
+        "braking": 76,
+        "cruising": 1160
+      },
+      "duration_s": 128.00000000046384,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 0,
+      "suspicious_imu_values": 0
+    },
+    "Vw7": {
+      "rows": 1602,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 1553,
+      "speed_bins": {
+        "0-5": 58,
+        "5-20": 297,
+        "20-40": 1216,
+        "40-60": 31,
+        "60-80": 0,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 125,
+        "braking": 183,
+        "cruising": 1283,
+        "stationary": 11
+      },
+      "duration_s": 160.10000000058244,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 11,
+      "suspicious_imu_values": 0
+    },
+    "Vw8": {
+      "rows": 1529,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 1480,
+      "speed_bins": {
+        "0-5": 122,
+        "5-20": 337,
+        "20-40": 1007,
+        "40-60": 63,
+        "60-80": 0,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 94,
+        "braking": 125,
+        "cruising": 1257,
+        "stationary": 53
+      },
+      "duration_s": 152.80000000055588,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 53,
+      "suspicious_imu_values": 0
+    },
+    "Vw9": {
+      "rows": 552,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 503,
+      "speed_bins": {
+        "0-5": 1,
+        "5-20": 75,
+        "20-40": 460,
+        "40-60": 16,
+        "60-80": 0,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 5,
+        "braking": 27,
+        "cruising": 520
+      },
+      "duration_s": 55.10000000020045,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 0,
+      "suspicious_imu_values": 0
+    },
+    "Y1": {
+      "rows": 66909,
+      "missing_channels": [],
+      "nan_inf": {
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "gyro_x": 0,
+        "gyro_y": 0,
+        "gyro_z": 0,
+        "vehicle_speed": 0,
+        "time_since_start_s": 0
+      },
+      "duplicate_timestamps": 0,
+      "non_monotonic_timestamps": 0,
+      "timestamp_gaps_over_0_2s": 0,
+      "windows": 66860,
+      "speed_bins": {
+        "0-5": 10119,
+        "5-20": 9674,
+        "20-40": 24817,
+        "40-60": 18223,
+        "60-80": 4076,
+        "80-plus": 0
+      },
+      "motion_states": {
+        "acceleration": 1757,
+        "braking": 3298,
+        "cruising": 54095,
+        "stationary": 7759
+      },
+      "duration_s": 6690.8,
+      "suspicious_speed_values": 0,
+      "stationary_windows": 7759,
+      "suspicious_imu_values": 0
+    }
+  }
+}

@@ -3,6 +3,7 @@ package com.percorsa.sensorlogger
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -146,6 +147,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvNavDestAddress: TextView
     private lateinit var tvNavRouteSummary: TextView
     private var isNavSheetExpanded = false
+
+    private lateinit var layoutNavDetailsToggle: LinearLayout
+    private lateinit var ivNavDetailsChevron: ImageView
+    private lateinit var layoutNavDetailsContent: LinearLayout
+    private lateinit var tvNavDetailMode: TextView
+    private lateinit var tvNavDetailGnss: TextView
+    private lateinit var tvNavDetailSpeed: TextView
+    private lateinit var tvNavDetailHeading: TextView
+    private lateinit var tvNavDetailAccuracy: TextView
+    private lateinit var tvNavDetailMlSpeed: TextView
+    private var isNavDetailsExpanded = true
 
     private lateinit var panelArrivedSheet: LinearLayout
     private lateinit var tvArrivedDestName: TextView
@@ -357,6 +369,16 @@ class MainActivity : AppCompatActivity() {
         tvNavDestAddress            = findViewById(R.id.tvNavDestAddress)
         tvNavRouteSummary           = findViewById(R.id.tvNavRouteSummary)
 
+        layoutNavDetailsToggle      = findViewById(R.id.layoutNavDetailsToggle)
+        ivNavDetailsChevron         = findViewById(R.id.ivNavDetailsChevron)
+        layoutNavDetailsContent     = findViewById(R.id.layoutNavDetailsContent)
+        tvNavDetailMode             = findViewById(R.id.tvNavDetailMode)
+        tvNavDetailGnss             = findViewById(R.id.tvNavDetailGnss)
+        tvNavDetailSpeed            = findViewById(R.id.tvNavDetailSpeed)
+        tvNavDetailHeading          = findViewById(R.id.tvNavDetailHeading)
+        tvNavDetailAccuracy         = findViewById(R.id.tvNavDetailAccuracy)
+        tvNavDetailMlSpeed          = findViewById(R.id.tvNavDetailMlSpeed)
+
         panelArrivedSheet           = findViewById(R.id.panelArrivedSheet)
         tvArrivedDestName           = findViewById(R.id.tvArrivedDestName)
         btnDone                     = findViewById(R.id.btnDone)
@@ -433,6 +455,14 @@ class MainActivity : AppCompatActivity() {
 
         btnEndNavQuick.setOnClickListener {
             btnEndNav.performClick()
+        }
+
+        layoutNavDetailsToggle.setOnClickListener {
+            isNavDetailsExpanded = !isNavDetailsExpanded
+            layoutNavDetailsContent.visibility = if (isNavDetailsExpanded) View.VISIBLE else View.GONE
+            ivNavDetailsChevron.setImageResource(
+                if (isNavDetailsExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
+            )
         }
 
         navStatsRow.setOnClickListener {
@@ -650,27 +680,54 @@ class MainActivity : AppCompatActivity() {
         renderInstrumentPanel(state)
     }
 
+    enum class DisplayNavMode(val label: String) {
+        GNSS("GNSS"),
+        DEAD_RECKONING("DEAD RECKONING"),
+        DEGRADED("DEGRADED"),
+        GNSS_RECOVERING("GNSS RECOVERING")
+    }
+
+    private fun resolveNavStatusMode(state: NavigationState): DisplayNavMode {
+        return when {
+            state.drActive || state.navMode == NavMode.GNSS_DENIED || state.gnssQuality == GnssQuality.DENIED ->
+                DisplayNavMode.DEAD_RECKONING
+            state.gnssQuality == GnssQuality.RECOVERING ->
+                DisplayNavMode.GNSS_RECOVERING
+            state.navMode == NavMode.GNSS_DEGRADED || state.gnssQuality == GnssQuality.POOR || state.gnssQuality == GnssQuality.FAIR ->
+                DisplayNavMode.DEGRADED
+            else ->
+                DisplayNavMode.GNSS
+        }
+    }
+
+    private fun getNavModeColor(mode: DisplayNavMode): Int = when (mode) {
+        DisplayNavMode.GNSS -> ContextCompat.getColor(this, R.color.gnss_good)
+        DisplayNavMode.DEAD_RECKONING -> ContextCompat.getColor(this, R.color.gnss_denied)
+        DisplayNavMode.DEGRADED -> ContextCompat.getColor(this, R.color.nav_warning)
+        DisplayNavMode.GNSS_RECOVERING -> ContextCompat.getColor(this, R.color.gnss_recovering)
+    }
+
+    private fun getNavModeBg(mode: DisplayNavMode): Int = when (mode) {
+        DisplayNavMode.GNSS -> R.drawable.pill_gnss_good
+        DisplayNavMode.DEAD_RECKONING -> R.drawable.pill_gnss_denied
+        DisplayNavMode.DEGRADED -> R.drawable.pill_gnss_poor
+        DisplayNavMode.GNSS_RECOVERING -> R.drawable.pill_gnss_recovering
+    }
+
     private fun renderGnssStatusChip(state: NavigationState) {
-        // Update GNSS status chip with semantic colors
-        val gnssText = when (state.gnssQuality) {
-            GnssQuality.GOOD -> "GNSS GOOD"
-            GnssQuality.FAIR -> "GNSS FAIR"
-            GnssQuality.POOR -> "GNSS POOR"
-            GnssQuality.DENIED -> "GNSS LOST"
-            GnssQuality.RECOVERING -> "RECOVERING"
-        }
+        val mode = resolveNavStatusMode(state)
+        val modeColor = getNavModeColor(mode)
+        tvGnssStatusText.text = mode.label
+        tvGnssStatusText.setTextColor(modeColor)
+        gnssStatusChip.setBackgroundResource(getNavModeBg(mode))
+        tvGnssStatusDot.backgroundTintList = ColorStateList.valueOf(modeColor)
 
-        tvGnssStatusText.text = gnssText
-        tvGnssStatusText.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-        gnssStatusChip.setBackgroundResource(R.drawable.gnss_status_bg)
-
-        // Update navigation mode text
-        val navModeText = when {
-            state.drActive && state.mlInferenceActive -> "INS + TCN"
-            state.drActive -> "INS"
-            else -> "FUSED"
+        val navModeSubtext = when {
+            state.drActive && state.mlInferenceActive -> " · TCN"
+            state.drActive -> " · INS"
+            else -> ""
         }
-        tvNavModeText.text = navModeText
+        tvNavModeText.text = navModeSubtext
     }
 
     private fun renderManeuverCard(state: NavigationState) {
@@ -699,17 +756,13 @@ class MainActivity : AppCompatActivity() {
                 rowSecondManeuver.visibility = View.GONE
             }
 
-            // Compact status badge in maneuver card (● GNSS / ● DR / ● DEGRADED)
-            val (badgeText, badgeColor) = when {
-                state.drActive -> Pair("● DR", ContextCompat.getColor(this, R.color.nav_warning))
-                state.gnssQuality == GnssQuality.GOOD -> Pair("● GNSS", ContextCompat.getColor(this, R.color.gnss_good))
-                state.gnssQuality == GnssQuality.FAIR || state.gnssQuality == GnssQuality.POOR -> Pair("● DEGRADED", ContextCompat.getColor(this, R.color.nav_warning))
-                state.gnssQuality == GnssQuality.DENIED -> Pair("● DR", ContextCompat.getColor(this, R.color.gnss_denied))
-                state.gnssQuality == GnssQuality.RECOVERING -> Pair("● RECOVERING", ContextCompat.getColor(this, R.color.nav_warning))
-                else -> Pair("● GNSS", ContextCompat.getColor(this, R.color.gnss_good))
-            }
-            tvGnssBadge.text = badgeText
+            // Clear actual navigation mode (GNSS / DEAD RECKONING / DEGRADED / GNSS RECOVERING)
+            val mode = resolveNavStatusMode(state)
+            val badgeColor = getNavModeColor(mode)
+            val badgeBg = getNavModeBg(mode)
+            tvGnssBadge.text = "● ${mode.label}"
             tvGnssBadge.setTextColor(badgeColor)
+            tvGnssBadge.setBackgroundResource(badgeBg)
         }
     }
 
@@ -771,6 +824,8 @@ class MainActivity : AppCompatActivity() {
                 val distance = state.route?.distanceFormatted ?: state.distanceFormatted
                 tvNavRouteSummary.text = if (duration != "--" && distance != "--") "$distance · $duration" else ""
 
+                renderNavigationDetails(state)
+
                 // Compact subtle status line
                 val rawStatus = state.statusLine
                 if (rawStatus.isNotEmpty()) {
@@ -819,6 +874,63 @@ class MainActivity : AppCompatActivity() {
             !state.hasValidPosition -> "Waiting for location"
             state.gnssQuality == GnssQuality.DENIED -> "Location estimate from sensors"
             else -> "Location ready"
+        }
+    }
+
+    private fun renderNavigationDetails(state: NavigationState) {
+        val mode = resolveNavStatusMode(state)
+        tvNavDetailMode.text = mode.label
+        tvNavDetailMode.setTextColor(getNavModeColor(mode))
+
+        tvNavDetailGnss.text = state.gnssQuality.label()
+
+        tvNavDetailSpeed.text = formatSpeed(state)
+
+        val rawHeading = when {
+            state.vehicleHeadingDeg.isFinite() && state.vehicleHeadingDeg >= 0f -> state.vehicleHeadingDeg
+            state.heading.isFinite() && state.heading >= 0f -> state.heading
+            state.deviceAzimuthDeg.isFinite() && state.deviceAzimuthDeg >= 0f -> state.deviceAzimuthDeg
+            else -> Float.NaN
+        }
+        tvNavDetailHeading.text = formatHeading(rawHeading)
+
+        tvNavDetailAccuracy.text = formatAccuracy(state.positionAccuracy)
+
+        tvNavDetailMlSpeed.text = formatMlSpeed(state)
+    }
+
+    private fun formatSpeed(state: NavigationState): String {
+        return if (state.speed.isFinite() && state.speed >= 0f) {
+            "%s km/h (%.1f m/s)".format(Locale.US, state.speedKmhDisplay, state.speed)
+        } else {
+            "--"
+        }
+    }
+
+    private fun formatHeading(headingDeg: Float): String {
+        if (!headingDeg.isFinite() || headingDeg < 0f) return "--"
+        val normalized = ((headingDeg % 360f) + 360f) % 360f
+        val directions = arrayOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+        val index = (((normalized + 22.5f) % 360f) / 45f).toInt().coerceIn(0, 7)
+        return "%.0f° %s".format(Locale.US, normalized, directions[index])
+    }
+
+    private fun formatAccuracy(acc: Float): String {
+        return if (acc.isFinite() && acc > 0f && acc < 10_000f) {
+            "± %.1f m".format(Locale.US, acc)
+        } else {
+            "Unavailable"
+        }
+    }
+
+    private fun formatMlSpeed(state: NavigationState): String {
+        return when {
+            state.mlInferenceActive && state.mlSpeedMps.isFinite() && state.mlSpeedMps >= 0f ->
+                "%.1f m/s (%.0f km/h)".format(Locale.US, state.mlSpeedMps, state.mlSpeedMps * 3.6f)
+            state.mlModelLoaded ->
+                "Standby (buffer loading)"
+            else ->
+                "Unavailable"
         }
     }
 

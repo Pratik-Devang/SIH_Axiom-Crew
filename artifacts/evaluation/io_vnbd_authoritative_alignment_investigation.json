@@ -1,0 +1,127 @@
+{
+  "verdict": "C",
+  "verdict_text": "No authoritative, reproducible synchronization/alignment procedure can be recovered from the distributed source.",
+  "scope": {
+    "train_validation_trips": [
+      "S1",
+      "S2",
+      "S3a",
+      "S3b",
+      "S3c",
+      "S4",
+      "Vw1",
+      "Vw2",
+      "Vw3",
+      "Vw4",
+      "Vw5",
+      "Vw6",
+      "Vw7",
+      "Vw8",
+      "Vw9",
+      "Vw10",
+      "Vw11",
+      "Vw12",
+      "Vw13",
+      "Vw14a",
+      "Vw14b",
+      "Vw14c",
+      "Vw15",
+      "Vw16a",
+      "Vw16b",
+      "Vw17",
+      "M",
+      "Vfa01",
+      "Vfa02"
+    ],
+    "trip_count": 29,
+    "locked_excluded": [
+      "Vta1a",
+      "Vta1b",
+      "Y1"
+    ],
+    "locked_accessed": false,
+    "speed_used": false,
+    "optimization_performed": false
+  },
+  "authoritative_sources": [
+    {
+      "title": "IO-VNBD Data in Brief paper",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7907232/",
+      "claims": [
+        "simultaneous S/V pairs were manually synchronized where possible and placed in the Synchronised V and S datasets folder",
+        "vehicle and phone streams were nominally 10 Hz, with phone GPS at 1 Hz",
+        "the phone was held in a vehicle-mounted holder and the paper shows axis-alignment figures",
+        "vehicle vibration interfered with measurement precision; no per-trip timing map or numeric transform is supplied"
+      ]
+    },
+    {
+      "title": "Official IO-VNBD repository",
+      "url": "https://github.com/onyekpeu/IO-VNBD",
+      "claims": [
+        "distributes separate synchronized and unsynchronized S/V collections and README material",
+        "does not publish a synchronization algorithm, per-trip offsets, dropped-row map, or frame calibration matrices"
+      ]
+    }
+  ],
+  "author_intended_relationship": {
+    "physical_acquisition": "A phone attached to the vehicle was intended to mimic vehicle motion while vehicle CAN/VBOX and phone streams were collected at nominal 10 Hz.",
+    "distributed_files": "The synchronized directory identifies author-selected simultaneous S/V pairs; duplicate categorized/uncategorized copies audited here are byte-identical.",
+    "not_provided": [
+      "shared clock",
+      "manual sync event/index or offset",
+      "dropped-row correspondence",
+      "numeric rotation",
+      "per-trip holder angle",
+      "author preprocessing implementation"
+    ]
+  },
+  "current_pipeline_deviation": [
+    "prepare_io_vnbd.py truncates to min(len(S), len(V)) and pairs rows by index",
+    "phone elapsed time is treated as the working clock without reconstructing manual synchronization",
+    "raw phone axes are copied without a persisted author-supplied vehicle-frame rotation",
+    "indicated speed is selected as target, which is separate from alignment"
+  ],
+  "timestamp_semantics": {
+    "phone_elapsed": "local milliseconds since phone recording/app start; resets occur",
+    "phone_absolute": "phone wall-clock datetime in a separate clock/time-zone domain",
+    "vehicle_time": "seconds since start of day with nominal 0.1 s sample period",
+    "S3b": "elapsed field reset/discontinuity while absolute phone datetime remains the monotonic wall-clock reference",
+    "S4_M": "distributed fields show unequal coverage/timing; not a unit-conversion error"
+  },
+  "source_file_evidence": {
+    "inherited_train_validation_audit": "artifacts/evaluation/io_vnbd_source_reconstruction_audit.json",
+    "examples": {
+      "S2": "phone 9201.099 s vs vehicle 9387.5 s; one phone nonpositive delta",
+      "S3b": "phone elapsed duration -2026.412 s vs vehicle 681.2 s; one reset",
+      "S4": "phone 354.780 s vs vehicle 9459.9 s; two resets",
+      "M": "phone 6171.748 s vs vehicle 10597.3 s; one reset"
+    }
+  },
+  "orientation_conclusion": {
+    "known": [
+      "phone axes/gravity fields are documented",
+      "holder attachment and intended axis alignment are documented"
+    ],
+    "unknown": [
+      "per-trip mount angles",
+      "numeric fixed rotation",
+      "whether placement was identical",
+      "physical meaning of Variant A yaw/pitch/roll axes"
+    ],
+    "decision": "Do not invent a matrix from the figures."
+  },
+  "authoritative_reconstruction": {
+    "found": false,
+    "pairing_folder_is_evidence_of_selected_pairing": true,
+    "pairing_folder_is_numeric_algorithm": false,
+    "reproducible_from_files": false
+  },
+  "remaining_unknowable": [
+    "exact sample correspondence after starts/stops/drops",
+    "absolute timing residual",
+    "constant vs affine vs piecewise map used by authors",
+    "exact phone yaw per trip",
+    "whether distributed phone channels were transformed"
+  ],
+  "recommendation": "Insufficient evidence exists to implement corrected preprocessing safely. Obtain author synchronization/calibration metadata or an independently synchronized reference; otherwise IO-VNBD cannot safely support final supervised speed training under the required provenance standard."
+}

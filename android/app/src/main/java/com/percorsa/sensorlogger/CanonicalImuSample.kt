@@ -1,7 +1,25 @@
 package com.percorsa.sensorlogger
 
 /**
- * Immutable 10 Hz canonical IMU measurement sample.
+ * Generic canonical 6-DOF IMU measurement frame interface.
+ *
+ * Provides a platform-independent contract for feeding inertial data into
+ * the downstream estimation engine (ESKF, TCN filter, INS mechanization).
+ * Enables the algorithms to accept smartphone IMU, external IMU streams, or offline logs.
+ */
+interface ImuMeasurementFrame {
+    val timestampNs: Long
+    val accelX: Float
+    val accelY: Float
+    val accelZ: Float
+    val gyroX: Float
+    val gyroY: Float
+    val gyroZ: Float
+    val vehicleFrameCalibrated: Boolean
+}
+
+/**
+ * Immutable canonical IMU measurement sample.
  *
  * Channel order aligns with IO-VNBD benchmark training data:
  *   [accel_forward, accel_lateral, accel_up, gyro_forward, gyro_lateral, gyro_up]
@@ -10,19 +28,19 @@ package com.percorsa.sensorlogger
  * Training normalization: mean[accel_z] ≈ 9.845 m/s² (gravity included in Z channel).
  */
 data class CanonicalImuSample(
-    val timestampNs: Long,
+    override val timestampNs: Long,
     /** Raw accelerometer X (phone frame). Preserved for logging. */
-    val accelX: Float,
+    override val accelX: Float,
     /** Raw accelerometer Y (phone frame). Preserved for logging. */
-    val accelY: Float,
+    override val accelY: Float,
     /** Raw accelerometer Z (phone frame). Preserved for logging. */
-    val accelZ: Float,
+    override val accelZ: Float,
     /** Gyroscope X (phone frame). Preserved for logging. */
-    val gyroX: Float,
+    override val gyroX: Float,
     /** Gyroscope Y (phone frame). Preserved for logging. */
-    val gyroY: Float,
+    override val gyroY: Float,
     /** Gyroscope Z (phone frame). Preserved for logging. */
-    val gyroZ: Float,
+    override val gyroZ: Float,
     val linearAccelX: Float = 0f,
     val linearAccelY: Float = 0f,
     val linearAccelZ: Float = 0f,
@@ -39,8 +57,17 @@ data class CanonicalImuSample(
     /** Gyroscope in vehicle up direction. Channel 5 → gyro_z. */
     val vehicleGyroUp: Float = 0f,
     /** True when vehicle-frame values are calibrated and valid for TCN inference. */
-    val vehicleFrameCalibrated: Boolean = false
-) {
+    override val vehicleFrameCalibrated: Boolean = false
+) : ImuMeasurementFrame {
+
+    /** Convert to nominal ESKF propagator sample (seconds + 3D vectors). */
+    fun toEskfImuSample(isLinear: Boolean = false): EskfImuSample = EskfImuSample(
+        timestampSeconds = timestampNs / 1_000_000_000.0,
+        accelerometerPhone = EskfVector3(accelX.toDouble(), accelY.toDouble(), accelZ.toDouble()),
+        gyroscopePhone = EskfVector3(gyroX.toDouble(), gyroY.toDouble(), gyroZ.toDouble()),
+        isLinearAcceleration = isLinear
+    )
+
     /**
      * Feature array for TCN model input [6 channels].
      *
