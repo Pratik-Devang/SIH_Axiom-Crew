@@ -15,6 +15,12 @@ osmnx
 networkx
 shapely
 streamlit
+folium
+streamlit-folium
+fastapi
+uvicorn
+python-multipart
+httpx
 pytest
 pytest-cov
 ruff

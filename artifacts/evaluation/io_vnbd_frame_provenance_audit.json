@@ -1,0 +1,3450 @@
+{
+  "verdict": "D",
+  "verdict_text": "Frame provenance is insufficient and the corpus cannot responsibly be used for final training.",
+  "scope": {
+    "processed_trips": 32,
+    "analyzed_splits": [
+      "train",
+      "validation"
+    ],
+    "locked_test_excluded": [
+      "Vta1a",
+      "Vta1b",
+      "Y1"
+    ],
+    "model_or_locked_test_evaluation": false
+  },
+  "corpus": {
+    "processed_samples": 766749,
+    "analyzed_samples": 673211,
+    "train_trips": [
+      "S1",
+      "S2",
+      "S3a",
+      "S3b",
+      "S3c",
+      "S4",
+      "Vw1",
+      "Vw2",
+      "Vw3",
+      "Vw4",
+      "Vw5",
+      "Vw6",
+      "Vw7",
+      "Vw8",
+      "Vw9",
+      "Vw10",
+      "Vw11",
+      "Vw12",
+      "Vw13",
+      "Vw14a",
+      "Vw14b",
+      "Vw14c",
+      "Vw15",
+      "Vw16a",
+      "Vw16b",
+      "Vw17"
+    ],
+    "validation_trips": [
+      "M",
+      "Vfa01",
+      "Vfa02"
+    ],
+    "locked_test_trips": [
+      "Vta1a",
+      "Vta1b",
+      "Y1"
+    ],
+    "window_contract": {
+      "sample_rate_hz": 10,
+      "window_samples": 50,
+      "stride": 1
+    }
+  },
+  "preprocessing_trace": {
+    "source_script": "scripts/prepare_io_vnbd.py",
+    "smartphone_fields": {
+      "accel": "ACCELEROMETER X/Y/Z (m/s\u00b2)",
+      "gyro_variant_b": "GYROSCOPE X/Y/Z (rad/s)",
+      "gyro_variant_a": "GYROSCOPE Yaw/Pitch/Roll (rad/s)"
+    },
+    "frame_operation": "direct column copy; no rotation matrix, quaternion, calibration record, or per-trip transform is applied or persisted",
+    "pairing": "S-<trip> paired with V-<trip>; both truncated to min(len(S), len(V)) by row index",
+    "resampling": "numeric fields linearly interpolated to a 100 ms grid; no additional synchronization offset",
+    "filtering": "model-time inference applies causal Hampel filtering to processed channels; processed corpus itself contains raw copied channels"
+  },
+  "frame_provenance": {
+    "claimed_contract": [
+      "forward",
+      "lateral",
+      "up",
+      "gyro_forward",
+      "gyro_left",
+      "gyro_up"
+    ],
+    "units": {
+      "acceleration": "m/s\u00b2",
+      "gyro": "rad/s",
+      "gravity_included": true
+    },
+    "classification": "insufficiently_verified",
+    "evidence_for": [
+      "adapter comments assert IO-VNBD vehicle-frame X/Y/Z identity",
+      "processed distributions can be checked for gravity-like magnitude"
+    ],
+    "evidence_against": [
+      "raw-to-vehicle transform is not encoded",
+      "no calibration matrix/quaternion or mounting metadata is saved",
+      "the preparation code does not transform axes",
+      "gyro Variant A is renamed yaw/pitch/roll to x/y/z without a verified physical convention"
+    ],
+    "required_resolution": [
+      "obtain authoritative IO-VNBD sensor frame/mounting specification or reconstruct and validate the transform against vehicle references",
+      "persist transform provenance/version per trip",
+      "verify signs and axis semantics on representative train/validation motion before retraining"
+    ]
+  },
+  "label_provenance": {
+    "source_file": "V-<trip> vehicle CSV",
+    "source_field": "Indicated Vehicle Speed (km/hr)",
+    "processed_field": "vehicle_speed",
+    "unit_conversion": "vehicle_speed = source_field / 3.6 only in model preprocessing; processed CSV remains km/hr",
+    "meaning": "vehicle/controller indicated speed, not independently verified ground-truth velocity; it is distinct from the vehicle CSV Velocity (km/hr) field",
+    "synchronization": "paired by row index after common-length truncation; then target is linearly interpolated with the IMU onto the smartphone time grid",
+    "adequacy": "reference field identity is clear, but independent synchronization offset/clock error and label semantics are not independently validated"
+  },
+  "leakage_audit": {
+    "split_manifest": "data\\splits\\io_vnbd_splits.yaml",
+    "trip_overlap": false,
+    "window_overlap_across_splits": false,
+    "normalization_policy": "fit_normalization uses train frames only",
+    "training_loader_policy": "load_train_validation_trips excludes test trips",
+    "observed_leakage": [],
+    "caveat": "the current processed preparation is not provenance-rich enough to independently prove S/V synchronization correctness"
+  },
+  "physical_sanity_train_validation": {
+    "aggregate": {
+      "rows": 673211,
+      "duration_s": 6749.316000000001,
+      "dt_s": {
+        "count": 673210,
+        "median": 0.09999999999999432,
+        "p01": 0.09999999999854481,
+        "p99": 0.10000000000081855,
+        "mean": 0.010025573000995238,
+        "std": 26.377589102201608
+      },
+      "stationary_fraction": 0.07131642234009843,
+      "stationary_accel_norm_mps2": {
+        "count": 48011,
+        "median": 9.867763724868865,
+        "p01": 9.205575351465738,
+        "p99": 10.895573714365415,
+        "mean": 9.89507870552177,
+        "std": 0.2953341289335192
+      },
+      "stationary_up_accel_mps2": {
+        "count": 48011,
+        "median": 9.850800000005426,
+        "p01": 9.062512098765874,
+        "p99": 10.64995257425722,
+        "mean": 9.85368185138745,
+        "std": 0.2515904534254744
+      },
+      "gyro_norm_rad_s": {
+        "count": 673211,
+        "median": 0.13939128590701297,
+        "p01": 0.007372402164780898,
+        "p99": 0.9517058206242307,
+        "mean": 0.2026129537935642,
+        "std": 0.2108638279078006
+      },
+      "speed_kmh": {
+        "count": 673211,
+        "median": 44.03,
+        "p01": 0.0,
+        "p99": 113.83000000038341,
+        "mean": 49.64374335465889,
+        "std": 32.099554317678034
+      },
+      "speed_derivative_mps2": {
+        "count": 673211,
+        "median": 0.0,
+        "p01": -2.2545286028548897,
+        "p99": 1.8014301430144601,
+        "mean": -0.000781925882161782,
+        "std": 2.066671306967765
+      },
+      "forward_accel_mps2": {
+        "count": 673211,
+        "median": 0.0605000000131603,
+        "p01": -4.964499999962521,
+        "p99": 4.938359199837519,
+        "mean": 0.06756447083809546,
+        "std": 1.7171854429555689
+      },
+      "lateral_accel_mps2": {
+        "count": 673211,
+        "median": -0.0023666666716463,
+        "p01": -4.3518699994339265,
+        "p99": 4.081895192315575,
+        "mean": -0.017682093461800264,
+        "std": 1.4869084089061497
+      },
+      "up_accel_mps2": {
+        "count": 673211,
+        "median": 9.86,
+        "p01": 7.496704257636464,
+        "p99": 12.10158999983412,
+        "mean": 9.871337640609308,
+        "std": 0.8282775078512346
+      },
+      "turn_proxy_fraction": 0.17549327031198242,
+      "turn_proxy_lateral_abs_median_mps2": {
+        "count": 118144,
+        "median": 1.3718499999872722,
+        "p01": 0.024300000224586605,
+        "p99": 7.578371584035603,
+        "mean": 1.7961689448574023,
+        "std": 1.6401792304245038
+      },
+      "turn_proxy_up_abs_median_mps2": {
+        "count": 118144,
+        "median": 9.8435,
+        "p01": 6.556388000501471,
+        "p99": 12.950784999989986,
+        "mean": 9.829961873099263,
+        "std": 1.229407598767442
+      },
+      "bump_proxy_fraction": 0.00776576734485919,
+      "forward_vs_speed_derivative_corr": 0.007695608767858799
+    },
+    "per_trip": {
+      "S1": {
+        "rows": 51746,
+        "duration_s": 5174.500000000005,
+        "dt_s": {
+          "count": 51745,
+          "median": 0.09999999999990905,
+          "p01": 0.0999999999994543,
+          "p99": 0.10000000000081855,
+          "mean": 0.10000000000000007,
+          "std": 2.7979724149533966e-13
+        },
+        "stationary_fraction": 0.09712828044679782,
+        "stationary_accel_norm_mps2": {
+          "count": 5026,
+          "median": 9.875235520251351,
+          "p01": 9.436952309350838,
+          "p99": 10.326466292441568,
+          "mean": 9.8730423247741,
+          "std": 0.1499777092381246
+        },
+        "stationary_up_accel_mps2": {
+          "count": 5026,
+          "median": 9.860222316831532,
+          "p01": 9.417083000002421,
+          "p99": 10.31236174999572,
+          "mean": 9.857890603898277,
+          "std": 0.15037308652728645
+        },
+        "gyro_norm_rad_s": {
+          "count": 51746,
+          "median": 0.09743025706783123,
+          "p01": 0.007466670508039644,
+          "p99": 0.5543528529838226,
+          "mean": 0.13318265071357946,
+          "std": 0.12191009041501101
+        },
+        "speed_kmh": {
+          "count": 51746,
+          "median": 27.17000000000106,
+          "p01": 0.0,
+          "p99": 60.77549999999901,
+          "mean": 26.681567874772586,
+          "std": 16.289825256914593
+        },
+        "speed_derivative_mps2": {
+          "count": 51746,
+          "median": 0.0,
+          "p01": -1.9576933443341475,
+          "p99": 1.7143055555497997,
+          "mean": -0.0010859669239099677,
+          "std": 0.7132659515062832
+        },
+        "forward_accel_mps2": {
+          "count": 51746,
+          "median": 0.0598000000045001,
+          "p01": -2.71400386138286,
+          "p99": 2.7274930693019837,
+          "mean": 0.04228323942190959,
+          "std": 1.0575072441631725
+        },
+        "lateral_accel_mps2": {
+          "count": 51746,
+          "median": 0.0287999999906115,
+          "p01": -2.6409404499909455,
+          "p99": 2.7862781667521066,
+          "mean": 0.062213384814711614,
+          "std": 1.0635426380340978
+        },
+        "up_accel_mps2": {
+          "count": 51746,
+          "median": 9.85110396039989,
+          "p01": 8.401042249983622,
+          "p99": 11.284536599967476,
+          "mean": 9.84743485519688,
+          "std": 0.5106538876738704
+        },
+        "turn_proxy_fraction": 0.015692034166892126,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 812,
+          "median": 1.3671049999636575,
+          "p01": 0.026828300022771357,
+          "p99": 6.043422999871541,
+          "mean": 1.6083189012785053,
+          "std": 1.3099829210925493
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 812,
+          "median": 9.871271999990928,
+          "p01": 6.526672732732165,
+          "p99": 12.73170755989485,
+          "mean": 9.785122515195125,
+          "std": 1.2071470517789136
+        },
+        "bump_proxy_fraction": 0.0015266880531828546,
+        "forward_vs_speed_derivative_corr": 0.3188893513520354
+      },
+      "S2": {
+        "rows": 92012,
+        "duration_s": 9201.1,
+        "dt_s": {
+          "count": 92011,
+          "median": 0.10000000000002274,
+          "p01": 0.09999999999854481,
+          "p99": 0.1000000000003638,
+          "mean": 0.1,
+          "std": 4.1062963675157667e-13
+        },
+        "stationary_fraction": 0.11460461678911446,
+        "stationary_accel_norm_mps2": {
+          "count": 10545,
+          "median": 9.885442834779594,
+          "p01": 9.115092511871884,
+          "p99": 11.03041630384886,
+          "mean": 9.916724511356499,
+          "std": 0.3995599526410355
+        },
+        "stationary_up_accel_mps2": {
+          "count": 10545,
+          "median": 9.8662,
+          "p01": 8.968264000006428,
+          "p99": 10.77663199999818,
+          "mean": 9.867509805179493,
+          "std": 0.28988667541266905
+        },
+        "gyro_norm_rad_s": {
+          "count": 92012,
+          "median": 0.12035362626304252,
+          "p01": 0.008949921785621977,
+          "p99": 0.6764183502120863,
+          "mean": 0.1645434448154259,
+          "std": 0.16171208813808793
+        },
+        "speed_kmh": {
+          "count": 92012,
+          "median": 28.37,
+          "p01": 0.0,
+          "p99": 91.22978431372508,
+          "mean": 29.55513235302709,
+          "std": 21.14519509111804
+        },
+        "speed_derivative_mps2": {
+          "count": 92012,
+          "median": 0.0,
+          "p01": -2.235672442237221,
+          "p99": 1.8750000000017115,
+          "mean": -0.0009387362517992594,
+          "std": 2.3316923746991107
+        },
+        "forward_accel_mps2": {
+          "count": 92012,
+          "median": 0.0125,
+          "p01": -3.275757,
+          "p99": 3.0863119999980317,
+          "mean": -0.031154178647090223,
+          "std": 1.1996184830079824
+        },
+        "lateral_accel_mps2": {
+          "count": 92012,
+          "median": -0.0033000000126564497,
+          "p01": -3.13162424752106,
+          "p99": 2.9990330891048416,
+          "mean": 0.0015962041698516904,
+          "std": 1.1498312286615315
+        },
+        "up_accel_mps2": {
+          "count": 92012,
+          "median": 9.8558,
+          "p01": 8.014722000008382,
+          "p99": 11.713511999988663,
+          "mean": 9.855263983871017,
+          "std": 0.6438657452109853
+        },
+        "turn_proxy_fraction": 0.029539625266269617,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 2718,
+          "median": 1.4473727722765697,
+          "p01": 0.03640800000219861,
+          "p99": 6.430568980421833,
+          "mean": 1.7383116422592777,
+          "std": 1.5234465356278877
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 2718,
+          "median": 9.918245049504453,
+          "p01": 6.6213614653453305,
+          "p99": 13.672021999961705,
+          "mean": 9.92458804971169,
+          "std": 1.3195174036437518
+        },
+        "bump_proxy_fraction": 0.0044233360865974,
+        "forward_vs_speed_derivative_corr": -0.02118889863046579
+      },
+      "S3a": {
+        "rows": 24621,
+        "duration_s": 2462.000000000035,
+        "dt_s": {
+          "count": 24620,
+          "median": 0.09999999999999432,
+          "p01": 0.0999999999994543,
+          "p99": 0.10000000000059117,
+          "mean": 0.10000000000000142,
+          "std": 1.6439904874218897e-13
+        },
+        "stationary_fraction": 0.08204378376182933,
+        "stationary_accel_norm_mps2": {
+          "count": 2020,
+          "median": 9.869533869510576,
+          "p01": 9.51553066541176,
+          "p99": 10.537201378716547,
+          "mean": 9.884086615526764,
+          "std": 0.189948084754215
+        },
+        "stationary_up_accel_mps2": {
+          "count": 2020,
+          "median": 9.841950000008762,
+          "p01": 9.346856000116716,
+          "p99": 10.31303672260593,
+          "mean": 9.847067056496638,
+          "std": 0.17100109946727696
+        },
+        "gyro_norm_rad_s": {
+          "count": 24621,
+          "median": 0.05222748315646284,
+          "p01": 0.005912169163080515,
+          "p99": 0.5539530692747568,
+          "mean": 0.08879631556731041,
+          "std": 0.10845853412615475
+        },
+        "speed_kmh": {
+          "count": 24621,
+          "median": 39.470000000027625,
+          "p01": 0.0,
+          "p99": 91.70000000001944,
+          "mean": 38.19850028580725,
+          "std": 21.8048278829116
+        },
+        "speed_derivative_mps2": {
+          "count": 24621,
+          "median": 0.0,
+          "p01": -2.062858168573732,
+          "p99": 1.6388888889045319,
+          "mean": 0.003580953928213752,
+          "std": 0.6800289795919563
+        },
+        "forward_accel_mps2": {
+          "count": 24621,
+          "median": 0.0082000001738635,
+          "p01": -2.70709663348761,
+          "p99": 2.3962726575618625,
+          "mean": -0.014003666491642327,
+          "std": 0.8921164756985713
+        },
+        "lateral_accel_mps2": {
+          "count": 24621,
+          "median": 0.0091999999844296,
+          "p01": -2.8806642000471547,
+          "p99": 2.5349947168735194,
+          "mean": 0.013707338930647028,
+          "std": 0.9282733557749046
+        },
+        "up_accel_mps2": {
+          "count": 24621,
+          "median": 9.841467999998622,
+          "p01": 8.442744158775463,
+          "p99": 11.256534154248618,
+          "mean": 9.840861950178216,
+          "std": 0.5276949302766517
+        },
+        "turn_proxy_fraction": 0.0029649486210958126,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 73,
+          "median": 0.8092999999820049,
+          "p01": 0.048576000053402034,
+          "p99": 4.818650169674318,
+          "mean": 1.1520073525335115,
+          "std": 1.0796609768012682
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 73,
+          "median": 9.92029306940196,
+          "p01": 7.957050040030616,
+          "p99": 13.008977119747787,
+          "mean": 9.855989402103432,
+          "std": 1.0647489206704885
+        },
+        "bump_proxy_fraction": 0.001624629381422363,
+        "forward_vs_speed_derivative_corr": 0.0373741572025448
+      },
+      "S3b": {
+        "rows": 27076,
+        "duration_s": 2707.5,
+        "dt_s": {
+          "count": 27075,
+          "median": 0.09999999999999432,
+          "p01": 0.09999999999968168,
+          "p99": 0.1000000000003638,
+          "mean": 0.1,
+          "std": 1.3269999016663604e-13
+        },
+        "stationary_fraction": 0.019869995568030728,
+        "stationary_accel_norm_mps2": {
+          "count": 538,
+          "median": 9.86083541880654,
+          "p01": 9.390078517861443,
+          "p99": 10.833846101734201,
+          "mean": 9.887113834070751,
+          "std": 0.3270057318122211
+        },
+        "stationary_up_accel_mps2": {
+          "count": 538,
+          "median": 9.826805040504018,
+          "p01": 9.241049945542764,
+          "p99": 10.682803095408477,
+          "mean": 9.830913606126769,
+          "std": 0.30783884056312305
+        },
+        "gyro_norm_rad_s": {
+          "count": 27076,
+          "median": 0.1198603373329235,
+          "p01": 0.007764848556719349,
+          "p99": 0.624371020703669,
+          "mean": 0.14298034727325903,
+          "std": 0.20948516628895336
+        },
+        "speed_kmh": {
+          "count": 27076,
+          "median": 42.4732882553005,
+          "p01": 0.0,
+          "p99": 44.70437749085576,
+          "mean": 37.27291255057299,
+          "std": 11.37785384750643
+        },
+        "speed_derivative_mps2": {
+          "count": 27076,
+          "median": -0.00047155048211067196,
+          "p01": -1.6453355335542623,
+          "p99": 1.4054675467550153,
+          "mean": 1.1105838594093456e-15,
+          "std": 0.4236328092153435
+        },
+        "forward_accel_mps2": {
+          "count": 27076,
+          "median": 1.1677685571344822,
+          "p01": -1.9093499999999815,
+          "p99": 2.7255833043329787,
+          "mean": 1.112908455945835,
+          "std": 1.0850786936171568
+        },
+        "lateral_accel_mps2": {
+          "count": 27076,
+          "median": 0.058536676519205744,
+          "p01": -1.7462859381188198,
+          "p99": 1.866122029702278,
+          "mean": 0.05869344094395448,
+          "std": 0.6482735564942306
+        },
+        "up_accel_mps2": {
+          "count": 27076,
+          "median": 10.441409644378403,
+          "p01": 8.964575000000067,
+          "p99": 11.890262310921965,
+          "mean": 10.529350187728504,
+          "std": 0.8356823967318694
+        },
+        "turn_proxy_fraction": 0.004099571576303738,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 111,
+          "median": 0.889645544555837,
+          "p01": 0.041402127274883946,
+          "p99": 26.361992424178517,
+          "mean": 1.9114200808246202,
+          "std": 4.345408382877116
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 111,
+          "median": 9.87950909090898,
+          "p01": 1.6834961752423203,
+          "p99": 16.70809286361143,
+          "mean": 9.808525615698338,
+          "std": 2.5075929537301187
+        },
+        "bump_proxy_fraction": 0.0021790515585758605,
+        "forward_vs_speed_derivative_corr": 0.021433225222908636
+      },
+      "S3c": {
+        "rows": 37183,
+        "duration_s": 3718.200000000846,
+        "dt_s": {
+          "count": 37182,
+          "median": 0.09999999999990905,
+          "p01": 0.0999999999994543,
+          "p99": 0.10000000000081855,
+          "mean": 0.10000000000002275,
+          "std": 2.6546981069880985e-13
+        },
+        "stationary_fraction": 0.0658365382029422,
+        "stationary_accel_norm_mps2": {
+          "count": 2448,
+          "median": 9.848503142561448,
+          "p01": 9.730638211414648,
+          "p99": 9.990100270581358,
+          "mean": 9.853325023397778,
+          "std": 0.056839145730906544
+        },
+        "stationary_up_accel_mps2": {
+          "count": 2448,
+          "median": 9.839849999936323,
+          "p01": 9.691944000522584,
+          "p99": 9.966564999834825,
+          "mean": 9.841755142922178,
+          "std": 0.05480148666474563
+        },
+        "gyro_norm_rad_s": {
+          "count": 37183,
+          "median": 0.038795489428827074,
+          "p01": 0.0021958497980300138,
+          "p99": 0.46919365629458554,
+          "mean": 0.0759144537664177,
+          "std": 0.09646416888736702
+        },
+        "speed_kmh": {
+          "count": 37183,
+          "median": 36.195999998443966,
+          "p01": 0.0,
+          "p99": 113.83181782213666,
+          "mean": 42.7668526209856,
+          "std": 29.57984347401026
+        },
+        "speed_derivative_mps2": {
+          "count": 37183,
+          "median": 0.0,
+          "p01": -2.047920790846446,
+          "p99": 1.6349229926633044,
+          "mean": -0.002315170911433817,
+          "std": 0.663611322442325
+        },
+        "forward_accel_mps2": {
+          "count": 37183,
+          "median": 0.0204900989476183,
+          "p01": -2.4563219181521982,
+          "p99": 2.4412546246039666,
+          "mean": -0.0019207667428250603,
+          "std": 0.9131957601908312
+        },
+        "lateral_accel_mps2": {
+          "count": 37183,
+          "median": -0.0074000001912763,
+          "p01": -2.5855749505215164,
+          "p99": 2.413790001101606,
+          "mean": -0.013353812622488604,
+          "std": 0.93002297334481
+        },
+        "up_accel_mps2": {
+          "count": 37183,
+          "median": 9.837495049577887,
+          "p01": 8.657248500684762,
+          "p99": 11.014517711976438,
+          "mean": 9.83846684001561,
+          "std": 0.44605964885697
+        },
+        "turn_proxy_fraction": 0.0004571981819648764,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 17,
+          "median": 0.9186441180266413,
+          "p01": 0.18581037519009186,
+          "p99": 2.38610399856323,
+          "mean": 1.072687567066657,
+          "std": 0.7170438160567587
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 17,
+          "median": 10.356199993365264,
+          "p01": 7.355576010394189,
+          "p99": 10.959305458832665,
+          "mean": 10.025136708185999,
+          "std": 0.9808508447800146
+        },
+        "bump_proxy_fraction": 0.0006992442782992228,
+        "forward_vs_speed_derivative_corr": -0.033897810990240466
+      },
+      "S4": {
+        "rows": 55781,
+        "duration_s": 5578.0,
+        "dt_s": {
+          "count": 55780,
+          "median": 0.09999999999990905,
+          "p01": 0.0999999999994543,
+          "p99": 0.1000000000003638,
+          "mean": 0.1,
+          "std": 2.5981825292505695e-13
+        },
+        "stationary_fraction": 0.15107294598519208,
+        "stationary_accel_norm_mps2": {
+          "count": 8427,
+          "median": 9.895456773136889,
+          "p01": 8.80585285397508,
+          "p99": 11.261389812532322,
+          "mean": 9.915821168913514,
+          "std": 0.4238501302521354
+        },
+        "stationary_up_accel_mps2": {
+          "count": 8427,
+          "median": 9.8496,
+          "p01": 8.670207160002361,
+          "p99": 11.107545283944592,
+          "mean": 9.848096196189179,
+          "std": 0.40868407992144506
+        },
+        "gyro_norm_rad_s": {
+          "count": 55781,
+          "median": 0.09327534508110918,
+          "p01": 0.00848709372512189,
+          "p99": 0.5899238376866768,
+          "mean": 0.12912220233517552,
+          "std": 0.16158378299320622
+        },
+        "speed_kmh": {
+          "count": 55781,
+          "median": 36.27098765432299,
+          "p01": 0.0,
+          "p99": 100.94733333316914,
+          "mean": 38.05634760600974,
+          "std": 28.468143762459267
+        },
+        "speed_derivative_mps2": {
+          "count": 55781,
+          "median": 0.0,
+          "p01": -17.30528622490842,
+          "p99": 16.859620595418317,
+          "mean": -0.0006057916972959299,
+          "std": 6.1944339203383905
+        },
+        "forward_accel_mps2": {
+          "count": 55781,
+          "median": -0.0078,
+          "p01": -2.963599999934882,
+          "p99": 2.731100000027704,
+          "mean": -0.021315617322276145,
+          "std": 1.0438130200656375
+        },
+        "lateral_accel_mps2": {
+          "count": 55781,
+          "median": -0.0084185185187243,
+          "p01": -2.920059999983184,
+          "p99": 2.755999999992518,
+          "mean": -0.021013290219231942,
+          "std": 1.061676382673367
+        },
+        "up_accel_mps2": {
+          "count": 55781,
+          "median": 9.8449,
+          "p01": 8.433853739835223,
+          "p99": 11.276579999998416,
+          "mean": 9.845863110037751,
+          "std": 0.5243763972537923
+        },
+        "turn_proxy_fraction": 0.015542926803033291,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 867,
+          "median": 1.2390487804881032,
+          "p01": 0.016095999986285726,
+          "p99": 6.058645999985874,
+          "mean": 1.6397074806653915,
+          "std": 2.1552750527240194
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 867,
+          "median": 9.814680198016234,
+          "p01": 6.2847533193893454,
+          "p99": 12.821234060005692,
+          "mean": 9.770123145341115,
+          "std": 1.2085479461675246
+        },
+        "bump_proxy_fraction": 0.0015238163532385579,
+        "forward_vs_speed_derivative_corr": 0.0014530439449226239
+      },
+      "Vw1": {
+        "rows": 918,
+        "duration_s": 91.7,
+        "dt_s": {
+          "count": 917,
+          "median": 0.10000000000000009,
+          "p01": 0.09999999999999432,
+          "p99": 0.10000000000000853,
+          "mean": 0.09999999999999999,
+          "std": 4.944833365901482e-15
+        },
+        "stationary_fraction": 0.0,
+        "stationary_accel_norm_mps2": {
+          "count": 0
+        },
+        "stationary_up_accel_mps2": {
+          "count": 0
+        },
+        "gyro_norm_rad_s": {
+          "count": 918,
+          "median": 0.26980896607626625,
+          "p01": 0.06146513978136281,
+          "p99": 1.1049139257596203,
+          "mean": 0.32287879740889464,
+          "std": 0.21381325935101056
+        },
+        "speed_kmh": {
+          "count": 918,
+          "median": 91.13499999999999,
+          "p01": 82.9217,
+          "p99": 96.96,
+          "mean": 90.14428052044944,
+          "std": 4.296923261794718
+        },
+        "speed_derivative_mps2": {
+          "count": 918,
+          "median": -0.013888888888914153,
+          "p01": -0.5789154056655399,
+          "p99": 0.7168201553905357,
+          "mean": 0.009259259259260622,
+          "std": 0.2787890776877906
+        },
+        "forward_accel_mps2": {
+          "count": 918,
+          "median": 0.21677425742575196,
+          "p01": -5.991107425742566,
+          "p99": 6.048954319999987,
+          "mean": 0.19963324925260112,
+          "std": 2.298404031790896
+        },
+        "lateral_accel_mps2": {
+          "count": 918,
+          "median": 0.32395,
+          "p01": -4.520085,
+          "p99": 4.748522000000001,
+          "mean": 0.3207038857854777,
+          "std": 1.7009896116063876
+        },
+        "up_accel_mps2": {
+          "count": 918,
+          "median": 9.849202000000005,
+          "p01": 6.875196831683218,
+          "p99": 12.356150439999958,
+          "mean": 9.82015092539103,
+          "std": 1.136170765874747
+        },
+        "turn_proxy_fraction": 0.3867102396514161,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 355,
+          "median": 1.2116,
+          "p01": 0.034756495049449686,
+          "p99": 5.807577999999876,
+          "mean": 1.6441684993182355,
+          "std": 1.405079884356252
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 355,
+          "median": 9.7925,
+          "p01": 7.129744732673282,
+          "p99": 12.475480719999966,
+          "mean": 9.781473923601943,
+          "std": 1.1470427337284568
+        },
+        "bump_proxy_fraction": 0.016339869281045753,
+        "forward_vs_speed_derivative_corr": -0.014020664618745802
+      },
+      "Vw2": {
+        "rows": 52712,
+        "duration_s": 5271.1,
+        "dt_s": {
+          "count": 52711,
+          "median": 0.0999999999999659,
+          "p01": 0.0999999999994543,
+          "p99": 0.1000000000003638,
+          "mean": 0.1,
+          "std": 2.790244368642098e-13
+        },
+        "stationary_fraction": 0.04795871907724996,
+        "stationary_accel_norm_mps2": {
+          "count": 2528,
+          "median": 9.860373920654622,
+          "p01": 9.606884075517335,
+          "p99": 10.64553505401258,
+          "mean": 9.889619996234012,
+          "std": 0.1837970756948055
+        },
+        "stationary_up_accel_mps2": {
+          "count": 2528,
+          "median": 9.844300000000032,
+          "p01": 9.384628287128688,
+          "p99": 10.35073499999471,
+          "mean": 9.849303221327323,
+          "std": 0.15015425481920236
+        },
+        "gyro_norm_rad_s": {
+          "count": 52712,
+          "median": 0.22893067132433115,
+          "p01": 0.014801029228980309,
+          "p99": 1.0166993747219573,
+          "mean": 0.277220959593682,
+          "std": 0.20961901752785791
+        },
+        "speed_kmh": {
+          "count": 52712,
+          "median": 75.32,
+          "p01": 0.0,
+          "p99": 109.48999999999965,
+          "mean": 67.19481546152849,
+          "std": 27.578522124660395
+        },
+        "speed_derivative_mps2": {
+          "count": 52712,
+          "median": 0.0,
+          "p01": -2.3144100660080684,
+          "p99": 1.708333333334827,
+          "mean": 0.0014520728992808794,
+          "std": 0.600383203713993
+        },
+        "forward_accel_mps2": {
+          "count": 52712,
+          "median": 0.055599999990554455,
+          "p01": -5.363222999976331,
+          "p99": 5.378292999999998,
+          "mean": 0.031545925242733676,
+          "std": 2.0502155151895245
+        },
+        "lateral_accel_mps2": {
+          "count": 52712,
+          "median": -0.005390594058922549,
+          "p01": -4.288488999961618,
+          "p99": 4.3397927499930145,
+          "mean": 0.014100434544353323,
+          "std": 1.6211067350467654
+        },
+        "up_accel_mps2": {
+          "count": 52712,
+          "median": 9.852849999999986,
+          "p01": 7.364299000000638,
+          "p99": 12.2427583960388,
+          "mean": 9.849127227291387,
+          "std": 0.9486366894309867
+        },
+        "turn_proxy_fraction": 0.35415085748975567,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 18668,
+          "median": 1.2715499999940567,
+          "p01": 0.025367000008039868,
+          "p99": 6.1047459999812705,
+          "mean": 1.577619698644639,
+          "std": 1.3463629365169842
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 18668,
+          "median": 9.857417078430494,
+          "p01": 7.0013699109200065,
+          "p99": 12.533812257426067,
+          "mean": 9.840039565994468,
+          "std": 1.0890239223890434
+        },
+        "bump_proxy_fraction": 0.008252390347548945,
+        "forward_vs_speed_derivative_corr": 0.020628514179283887
+      },
+      "Vw3": {
+        "rows": 3861,
+        "duration_s": 386.00000000140426,
+        "dt_s": {
+          "count": 3860,
+          "median": 0.1000000000003638,
+          "p01": 0.0999999999994543,
+          "p99": 0.10000000000127329,
+          "mean": 0.1000000000003638,
+          "std": 2.39648060264747e-13
+        },
+        "stationary_fraction": 0.042735042735042736,
+        "stationary_accel_norm_mps2": {
+          "count": 165,
+          "median": 9.85629977408797,
+          "p01": 9.611444530085922,
+          "p99": 10.07858418502056,
+          "mean": 9.85716602384132,
+          "std": 0.0926532303543362
+        },
+        "stationary_up_accel_mps2": {
+          "count": 165,
+          "median": 9.848259406387832,
+          "p01": 9.610520240849919,
+          "p99": 10.072513364572398,
+          "mean": 9.850624320323057,
+          "std": 0.09095344516905117
+        },
+        "gyro_norm_rad_s": {
+          "count": 3861,
+          "median": 0.2729816414241845,
+          "p01": 0.012860480883752417,
+          "p99": 1.2331699551935331,
+          "mean": 0.33199116095627085,
+          "std": 0.26604839019227927
+        },
+        "speed_kmh": {
+          "count": 3861,
+          "median": 54.49999999932932,
+          "p01": 0.0,
+          "p99": 75.32509445425829,
+          "mean": 46.010852784984465,
+          "std": 21.427169745901242
+        },
+        "speed_derivative_mps2": {
+          "count": 3861,
+          "median": 0.0,
+          "p01": -3.2345555557629426,
+          "p99": 2.156781356090739,
+          "mean": -0.0371784329428876,
+          "std": 0.9200941307136794
+        },
+        "forward_accel_mps2": {
+          "count": 3861,
+          "median": -0.0746712912648631,
+          "p01": -6.768923229376649,
+          "p99": 6.8073483909237735,
+          "mean": -0.14443960980146006,
+          "std": 2.4884528207715704
+        },
+        "lateral_accel_mps2": {
+          "count": 3861,
+          "median": -0.1124750000340972,
+          "p01": -5.97406023251961,
+          "p99": 6.76758482437442,
+          "mean": -0.06709564399948456,
+          "std": 2.2626702740399685
+        },
+        "up_accel_mps2": {
+          "count": 3861,
+          "median": 9.851410676943464,
+          "p01": 6.661966007610116,
+          "p99": 12.917730794723488,
+          "mean": 9.817967327296774,
+          "std": 1.1473520905650303
+        },
+        "turn_proxy_fraction": 0.3895363895363895,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 1504,
+          "median": 1.5702119980209446,
+          "p01": 0.027409740321932486,
+          "p99": 9.43657195906635,
+          "mean": 2.116367243042078,
+          "std": 1.9583568784800685
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 1504,
+          "median": 9.797402004718634,
+          "p01": 6.160261663027255,
+          "p99": 13.178429971102126,
+          "mean": 9.784529389680843,
+          "std": 1.369847624818675
+        },
+        "bump_proxy_fraction": 0.024864024864024864,
+        "forward_vs_speed_derivative_corr": 0.015976236157029634
+      },
+      "Vw4": {
+        "rows": 126526,
+        "duration_s": 12652.500000000011,
+        "dt_s": {
+          "count": 126525,
+          "median": 0.10000000000013642,
+          "p01": 0.09999999999854481,
+          "p99": 0.10000000000218279,
+          "mean": 0.10000000000000009,
+          "std": 6.920848702678527e-13
+        },
+        "stationary_fraction": 0.059679433476123485,
+        "stationary_accel_norm_mps2": {
+          "count": 7551,
+          "median": 9.859048411484837,
+          "p01": 9.677292088846396,
+          "p99": 10.220190642607236,
+          "mean": 9.866968561662611,
+          "std": 0.09678682339345004
+        },
+        "stationary_up_accel_mps2": {
+          "count": 7551,
+          "median": 9.847649504953116,
+          "p01": 9.639669802004693,
+          "p99": 10.040149999997997,
+          "mean": 9.848349566494829,
+          "std": 0.07834959140870902
+        },
+        "gyro_norm_rad_s": {
+          "count": 126526,
+          "median": 0.27167216454041554,
+          "p01": 0.01078253907842282,
+          "p99": 1.2430305207642915,
+          "mean": 0.33275114840865344,
+          "std": 0.2642910668811411
+        },
+        "speed_kmh": {
+          "count": 126526,
+          "median": 60.42531386139788,
+          "p01": 0.0,
+          "p99": 123.68000000000877,
+          "mean": 60.88799678105516,
+          "std": 34.4435712438026
+        },
+        "speed_derivative_mps2": {
+          "count": 126526,
+          "median": 0.0,
+          "p01": -2.611111111115912,
+          "p99": 1.8749999999979234,
+          "mean": 0.0003499511299456195,
+          "std": 0.7135126350658663
+        },
+        "forward_accel_mps2": {
+          "count": 126526,
+          "median": 0.1532757424111188,
+          "p01": -6.672924999934218,
+          "p99": 6.734484157670793,
+          "mean": 0.14802586171163395,
+          "std": 2.458256723488138
+        },
+        "lateral_accel_mps2": {
+          "count": 126526,
+          "median": -0.1254000000149904,
+          "p01": -6.1898749995661095,
+          "p99": 5.680263861175739,
+          "mean": -0.1761337577234063,
+          "std": 2.1781172496302186
+        },
+        "up_accel_mps2": {
+          "count": 126526,
+          "median": 9.841499999997435,
+          "p01": 6.578625000289282,
+          "p99": 12.867249999585493,
+          "mean": 9.819665948185918,
+          "std": 1.1808088080766597
+        },
+        "turn_proxy_fraction": 0.41393863711806267,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 52374,
+          "median": 1.5594999998581427,
+          "p01": 0.027402168032250776,
+          "p99": 8.417665999698384,
+          "mean": 2.0400728634411958,
+          "std": 1.8234888289394295
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 52374,
+          "median": 9.823949999892928,
+          "p01": 6.208419000448721,
+          "p99": 13.260797494918737,
+          "mean": 9.808358581632021,
+          "std": 1.3713201957823224
+        },
+        "bump_proxy_fraction": 0.024026682262934102,
+        "forward_vs_speed_derivative_corr": 0.006027055131404973
+      },
+      "Vw5": {
+        "rows": 1012,
+        "duration_s": 101.10000000036962,
+        "dt_s": {
+          "count": 1011,
+          "median": 0.1000000000003638,
+          "p01": 0.09999999999854481,
+          "p99": 0.10000000000218279,
+          "mean": 0.1000000000003656,
+          "std": 1.0408015715292922e-12
+        },
+        "stationary_fraction": 0.039525691699604744,
+        "stationary_accel_norm_mps2": {
+          "count": 40,
+          "median": 10.006074512352589,
+          "p01": 8.666575412814487,
+          "p99": 12.160297719376555,
+          "mean": 10.1787248539077,
+          "std": 0.7931782743729422
+        },
+        "stationary_up_accel_mps2": {
+          "count": 40,
+          "median": 9.862107000249896,
+          "p01": 8.308843119179885,
+          "p99": 11.578382524358755,
+          "mean": 9.811705617872002,
+          "std": 0.6690581539318957
+        },
+        "gyro_norm_rad_s": {
+          "count": 1012,
+          "median": 0.25018438617623373,
+          "p01": 0.015637022907323845,
+          "p99": 1.0280033042167673,
+          "mean": 0.31104804099627775,
+          "std": 0.23953479325454374
+        },
+        "speed_kmh": {
+          "count": 1012,
+          "median": 24.94749999929605,
+          "p01": 0.0,
+          "p99": 36.337088000032715,
+          "mean": 23.748263713986773,
+          "std": 8.791722768540957
+        },
+        "speed_derivative_mps2": {
+          "count": 1012,
+          "median": 0.0,
+          "p01": -3.1472614960181864,
+          "p99": 2.173378713423348,
+          "mean": -0.08824809655319933,
+          "std": 1.0447166095333018
+        },
+        "forward_accel_mps2": {
+          "count": 1012,
+          "median": 0.0760490704222993,
+          "p01": -7.1201031810393545,
+          "p99": 5.228853459927212,
+          "mean": -0.027152692898224893,
+          "std": 2.107617845929291
+        },
+        "lateral_accel_mps2": {
+          "count": 1012,
+          "median": 0.0720750517259552,
+          "p01": -5.477888468090266,
+          "p99": 6.63795925672309,
+          "mean": -0.021937743122494816,
+          "std": 2.3018498739671376
+        },
+        "up_accel_mps2": {
+          "count": 1012,
+          "median": 9.833515000090316,
+          "p01": 6.467274214232073,
+          "p99": 12.363907287765352,
+          "mean": 9.823151035515828,
+          "std": 1.0141232232497581
+        },
+        "turn_proxy_fraction": 0.3221343873517787,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 326,
+          "median": 2.0273770047816857,
+          "p01": 0.056551486405602674,
+          "p99": 8.578661206248345,
+          "mean": 2.530777323244881,
+          "std": 1.966331430318407
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 326,
+          "median": 9.809563498806153,
+          "p01": 5.392234353597296,
+          "p99": 14.07127000410347,
+          "mean": 9.786907825009159,
+          "std": 1.4522291635478306
+        },
+        "bump_proxy_fraction": 0.018774703557312252,
+        "forward_vs_speed_derivative_corr": -0.04262191777901152
+      },
+      "Vw6": {
+        "rows": 1281,
+        "duration_s": 128.00000000046384,
+        "dt_s": {
+          "count": 1280,
+          "median": 0.1000000000003638,
+          "p01": 0.09999999999854481,
+          "p99": 0.10000000000218279,
+          "mean": 0.10000000000036238,
+          "std": 1.0407149442131203e-12
+        },
+        "stationary_fraction": 0.0,
+        "stationary_accel_norm_mps2": {
+          "count": 0
+        },
+        "stationary_up_accel_mps2": {
+          "count": 0
+        },
+        "gyro_norm_rad_s": {
+          "count": 1281,
+          "median": 0.24359476618766857,
+          "p01": 0.030909875615008138,
+          "p99": 1.4089393823249738,
+          "mean": 0.31977820915717725,
+          "std": 0.26683631709454186
+        },
+        "speed_kmh": {
+          "count": 1281,
+          "median": 31.320000000602995,
+          "p01": 4.946732672548069,
+          "p99": 40.15000000002721,
+          "mean": 30.384688869638698,
+          "std": 7.141924109427456
+        },
+        "speed_derivative_mps2": {
+          "count": 1281,
+          "median": -0.00013751384057059113,
+          "p01": -2.5416666670626227,
+          "p99": 1.5936468643762398,
+          "mean": -0.0027484501016587647,
+          "std": 0.7974757053112668
+        },
+        "forward_accel_mps2": {
+          "count": 1281,
+          "median": -0.0408999697922667,
+          "p01": -6.597897219308382,
+          "p99": 5.050899985925679,
+          "mean": -0.04844404864710852,
+          "std": 2.0286446732279266
+        },
+        "lateral_accel_mps2": {
+          "count": 1281,
+          "median": 0.1122999980196699,
+          "p01": -6.197939996409768,
+          "p99": 7.966039994963945,
+          "mean": 0.12977250319670455,
+          "std": 2.4909032629389753
+        },
+        "up_accel_mps2": {
+          "count": 1281,
+          "median": 9.82320000041364,
+          "p01": 6.196980008605222,
+          "p99": 12.521864792652307,
+          "mean": 9.78797447950965,
+          "std": 1.1454924746583899
+        },
+        "turn_proxy_fraction": 0.33411397345823574,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 428,
+          "median": 1.9346524661007138,
+          "p01": 0.051731993902529805,
+          "p99": 11.287887987194289,
+          "mean": 2.511418735571442,
+          "std": 2.3301969462634275
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 428,
+          "median": 9.75194158007904,
+          "p01": 5.807180060447146,
+          "p99": 12.722572989298556,
+          "mean": 9.73428389941679,
+          "std": 1.4052800885271357
+        },
+        "bump_proxy_fraction": 0.0234192037470726,
+        "forward_vs_speed_derivative_corr": 0.05976751735836343
+      },
+      "Vw7": {
+        "rows": 1602,
+        "duration_s": 160.10000000058244,
+        "dt_s": {
+          "count": 1601,
+          "median": 0.1000000000003638,
+          "p01": 0.09999999999854481,
+          "p99": 0.10000000000218279,
+          "mean": 0.1000000000003638,
+          "std": 1.0406391167630498e-12
+        },
+        "stationary_fraction": 0.00686641697877653,
+        "stationary_accel_norm_mps2": {
+          "count": 11,
+          "median": 9.712190332675956,
+          "p01": 7.657446190321448,
+          "p99": 11.086555437623549,
+          "mean": 9.555866361083561,
+          "std": 1.1287899257948193
+        },
+        "stationary_up_accel_mps2": {
+          "count": 11,
+          "median": 9.17880000017806,
+          "p01": 6.341712945902473,
+          "p99": 10.601009996304638,
+          "mean": 8.829620854902396,
+          "std": 1.2630222845512014
+        },
+        "gyro_norm_rad_s": {
+          "count": 1602,
+          "median": 0.27055318352803337,
+          "p01": 0.020518236864621498,
+          "p99": 1.1808021446667796,
+          "mean": 0.33642630096505494,
+          "std": 0.2541227903315149
+        },
+        "speed_kmh": {
+          "count": 1602,
+          "median": 28.320249999277966,
+          "p01": 1.1116237621655929,
+          "p99": 40.715585146502754,
+          "mean": 26.173962029303727,
+          "std": 9.490212098325436
+        },
+        "speed_derivative_mps2": {
+          "count": 1602,
+          "median": 0.04166666808540853,
+          "p01": -2.7761358630658766,
+          "p99": 2.7498267318196654,
+          "mean": -0.0023619032874381252,
+          "std": 1.0792271811008982
+        },
+        "forward_accel_mps2": {
+          "count": 1602,
+          "median": 0.023308909843554652,
+          "p01": -5.935080276526612,
+          "p99": 5.1696769995444205,
+          "mean": -0.08125872279630421,
+          "std": 2.102123200836258
+        },
+        "lateral_accel_mps2": {
+          "count": 1602,
+          "median": 0.08852871392833114,
+          "p01": -6.922687637081948,
+          "p99": 7.024929542845009,
+          "mean": 0.07797971591597898,
+          "std": 2.507873439417368
+        },
+        "up_accel_mps2": {
+          "count": 1602,
+          "median": 9.83073168309097,
+          "p01": 6.807864671718013,
+          "p99": 12.682715977348613,
+          "mean": 9.817280995931524,
+          "std": 1.0357027298139851
+        },
+        "turn_proxy_fraction": 0.3470661672908864,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 556,
+          "median": 2.1725999827211435,
+          "p01": 0.03171445100535335,
+          "p99": 9.225194968358137,
+          "mean": 2.650146141454683,
+          "std": 2.1580941968508007
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 556,
+          "median": 9.862900000804188,
+          "p01": 6.46403614001688,
+          "p99": 13.1226849823949,
+          "mean": 9.853241025423399,
+          "std": 1.3466918243812527
+        },
+        "bump_proxy_fraction": 0.019350811485642945,
+        "forward_vs_speed_derivative_corr": -0.012416327328705644
+      },
+      "Vw8": {
+        "rows": 1529,
+        "duration_s": 152.80000000055588,
+        "dt_s": {
+          "count": 1528,
+          "median": 0.1000000000003638,
+          "p01": 0.09999999999854481,
+          "p99": 0.10000000000218279,
+          "mean": 0.1000000000003638,
+          "std": 1.040527335945343e-12
+        },
+        "stationary_fraction": 0.03466317854807063,
+        "stationary_accel_norm_mps2": {
+          "count": 53,
+          "median": 10.112915093892342,
+          "p01": 9.482910625655892,
+          "p99": 11.564234811987593,
+          "mean": 10.261654357211071,
+          "std": 0.5499371275945538
+        },
+        "stationary_up_accel_mps2": {
+          "count": 53,
+          "median": 9.837706930714488,
+          "p01": 8.888900001384172,
+          "p99": 11.1618839980225,
+          "mean": 9.860920407211625,
+          "std": 0.5473124203748321
+        },
+        "gyro_norm_rad_s": {
+          "count": 1529,
+          "median": 0.29789826408813114,
+          "p01": 0.02534675747783416,
+          "p99": 1.2504720910804321,
+          "mean": 0.3670437504730803,
+          "std": 0.2738744393023233
+        },
+        "speed_kmh": {
+          "count": 1529,
+          "median": 27.36000000071413,
+          "p01": 0.0,
+          "p99": 46.04426138684191,
+          "mean": 25.08986643068774,
+          "std": 11.03102112699905
+        },
+        "speed_derivative_mps2": {
+          "count": 1529,
+          "median": 0.06477029864417716,
+          "p01": -2.524004399481523,
+          "p99": 2.079444444200815,
+          "mean": -0.004423733740251735,
+          "std": 0.9628923647452144
+        },
+        "forward_accel_mps2": {
+          "count": 1529,
+          "median": 0.1498999988306153,
+          "p01": -6.618839876591213,
+          "p99": 6.178595996398621,
+          "mean": 0.04524410470566742,
+          "std": 2.333410000419061
+        },
+        "lateral_accel_mps2": {
+          "count": 1529,
+          "median": -0.1222000000789441,
+          "p01": -6.307651971025475,
+          "p99": 7.196155994841951,
+          "mean": -0.04201962545148645,
+          "std": 2.5190904311775135
+        },
+        "up_accel_mps2": {
+          "count": 1529,
+          "median": 9.8340000043534,
+          "p01": 6.682812006757856,
+          "p99": 13.015807990055542,
+          "mean": 9.835186720730057,
+          "std": 1.1171957490792683
+        },
+        "turn_proxy_fraction": 0.3996075866579464,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 611,
+          "median": 1.8750851400689152,
+          "p01": 0.023130008905595644,
+          "p99": 10.408172030375962,
+          "mean": 2.379892880416684,
+          "std": 2.1087210903569225
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 611,
+          "median": 9.890800000871227,
+          "p01": 6.372320004119058,
+          "p99": 13.515989997392541,
+          "mean": 9.859058204129603,
+          "std": 1.3210397143480803
+        },
+        "bump_proxy_fraction": 0.02419882275997384,
+        "forward_vs_speed_derivative_corr": -0.03464457576335972
+      },
+      "Vw9": {
+        "rows": 552,
+        "duration_s": 55.10000000020045,
+        "dt_s": {
+          "count": 551,
+          "median": 0.1000000000003638,
+          "p01": 0.09999999999854481,
+          "p99": 0.10000000000218279,
+          "mean": 0.1000000000003638,
+          "std": 1.039658293226896e-12
+        },
+        "stationary_fraction": 0.0,
+        "stationary_accel_norm_mps2": {
+          "count": 0
+        },
+        "stationary_up_accel_mps2": {
+          "count": 0
+        },
+        "gyro_norm_rad_s": {
+          "count": 552,
+          "median": 0.2722954629929639,
+          "p01": 0.05868809817969585,
+          "p99": 1.1678416198494659,
+          "mean": 0.33060002801768035,
+          "std": 0.2295992037733089
+        },
+        "speed_kmh": {
+          "count": 552,
+          "median": 28.505699999925017,
+          "p01": 5.537821781820867,
+          "p99": 41.33918399963552,
+          "mean": 27.546609848910315,
+          "std": 8.088915271926194
+        },
+        "speed_derivative_mps2": {
+          "count": 552,
+          "median": 0.02564012671526683,
+          "p01": -4.4588607263150495,
+          "p99": 1.1328912188910467,
+          "mean": -0.0921418323598698,
+          "std": 0.890955094567642
+        },
+        "forward_accel_mps2": {
+          "count": 552,
+          "median": 0.4792924997744978,
+          "p01": -4.45520895965591,
+          "p99": 5.013876475208678,
+          "mean": 0.4367470354671995,
+          "std": 1.7257001839044452
+        },
+        "lateral_accel_mps2": {
+          "count": 552,
+          "median": -0.21835213659464509,
+          "p01": -7.519669442683922,
+          "p99": 6.841777362800869,
+          "mean": -0.12903955840351444,
+          "std": 2.746496674283379
+        },
+        "up_accel_mps2": {
+          "count": 552,
+          "median": 9.844600301322782,
+          "p01": 6.343622439727932,
+          "p99": 12.615481000451389,
+          "mean": 9.794015177984251,
+          "std": 1.1236578438461693
+        },
+        "turn_proxy_fraction": 0.35688405797101447,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 197,
+          "median": 2.498459003753843,
+          "p01": 0.0698466474700778,
+          "p99": 10.122609462346492,
+          "mean": 2.9288413792215398,
+          "std": 2.251546700702018
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 197,
+          "median": 9.778941999765513,
+          "p01": 6.025273136963726,
+          "p99": 13.023648348095838,
+          "mean": 9.732454737100827,
+          "std": 1.3924366360247917
+        },
+        "bump_proxy_fraction": 0.028985507246376812,
+        "forward_vs_speed_derivative_corr": -0.24848226888424998
+      },
+      "Vw10": {
+        "rows": 652,
+        "duration_s": 65.10000000023683,
+        "dt_s": {
+          "count": 651,
+          "median": 0.1000000000003638,
+          "p01": 0.09999999999854481,
+          "p99": 0.10000000000218279,
+          "mean": 0.1000000000003638,
+          "std": 1.0380245028798978e-12
+        },
+        "stationary_fraction": 0.0,
+        "stationary_accel_norm_mps2": {
+          "count": 0
+        },
+        "stationary_up_accel_mps2": {
+          "count": 0
+        },
+        "gyro_norm_rad_s": {
+          "count": 652,
+          "median": 0.29450936185356175,
+          "p01": 0.04708905471560656,
+          "p99": 1.343288006620444,
+          "mean": 0.365983632419262,
+          "std": 0.2617380827153124
+        },
+        "speed_kmh": {
+          "count": 652,
+          "median": 43.150000000526965,
+          "p01": 15.685643564358646,
+          "p99": 58.644099999932585,
+          "mean": 40.48654163297374,
+          "std": 11.615175186696675
+        },
+        "speed_derivative_mps2": {
+          "count": 652,
+          "median": 0.12499999994108357,
+          "p01": -3.7970572056402894,
+          "p99": 1.485833333266405,
+          "mean": 0.012035616910729303,
+          "std": 0.981502077019699
+        },
+        "forward_accel_mps2": {
+          "count": 652,
+          "median": -0.00299999864400125,
+          "p01": -4.729470994480978,
+          "p99": 3.7838469950836693,
+          "mean": -0.09027295939563985,
+          "std": 1.6623647529641652
+        },
+        "lateral_accel_mps2": {
+          "count": 652,
+          "median": 0.0528617677359565,
+          "p01": -8.434664987246624,
+          "p99": 8.71260124463661,
+          "mean": -0.059693613140178854,
+          "std": 3.146183260664063
+        },
+        "up_accel_mps2": {
+          "count": 652,
+          "median": 9.866499999809466,
+          "p01": 6.302244944125496,
+          "p99": 13.482135997909863,
+          "mean": 9.887708771882934,
+          "std": 1.302243295516362
+        },
+        "turn_proxy_fraction": 0.48466257668711654,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 316,
+          "median": 2.3825000013863153,
+          "p01": 0.08676499763838204,
+          "p99": 11.890029975722102,
+          "mean": 3.0225636254243575,
+          "std": 2.519192757727023
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 316,
+          "median": 9.979699999055754,
+          "p01": 5.882880005951389,
+          "p99": 13.60597499596965,
+          "mean": 9.94064463034355,
+          "std": 1.3807798619064953
+        },
+        "bump_proxy_fraction": 0.0352760736196319,
+        "forward_vs_speed_derivative_corr": 0.42260239226570306
+      },
+      "Vw11": {
+        "rows": 4909,
+        "duration_s": 490.8000000017837,
+        "dt_s": {
+          "count": 4908,
+          "median": 0.1000000000003638,
+          "p01": 0.09999999999854481,
+          "p99": 0.10000000000218279,
+          "mean": 0.10000000000036342,
+          "std": 1.040844383199266e-12
+        },
+        "stationary_fraction": 0.1389284986759014,
+        "stationary_accel_norm_mps2": {
+          "count": 682,
+          "median": 9.858990782495876,
+          "p01": 9.666708880943636,
+          "p99": 10.418275891705031,
+          "mean": 9.872116125686203,
+          "std": 0.12684292240928444
+        },
+        "stationary_up_accel_mps2": {
+          "count": 682,
+          "median": 9.844786633308374,
+          "p01": 9.614489000545207,
+          "p99": 10.042644999435302,
+          "mean": 9.843956023314648,
+          "std": 0.0989322773641605
+        },
+        "gyro_norm_rad_s": {
+          "count": 4909,
+          "median": 0.21732643625760484,
+          "p01": 0.009998436405960463,
+          "p99": 1.1250551301859761,
+          "mean": 0.26944534889992267,
+          "std": 0.23771031789772018
+        },
+        "speed_kmh": {
+          "count": 4909,
+          "median": 42.11999999786941,
+          "p01": 0.0,
+          "p99": 96.19520000264703,
+          "mean": 42.76871551242342,
+          "std": 30.05214238792122
+        },
+        "speed_derivative_mps2": {
+          "count": 4909,
+          "median": 0.0,
+          "p01": -2.6794444426190047,
+          "p99": 2.0831463145359463,
+          "mean": 0.03700120244108561,
+          "std": 0.8152979324767533
+        },
+        "forward_accel_mps2": {
+          "count": 4909,
+          "median": 0.1189999922967819,
+          "p01": -5.18007590955734,
+          "p99": 5.333559862484427,
+          "mean": 0.06101730742113864,
+          "std": 1.8763411459823547
+        },
+        "lateral_accel_mps2": {
+          "count": 4909,
+          "median": -0.0091999993484343,
+          "p01": -5.749483798439272,
+          "p99": 5.783837139780634,
+          "mean": -0.04591534945986764,
+          "std": 2.1037254562731498
+        },
+        "up_accel_mps2": {
+          "count": 4909,
+          "median": 9.851886139187584,
+          "p01": 6.886074973756176,
+          "p99": 12.961112672312892,
+          "mean": 9.862077717981704,
+          "std": 1.0876857989358462
+        },
+        "turn_proxy_fraction": 0.3202281523731921,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 1572,
+          "median": 1.7474732606084358,
+          "p01": 0.03932600684193948,
+          "p99": 8.821699854477501,
+          "mean": 2.2052604219895358,
+          "std": 1.8828266134822418
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 1572,
+          "median": 9.85700002795719,
+          "p01": 6.332610041601904,
+          "p99": 13.234369887689075,
+          "mean": 9.851190437599175,
+          "std": 1.3183452272720333
+        },
+        "bump_proxy_fraction": 0.02098187003463027,
+        "forward_vs_speed_derivative_corr": 0.15818017744711416
+      },
+      "Vw12": {
+        "rows": 918,
+        "duration_s": 91.7,
+        "dt_s": {
+          "count": 917,
+          "median": 0.10000000000000009,
+          "p01": 0.09999999999999432,
+          "p99": 0.10000000000000853,
+          "mean": 0.09999999999999999,
+          "std": 4.944833365901482e-15
+        },
+        "stationary_fraction": 0.0,
+        "stationary_accel_norm_mps2": {
+          "count": 0
+        },
+        "stationary_up_accel_mps2": {
+          "count": 0
+        },
+        "gyro_norm_rad_s": {
+          "count": 918,
+          "median": 0.26980896607626625,
+          "p01": 0.06146513978136281,
+          "p99": 1.1049139257596203,
+          "mean": 0.32287879740889464,
+          "std": 0.21381325935101056
+        },
+        "speed_kmh": {
+          "count": 918,
+          "median": 91.13499999999999,
+          "p01": 82.9217,
+          "p99": 96.96,
+          "mean": 90.14428052044944,
+          "std": 4.296923261794718
+        },
+        "speed_derivative_mps2": {
+          "count": 918,
+          "median": -0.013888888888914153,
+          "p01": -0.5789154056655399,
+          "p99": 0.7168201553905357,
+          "mean": 0.009259259259260622,
+          "std": 0.2787890776877906
+        },
+        "forward_accel_mps2": {
+          "count": 918,
+          "median": 0.21677425742575196,
+          "p01": -5.991107425742566,
+          "p99": 6.048954319999987,
+          "mean": 0.19963324925260112,
+          "std": 2.298404031790896
+        },
+        "lateral_accel_mps2": {
+          "count": 918,
+          "median": 0.32395,
+          "p01": -4.520085,
+          "p99": 4.748522000000001,
+          "mean": 0.3207038857854777,
+          "std": 1.7009896116063876
+        },
+        "up_accel_mps2": {
+          "count": 918,
+          "median": 9.849202000000005,
+          "p01": 6.875196831683218,
+          "p99": 12.356150439999958,
+          "mean": 9.82015092539103,
+          "std": 1.136170765874747
+        },
+        "turn_proxy_fraction": 0.3867102396514161,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 355,
+          "median": 1.2116,
+          "p01": 0.034756495049449686,
+          "p99": 5.807577999999876,
+          "mean": 1.6441684993182355,
+          "std": 1.405079884356252
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 355,
+          "median": 9.7925,
+          "p01": 7.129744732673282,
+          "p99": 12.475480719999966,
+          "mean": 9.781473923601943,
+          "std": 1.1470427337284568
+        },
+        "bump_proxy_fraction": 0.016339869281045753,
+        "forward_vs_speed_derivative_corr": -0.014020664618745802
+      },
+      "Vw13": {
+        "rows": 284,
+        "duration_s": 28.300000000000008,
+        "dt_s": {
+          "count": 283,
+          "median": 0.09999999999999998,
+          "p01": 0.09999999999999787,
+          "p99": 0.10000000000000142,
+          "mean": 0.10000000000000003,
+          "std": 1.3171516930687537e-15
+        },
+        "stationary_fraction": 0.0,
+        "stationary_accel_norm_mps2": {
+          "count": 0
+        },
+        "stationary_up_accel_mps2": {
+          "count": 0
+        },
+        "gyro_norm_rad_s": {
+          "count": 284,
+          "median": 0.38365355968495024,
+          "p01": 0.07645599013656872,
+          "p99": 1.1352015660007628,
+          "mean": 0.42252341726787035,
+          "std": 0.2429336638029146
+        },
+        "speed_kmh": {
+          "count": 284,
+          "median": 97.11418514851486,
+          "p01": 93.7949,
+          "p99": 111.98415841584158,
+          "mean": 98.17149944394436,
+          "std": 4.367346466922562
+        },
+        "speed_derivative_mps2": {
+          "count": 284,
+          "median": -0.1808993399340011,
+          "p01": -1.0953960396040052,
+          "p99": 0.5804831442384144,
+          "mean": -0.17565638606114176,
+          "std": 0.40655892690618584
+        },
+        "forward_accel_mps2": {
+          "count": 284,
+          "median": 0.1276000000000825,
+          "p01": -6.44131499999986,
+          "p99": 5.892230999999448,
+          "mean": 0.1710996877701919,
+          "std": 3.080020990018163
+        },
+        "lateral_accel_mps2": {
+          "count": 284,
+          "median": 0.0883168316831725,
+          "p01": -3.8687229999998696,
+          "p99": 4.922150666666488,
+          "mean": 0.28914190304699156,
+          "std": 2.0736559621320088
+        },
+        "up_accel_mps2": {
+          "count": 284,
+          "median": 9.858877500000016,
+          "p01": 7.222376000000334,
+          "p99": 12.317696833332953,
+          "mean": 9.874552434005022,
+          "std": 1.1815639897897692
+        },
+        "turn_proxy_fraction": 0.5774647887323944,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 164,
+          "median": 1.7321034653463792,
+          "p01": 0.02288953465344263,
+          "p99": 5.547650148514613,
+          "mean": 1.896267625987761,
+          "std": 1.2755530283708771
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 164,
+          "median": 9.907531500000013,
+          "p01": 7.208936000000316,
+          "p99": 13.1600313823528,
+          "mean": 9.923027144084033,
+          "std": 1.2343955492169512
+        },
+        "bump_proxy_fraction": 0.014084507042253521,
+        "forward_vs_speed_derivative_corr": 0.055276413495849566
+      },
+      "Vw14a": {
+        "rows": 3138,
+        "duration_s": 313.70000000000005,
+        "dt_s": {
+          "count": 3137,
+          "median": 0.09999999999999432,
+          "p01": 0.0999999999999659,
+          "p99": 0.10000000000002274,
+          "mean": 0.10000000000000002,
+          "std": 1.6913773482770006e-14
+        },
+        "stationary_fraction": 0.0,
+        "stationary_accel_norm_mps2": {
+          "count": 0
+        },
+        "stationary_up_accel_mps2": {
+          "count": 0
+        },
+        "gyro_norm_rad_s": {
+          "count": 3138,
+          "median": 0.26154637751523613,
+          "p01": 0.04698057881004599,
+          "p99": 1.0547338491927047,
+          "mean": 0.3113705169533904,
+          "std": 0.20705099071065308
+        },
+        "speed_kmh": {
+          "count": 3138,
+          "median": 91.72881188118811,
+          "p01": 62.73428712871287,
+          "p99": 107.89930700000001,
+          "mean": 90.58778516234746,
+          "std": 7.740404345450705
+        },
+        "speed_derivative_mps2": {
+          "count": 3138,
+          "median": 0.013888888888885731,
+          "p01": -1.539520952970285,
+          "p99": 0.8554235423542517,
+          "mean": -0.011679290937380049,
+          "std": 0.4766230899623156
+        },
+        "forward_accel_mps2": {
+          "count": 3138,
+          "median": 0.15445000000011333,
+          "p01": -4.707910504949872,
+          "p99": 4.760641198019464,
+          "mean": 0.14890359215700627,
+          "std": 1.9165335545334141
+        },
+        "lateral_accel_mps2": {
+          "count": 3138,
+          "median": 0.17000000000015508,
+          "p01": -4.900213,
+          "p99": 5.785787549999782,
+          "mean": 0.14958647113248566,
+          "std": 2.0230300857162313
+        },
+        "up_accel_mps2": {
+          "count": 3138,
+          "median": 9.881921287128783,
+          "p01": 7.057589168316569,
+          "p99": 12.550895,
+          "mean": 9.853032761141716,
+          "std": 1.1726058020175458
+        },
+        "turn_proxy_fraction": 0.3992989165073295,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 1253,
+          "median": 1.6057,
+          "p01": 0.02995818099022218,
+          "p99": 7.5628720000000005,
+          "mean": 1.974825815132901,
+          "std": 1.6063792100008998
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 1253,
+          "median": 9.8382,
+          "p01": 6.857367801980984,
+          "p99": 12.691424198019511,
+          "mean": 9.830524276750497,
+          "std": 1.211762798197576
+        },
+        "bump_proxy_fraction": 0.012109623964308477,
+        "forward_vs_speed_derivative_corr": -0.022891837002776236
+      },
+      "Vw14b": {
+        "rows": 19588,
+        "duration_s": 1958.700000000445,
+        "dt_s": {
+          "count": 19587,
+          "median": 0.10000000000002274,
+          "p01": 0.0999999999994543,
+          "p99": 0.10000000000059117,
+          "mean": 0.10000000000002272,
+          "std": 1.812521270989688e-13
+        },
+        "stationary_fraction": 0.0,
+        "stationary_accel_norm_mps2": {
+          "count": 0
+        },
+        "stationary_up_accel_mps2": {
+          "count": 0
+        },
+        "gyro_norm_rad_s": {
+          "count": 19588,
+          "median": 0.21647654562797117,
+          "p01": 0.032868314950276034,
+          "p99": 0.924617935221997,
+          "mean": 0.26403150000825454,
+          "std": 0.18705079352125048
+        },
+        "speed_kmh": {
+          "count": 19588,
+          "median": 79.99000000006676,
+          "p01": 14.480299999909883,
+          "p99": 113.00196599995432,
+          "mean": 75.47765932455914,
+          "std": 21.846191392166485
+        },
+        "speed_derivative_mps2": {
+          "count": 19588,
+          "median": -0.02791254119500053,
+          "p01": -1.2084055534993825,
+          "p99": 1.1393958331049967,
+          "mean": -0.0033511223531001713,
+          "std": 0.4245395009323034
+        },
+        "forward_accel_mps2": {
+          "count": 19588,
+          "median": 0.2359695920501293,
+          "p01": -4.359511948633495,
+          "p99": 4.714104483525266,
+          "mean": 0.2192149452130155,
+          "std": 1.6785925303523448
+        },
+        "lateral_accel_mps2": {
+          "count": 19588,
+          "median": 0.2091221578375631,
+          "p01": -4.776890762584409,
+          "p99": 4.929914834150724,
+          "mean": 0.16182901063622923,
+          "std": 1.7711927455761887
+        },
+        "up_accel_mps2": {
+          "count": 19588,
+          "median": 9.849761999884752,
+          "p01": 7.204867398941583,
+          "p99": 12.296911433561895,
+          "mean": 9.840546828089792,
+          "std": 1.0058937451738956
+        },
+        "turn_proxy_fraction": 0.3249438431692873,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 6365,
+          "median": 1.4600712903488282,
+          "p01": 0.025883095800469984,
+          "p99": 6.72978380615705,
+          "mean": 1.8142861814091937,
+          "std": 1.4919300969636344
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 6365,
+          "median": 9.841690001261936,
+          "p01": 6.861658842359702,
+          "p99": 12.58294181165359,
+          "mean": 9.829007641120432,
+          "std": 1.1470684635667823
+        },
+        "bump_proxy_fraction": 0.00964876454972432,
+        "forward_vs_speed_derivative_corr": -0.002255358990880853
+      },
+      "Vw14c": {
+        "rows": 15826,
+        "duration_s": 1582.4999999985612,
+        "dt_s": {
+          "count": 15825,
+          "median": 0.09999999999990905,
+          "p01": 0.0999999999994543,
+          "p99": 0.1000000000003638,
+          "mean": 0.09999999999990908,
+          "std": 2.1254358628867467e-13
+        },
+        "stationary_fraction": 0.13698976368002022,
+        "stationary_accel_norm_mps2": {
+          "count": 2168,
+          "median": 9.862585106089574,
+          "p01": 9.630867140034699,
+          "p99": 10.485400799282393,
+          "mean": 9.879630061844379,
+          "std": 0.14013739534793793
+        },
+        "stationary_up_accel_mps2": {
+          "count": 2168,
+          "median": 9.850599999597884,
+          "p01": 9.578138001991311,
+          "p99": 10.13957524751118,
+          "mean": 9.850996937459657,
+          "std": 0.10573039843791446
+        },
+        "gyro_norm_rad_s": {
+          "count": 15826,
+          "median": 0.13041416562289954,
+          "p01": 0.00861317873497389,
+          "p99": 0.9464124131000793,
+          "mean": 0.192004399817915,
+          "std": 0.19933779488652004
+        },
+        "speed_kmh": {
+          "count": 15826,
+          "median": 32.68000000090663,
+          "p01": 0.0,
+          "p99": 96.92000000155224,
+          "mean": 38.78123933095429,
+          "std": 32.116862354066626
+        },
+        "speed_derivative_mps2": {
+          "count": 15826,
+          "median": 0.0,
+          "p01": -2.4090277820242374,
+          "p99": 1.902777777717751,
+          "mean": -0.012579510510149333,
+          "std": 0.7164324874522333
+        },
+        "forward_accel_mps2": {
+          "count": 15826,
+          "median": 0.13905000059032935,
+          "p01": -4.859499991546058,
+          "p99": 4.839974974547186,
+          "mean": 0.08780158919031261,
+          "std": 1.6361017500343196
+        },
+        "lateral_accel_mps2": {
+          "count": 15826,
+          "median": -0.05625000116024955,
+          "p01": -4.194830142737726,
+          "p99": 3.9585999584807405,
+          "mean": -0.05333591859033363,
+          "std": 1.4797581581742096
+        },
+        "up_accel_mps2": {
+          "count": 15826,
+          "median": 9.85073027019747,
+          "p01": 7.493939480994229,
+          "p99": 12.170049976635674,
+          "mean": 9.848959943680912,
+          "std": 0.8115226087444848
+        },
+        "turn_proxy_fraction": 0.20207253886010362,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 3198,
+          "median": 1.4461999919898552,
+          "p01": 0.031760999995312074,
+          "p99": 7.125864909762221,
+          "mean": 1.801021016418106,
+          "std": 1.546765036664228
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 3198,
+          "median": 9.869349992220183,
+          "p01": 6.659309964630424,
+          "p99": 12.954489977324746,
+          "mean": 9.859611202041835,
+          "std": 1.2270203049597974
+        },
+        "bump_proxy_fraction": 0.008277518008340706,
+        "forward_vs_speed_derivative_corr": 0.037043529876802685
+      },
+      "Vw15": {
+        "rows": 1380,
+        "duration_s": 137.9,
+        "dt_s": {
+          "count": 1379,
+          "median": 0.09999999999999964,
+          "p01": 0.09999999999999432,
+          "p99": 0.10000000000002274,
+          "mean": 0.1,
+          "std": 5.885968165967511e-15
+        },
+        "stationary_fraction": 1.0,
+        "stationary_accel_norm_mps2": {
+          "count": 1380,
+          "median": 9.850448899940929,
+          "p01": 9.689920813424425,
+          "p99": 9.997682506033483,
+          "mean": 9.85118282860909,
+          "std": 0.08495734245229244
+        },
+        "stationary_up_accel_mps2": {
+          "count": 1380,
+          "median": 9.84695,
+          "p01": 9.686208079207937,
+          "p99": 9.99254076237623,
+          "mean": 9.846832393557463,
+          "std": 0.0802453859021447
+        },
+        "gyro_norm_rad_s": {
+          "count": 1380,
+          "median": 0.027646782150921693,
+          "p01": 0.004695830030924499,
+          "p99": 0.08181705327859581,
+          "mean": 0.031113482510262844,
+          "std": 0.02312064404102489
+        },
+        "speed_kmh": {
+          "count": 1380,
+          "median": 0.0,
+          "p01": 0.0,
+          "p99": 0.0,
+          "mean": 0.0,
+          "std": 0.0
+        },
+        "speed_derivative_mps2": {
+          "count": 1380,
+          "median": 0.0,
+          "p01": 0.0,
+          "p99": 0.0,
+          "mean": 0.0,
+          "std": 0.0
+        },
+        "forward_accel_mps2": {
+          "count": 1380,
+          "median": -0.03408514851484955,
+          "p01": -0.3733399999999683,
+          "p99": 0.40425099999997016,
+          "mean": -0.01002491143565755,
+          "std": 0.18842218982866654
+        },
+        "lateral_accel_mps2": {
+          "count": 1380,
+          "median": 0.0182000000000096,
+          "p01": -0.46133241999992003,
+          "p99": 0.41289900000000007,
+          "mean": -0.011315967548302181,
+          "std": 0.22525961102094802
+        },
+        "up_accel_mps2": {
+          "count": 1380,
+          "median": 9.84695,
+          "p01": 9.686208079207937,
+          "p99": 9.99254076237623,
+          "mean": 9.846832393557463,
+          "std": 0.0802453859021447
+        },
+        "turn_proxy_fraction": 0.0014492753623188406,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 2,
+          "median": 2.439487128712628,
+          "p01": 2.067368514851348,
+          "p99": 2.811605742573908,
+          "mean": 2.439487128712628,
+          "std": 0.37971287128702036
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 2,
+          "median": 10.165215346534595,
+          "p01": 9.147794386138642,
+          "p99": 11.182636306930547,
+          "mean": 10.165215346534595,
+          "std": 1.0381846534652581
+        },
+        "bump_proxy_fraction": 0.0,
+        "forward_vs_speed_derivative_corr": null
+      },
+      "Vw16a": {
+        "rows": 5879,
+        "duration_s": 587.8000000000001,
+        "dt_s": {
+          "count": 5878,
+          "median": 0.10000000000000142,
+          "p01": 0.09999999999990905,
+          "p99": 0.10000000000002274,
+          "mean": 0.1,
+          "std": 2.5460964676806656e-14
+        },
+        "stationary_fraction": 0.0673583942847423,
+        "stationary_accel_norm_mps2": {
+          "count": 396,
+          "median": 9.860898717015829,
+          "p01": 9.363174443792545,
+          "p99": 10.916252781649062,
+          "mean": 9.896763412837464,
+          "std": 0.32499049902591026
+        },
+        "stationary_up_accel_mps2": {
+          "count": 396,
+          "median": 9.8488,
+          "p01": 9.064995,
+          "p99": 10.571140000000005,
+          "mean": 9.851910336440998,
+          "std": 0.23093598832855666
+        },
+        "gyro_norm_rad_s": {
+          "count": 5879,
+          "median": 0.20769730378606266,
+          "p01": 0.014009228161275901,
+          "p99": 1.0276267284872578,
+          "mean": 0.26278122916354013,
+          "std": 0.21815514393770485
+        },
+        "speed_kmh": {
+          "count": 5879,
+          "median": 56.54,
+          "p01": 0.0,
+          "p99": 81.4443486138614,
+          "mean": 51.88090139953786,
+          "std": 23.953072262263184
+        },
+        "speed_derivative_mps2": {
+          "count": 5879,
+          "median": 0.0,
+          "p01": -1.6621617161715634,
+          "p99": 1.986111111111545,
+          "mean": 0.03225463514202963,
+          "std": 0.6247224275356571
+        },
+        "forward_accel_mps2": {
+          "count": 5879,
+          "median": 0.0046,
+          "p01": -4.880193999999684,
+          "p99": 5.007997999999473,
+          "mean": 0.015590986676282496,
+          "std": 1.8565631370570417
+        },
+        "lateral_accel_mps2": {
+          "count": 5879,
+          "median": 0.0045,
+          "p01": -5.041735999999999,
+          "p99": 4.575785999993395,
+          "mean": -0.006947960664645713,
+          "std": 1.8181153018909284
+        },
+        "up_accel_mps2": {
+          "count": 5879,
+          "median": 9.856,
+          "p01": 7.0220020000000005,
+          "p99": 12.76055956435665,
+          "mean": 9.855418099911276,
+          "std": 0.9964667979497279
+        },
+        "turn_proxy_fraction": 0.31978227589726144,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 1880,
+          "median": 1.6843999999991377,
+          "p01": 0.03752887128724114,
+          "p99": 6.957609930689886,
+          "mean": 1.9914320287915184,
+          "std": 1.6040068012524087
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 1880,
+          "median": 9.849294059405832,
+          "p01": 6.489881128712756,
+          "p99": 13.124210999999999,
+          "mean": 9.823215128749288,
+          "std": 1.2444176247621097
+        },
+        "bump_proxy_fraction": 0.016329307705392072,
+        "forward_vs_speed_derivative_corr": 0.036571510946606205
+      },
+      "Vw16b": {
+        "rows": 1126,
+        "duration_s": 112.50000000002558,
+        "dt_s": {
+          "count": 1125,
+          "median": 0.10000000000002274,
+          "p01": 0.10000000000002274,
+          "p99": 0.10000000000002274,
+          "mean": 0.10000000000002274,
+          "std": 0.0
+        },
+        "stationary_fraction": 0.0,
+        "stationary_accel_norm_mps2": {
+          "count": 0
+        },
+        "stationary_up_accel_mps2": {
+          "count": 0
+        },
+        "gyro_norm_rad_s": {
+          "count": 1126,
+          "median": 0.23157313038852198,
+          "p01": 0.03665170144857425,
+          "p99": 1.1191434255818824,
+          "mean": 0.3044235331228277,
+          "std": 0.2517649863542256
+        },
+        "speed_kmh": {
+          "count": 1126,
+          "median": 60.13336633664154,
+          "p01": 2.1262250000159737,
+          "p99": 85.51764752499903,
+          "mean": 60.36589046292863,
+          "std": 19.363586752859586
+        },
+        "speed_derivative_mps2": {
+          "count": 1126,
+          "median": 0.08215277777767668,
+          "p01": -5.756666666951141,
+          "p99": 2.0706944444653006,
+          "mean": -0.02740390402252703,
+          "std": 1.2927309950815562
+        },
+        "forward_accel_mps2": {
+          "count": 1126,
+          "median": 0.09420849995823105,
+          "p01": -6.7319837317389215,
+          "p99": 5.77222975012252,
+          "mean": 0.0348813290591304,
+          "std": 2.295176042608026
+        },
+        "lateral_accel_mps2": {
+          "count": 1126,
+          "median": -0.06127200013550915,
+          "p01": -5.18408074921849,
+          "p99": 6.032724750094235,
+          "mean": 0.07760016279096894,
+          "std": 2.180324907458936
+        },
+        "up_accel_mps2": {
+          "count": 1126,
+          "median": 9.825632000128481,
+          "p01": 6.785552498661032,
+          "p99": 12.900343500881661,
+          "mean": 9.868556224998889,
+          "std": 1.1540870848222098
+        },
+        "turn_proxy_fraction": 0.3685612788632327,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 415,
+          "median": 1.8933670000687397,
+          "p01": 0.036610040009767406,
+          "p99": 7.549479999387679,
+          "mean": 2.2720262216492584,
+          "std": 1.7772357701215218
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 415,
+          "median": 9.838485000277,
+          "p01": 6.3058469586375825,
+          "p99": 13.780952600179122,
+          "mean": 9.917805998558197,
+          "std": 1.3847403646151433
+        },
+        "bump_proxy_fraction": 0.021314387211367674,
+        "forward_vs_speed_derivative_corr": 0.4585745276415959
+      },
+      "Vw17": {
+        "rows": 329,
+        "duration_s": 32.80000000000746,
+        "dt_s": {
+          "count": 328,
+          "median": 0.10000000000002274,
+          "p01": 0.10000000000002274,
+          "p99": 0.10000000000002274,
+          "mean": 0.10000000000002274,
+          "std": 0.0
+        },
+        "stationary_fraction": 0.0,
+        "stationary_accel_norm_mps2": {
+          "count": 0
+        },
+        "stationary_up_accel_mps2": {
+          "count": 0
+        },
+        "gyro_norm_rad_s": {
+          "count": 329,
+          "median": 0.2171537322726253,
+          "p01": 0.04057021245640117,
+          "p99": 0.7501550681577924,
+          "mean": 0.25554556262399536,
+          "std": 0.15934976707799164
+        },
+        "speed_kmh": {
+          "count": 329,
+          "median": 59.66700000000178,
+          "p01": 34.03844399993443,
+          "p99": 71.33552919999744,
+          "mean": 58.900041955366326,
+          "std": 7.815480773192408
+        },
+        "speed_derivative_mps2": {
+          "count": 329,
+          "median": 0.16694444443007694,
+          "p01": -6.505215731584043,
+          "p99": 1.6458023652401377,
+          "mean": -0.3618138231001173,
+          "std": 2.0052529152768996
+        },
+        "forward_accel_mps2": {
+          "count": 329,
+          "median": 0.0609840000083509,
+          "p01": -6.6060603960582105,
+          "p99": 3.8664864800478127,
+          "mean": -0.20521130762537798,
+          "std": 2.2287113749105734
+        },
+        "lateral_accel_mps2": {
+          "count": 329,
+          "median": -0.0461000000034268,
+          "p01": -4.335366977154685,
+          "p99": 7.001710160042344,
+          "mean": 0.25287145572339753,
+          "std": 2.182151006141354
+        },
+        "up_accel_mps2": {
+          "count": 329,
+          "median": 9.85859999994456,
+          "p01": 6.785135623638564,
+          "p99": 12.324620408061936,
+          "mean": 9.852804150801079,
+          "std": 0.9655236882383106
+        },
+        "turn_proxy_fraction": 0.3404255319148936,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 112,
+          "median": 1.7807374999632013,
+          "p01": 0.04761201000303075,
+          "p99": 7.700971530216542,
+          "mean": 2.173666160009333,
+          "std": 1.6512329256831852
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 112,
+          "median": 9.819384193072661,
+          "p01": 7.601258250145638,
+          "p99": 12.49303299967686,
+          "mean": 9.929095396042005,
+          "std": 1.0464075800422703
+        },
+        "bump_proxy_fraction": 0.015197568389057751,
+        "forward_vs_speed_derivative_corr": -0.11330462933993829
+      },
+      "M": {
+        "rows": 61761,
+        "duration_s": 6176.0,
+        "dt_s": {
+          "count": 61760,
+          "median": 0.0999999999999659,
+          "p01": 0.09999999999899956,
+          "p99": 0.1000000000003638,
+          "mean": 0.1,
+          "std": 3.160901674719306e-13
+        },
+        "stationary_fraction": 0.040041450106053984,
+        "stationary_accel_norm_mps2": {
+          "count": 2473,
+          "median": 9.870225526301692,
+          "p01": 9.543124185751273,
+          "p99": 10.738508340319845,
+          "mean": 9.896497506039799,
+          "std": 0.18818666627752803
+        },
+        "stationary_up_accel_mps2": {
+          "count": 2473,
+          "median": 9.854888888890432,
+          "p01": 9.404131689277552,
+          "p99": 10.55422979999985,
+          "mean": 9.865983444976042,
+          "std": 0.17129423624532544
+        },
+        "gyro_norm_rad_s": {
+          "count": 61761,
+          "median": 0.06172100308809357,
+          "p01": 0.006087481853573034,
+          "p99": 0.5402701000160969,
+          "mean": 0.09758983086837403,
+          "std": 0.1370677675083754
+        },
+        "speed_kmh": {
+          "count": 61761,
+          "median": 36.53480769227803,
+          "p01": 0.0,
+          "p99": 78.08,
+          "mean": 37.33179774919599,
+          "std": 19.235749985269894
+        },
+        "speed_derivative_mps2": {
+          "count": 61761,
+          "median": 3.3239189178857487e-11,
+          "p01": -2.0555555553567615,
+          "p99": 1.9154503303913095,
+          "mean": 3.919081344807858e-15,
+          "std": 0.8143278971454678
+        },
+        "forward_accel_mps2": {
+          "count": 61761,
+          "median": -0.0926000000012305,
+          "p01": -3.3450136752436608,
+          "p99": 2.3086093333187536,
+          "mean": -0.15464902316806434,
+          "std": 1.0066577144425728
+        },
+        "lateral_accel_mps2": {
+          "count": 61761,
+          "median": 0.0185596153518075,
+          "p01": -3.8113812121210913,
+          "p99": 2.4697,
+          "mean": -0.03422724651145908,
+          "std": 1.0705974416691324
+        },
+        "up_accel_mps2": {
+          "count": 61761,
+          "median": 9.853096153847826,
+          "p01": 8.545052857143645,
+          "p99": 11.158158368296245,
+          "mean": 9.853803669706686,
+          "std": 0.5218339063190812
+        },
+        "turn_proxy_fraction": 0.005634623791713217,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 348,
+          "median": 1.105978525647713,
+          "p01": 0.02183514744048138,
+          "p99": 7.447030333344121,
+          "mean": 1.646738843906083,
+          "std": 2.020767207141833
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 348,
+          "median": 9.843469166632392,
+          "p01": 4.774058538411925,
+          "p99": 20.24410596796062,
+          "mean": 10.044268983637531,
+          "std": 2.8735433287559378
+        },
+        "bump_proxy_fraction": 0.0005828921163841259,
+        "forward_vs_speed_derivative_corr": 0.09984277410152725
+      },
+      "Vfa01": {
+        "rows": 11486,
+        "duration_s": 1148.500000000001,
+        "dt_s": {
+          "count": 11485,
+          "median": 0.10000000000002274,
+          "p01": 0.09999999999990905,
+          "p99": 0.10000000000013642,
+          "mean": 0.10000000000000007,
+          "std": 5.2674175598112335e-14
+        },
+        "stationary_fraction": 0.055110569388821175,
+        "stationary_accel_norm_mps2": {
+          "count": 633,
+          "median": 9.88339564030021,
+          "p01": 9.354053893203872,
+          "p99": 11.112894029975525,
+          "mean": 9.940394055405424,
+          "std": 0.3009265885442624
+        },
+        "stationary_up_accel_mps2": {
+          "count": 633,
+          "median": 9.847600000000414,
+          "p01": 9.063252000007568,
+          "p99": 10.446261479997851,
+          "mean": 9.843187406060503,
+          "std": 0.230743500311275
+        },
+        "gyro_norm_rad_s": {
+          "count": 11486,
+          "median": 0.1953153802831194,
+          "p01": 0.01045571471067755,
+          "p99": 1.0618594014428961,
+          "mean": 0.2568085579920246,
+          "std": 0.21775818794388038
+        },
+        "speed_kmh": {
+          "count": 11486,
+          "median": 65.3299999999983,
+          "p01": 0.0,
+          "p99": 96.3159999999999,
+          "mean": 59.18013624817018,
+          "std": 25.755636589380167
+        },
+        "speed_derivative_mps2": {
+          "count": 11486,
+          "median": 0.013888888888892836,
+          "p01": -2.6222284790970307,
+          "p99": 1.5556380638068437,
+          "mean": -0.006870683150505862,
+          "std": 0.7039258461478631
+        },
+        "forward_accel_mps2": {
+          "count": 11486,
+          "median": -0.0742219999942921,
+          "p01": -6.510795594098891,
+          "p99": 5.851742199947339,
+          "mean": -0.16964109468381192,
+          "std": 2.3380629288789296
+        },
+        "lateral_accel_mps2": {
+          "count": 11486,
+          "median": -0.2247370445471755,
+          "p01": -4.1449696000207705,
+          "p99": 3.9257148514921902,
+          "mean": -0.1818509427635186,
+          "std": 1.5719067301536012
+        },
+        "up_accel_mps2": {
+          "count": 11486,
+          "median": 9.848413888888594,
+          "p01": 7.647372850001435,
+          "p99": 12.032833950001086,
+          "mean": 9.846563404281593,
+          "std": 0.8505358529468651
+        },
+        "turn_proxy_fraction": 0.3071565383945673,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 3528,
+          "median": 1.1654499999826766,
+          "p01": 0.02174243564307157,
+          "p99": 5.691845505117151,
+          "mean": 1.4868356815431398,
+          "std": 1.2629638229052769
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 3528,
+          "median": 9.859506435646553,
+          "p01": 7.4987905700014,
+          "p99": 12.333827999995107,
+          "mean": 9.862259303536653,
+          "std": 1.0012642586680391
+        },
+        "bump_proxy_fraction": 0.004527250565906321,
+        "forward_vs_speed_derivative_corr": -0.00859641581534087
+      },
+      "Vfa02": {
+        "rows": 67523,
+        "duration_s": 6752.200000000001,
+        "dt_s": {
+          "count": 67522,
+          "median": 0.09999999999990905,
+          "p01": 0.0999999999994543,
+          "p99": 0.1000000000003638,
+          "mean": 0.1,
+          "std": 3.0049181222897026e-13
+        },
+        "stationary_fraction": 0.013728655421115768,
+        "stationary_accel_norm_mps2": {
+          "count": 927,
+          "median": 9.915483015970528,
+          "p01": 8.881889823033603,
+          "p99": 11.866926190960678,
+          "mean": 10.022960157037463,
+          "std": 0.4898388389993569
+        },
+        "stationary_up_accel_mps2": {
+          "count": 927,
+          "median": 9.8526,
+          "p01": 8.34345724000606,
+          "p99": 11.142544599996874,
+          "mean": 9.851670837093708,
+          "std": 0.43513338204302565
+        },
+        "gyro_norm_rad_s": {
+          "count": 67523,
+          "median": 0.17884748135207792,
+          "p01": 0.019724397599662102,
+          "p99": 0.9015971798509395,
+          "mean": 0.2344380247460784,
+          "std": 0.18701354840833948
+        },
+        "speed_kmh": {
+          "count": 67523,
+          "median": 94.47950495049508,
+          "p01": 0.0,
+          "p99": 110.8963326732677,
+          "mean": 87.25867198545203,
+          "std": 23.84964811922566
+        },
+        "speed_derivative_mps2": {
+          "count": 67523,
+          "median": 0.0015125137511660114,
+          "p01": -1.4597770627006668,
+          "p99": 1.2565444444448017,
+          "mean": 0.00013002940817200687,
+          "std": 0.46815132141574817
+        },
+        "forward_accel_mps2": {
+          "count": 67523,
+          "median": 0.0483782178205881,
+          "p01": -5.508004040008619,
+          "p99": 5.579355568638447,
+          "mean": 0.03487081274680096,
+          "std": 2.05092479306923
+        },
+        "lateral_accel_mps2": {
+          "count": 67523,
+          "median": 0.08,
+          "p01": -3.0868772930668174,
+          "p99": 3.468633801965095,
+          "mean": 0.10406212916326646,
+          "std": 1.272551215351537
+        },
+        "up_accel_mps2": {
+          "count": 67523,
+          "median": 9.855261386136863,
+          "p01": 8.040313069308482,
+          "p99": 11.641864140000052,
+          "mean": 9.859408157149986,
+          "std": 0.7339325641701043
+        },
+        "turn_proxy_fraction": 0.28166698754498465,
+        "turn_proxy_lateral_abs_median_mps2": {
+          "count": 19019,
+          "median": 0.9703,
+          "p01": 0.016695800000132422,
+          "p99": 4.402195821783955,
+          "mean": 1.2155498076284401,
+          "std": 1.0048299022633556
+        },
+        "turn_proxy_up_abs_median_mps2": {
+          "count": 19019,
+          "median": 9.857000000001864,
+          "p01": 7.79892200000024,
+          "p99": 11.817358,
+          "mean": 9.857338693938333,
+          "std": 0.8343906054481168
+        },
+        "bump_proxy_fraction": 0.0012736400930053464,
+        "forward_vs_speed_derivative_corr": -0.00702117763363489
+      }
+    },
+    "axis_consistency": {
+      "S1": {
+        "stationary_accel_median": [
+          0.1021499999993937,
+          -0.09009999999641635,
+          9.860222316831532
+        ],
+        "full_trip_accel_std": [
+          1.05751746256239,
+          1.063552914751652,
+          0.5106588219807652
+        ],
+        "gyro_median": [
+          0.0017000000002509001,
+          -0.0049834999997226005,
+          0.00229999999980345
+        ]
+      },
+      "S2": {
+        "stationary_accel_median": [
+          0.060399999999095,
+          -0.0093,
+          9.8662
+        ],
+        "full_trip_accel_std": [
+          1.1996250018765067,
+          1.1498374769802355,
+          0.643869244053492
+        ],
+        "gyro_median": [
+          0.0035,
+          -0.0053,
+          0.0029
+        ]
+      },
+      "S3a": {
+        "stationary_accel_median": [
+          0.1206864999840438,
+          -0.0417060000116435,
+          9.841950000008762
+        ],
+        "full_trip_accel_std": [
+          0.8921345932334419,
+          0.9282922076012644,
+          0.5277056469617043
+        ],
+        "gyro_median": [
+          0.0001589999999159,
+          -0.0001000000010405,
+          -0.000205940579578
+        ]
+      },
+      "S3b": {
+        "stationary_accel_median": [
+          0.44175201980205214,
+          -0.0594840000001379,
+          9.826805040504018
+        ],
+        "full_trip_accel_std": [
+          1.0850987318198273,
+          0.6482855281945205,
+          0.8356978293206138
+        ],
+        "gyro_median": [
+          -0.09284138437790529,
+          0.0214190926623016,
+          0.0064176977830766
+        ]
+      },
+      "S3c": {
+        "stationary_accel_median": [
+          -0.0077840001889963005,
+          -0.0302999999330061,
+          9.839849999936323
+        ],
+        "full_trip_accel_std": [
+          0.9132080401868001,
+          0.9300354796209684,
+          0.44606564714444424
+        ],
+        "gyro_median": [
+          2.619344741105438e-13,
+          0.0007999999466117,
+          -0.0006000000480213
+        ]
+      },
+      "S4": {
+        "stationary_accel_median": [
+          -0.019,
+          0.0148,
+          9.8496
+        ],
+        "full_trip_accel_std": [
+          1.0438223765405554,
+          1.0616858992709324,
+          0.5243810976306932
+        ],
+        "gyro_median": [
+          0.0004000000014949,
+          -0.0019762376237434,
+          0.0010222222225197
+        ]
+      },
+      "Vw1": {
+        "stationary_accel_median": [
+          NaN,
+          NaN,
+          NaN
+        ],
+        "full_trip_accel_std": [
+          2.299656909524601,
+          1.7019168341400104,
+          1.1367901013068828
+        ],
+        "gyro_median": [
+          0.0012500000000086,
+          0.0188554999999874,
+          -0.00635
+        ]
+      },
+      "Vw2": {
+        "stationary_accel_median": [
+          0.12153960396027799,
+          -0.18259999999999998,
+          9.844300000000032
+        ],
+        "full_trip_accel_std": [
+          2.050234962798102,
+          1.6211221122834565,
+          0.9486456878581673
+        ],
+        "gyro_median": [
+          -0.0053999999999819,
+          0.0107,
+          -0.00524306930695205
+        ]
+      },
+      "Vw3": {
+        "stationary_accel_median": [
+          0.0571040030673371,
+          -0.1685693061903781,
+          9.848259406387832
+        ],
+        "full_trip_accel_std": [
+          2.4887751383457184,
+          2.262963347064194,
+          1.1475007016777015
+        ],
+        "gyro_median": [
+          -0.0035999998488437,
+          -0.0025649986688356,
+          -0.0042249987263743
+        ]
+      },
+      "Vw4": {
+        "stationary_accel_median": [
+          0.0379861386059289,
+          -0.0505000000260406,
+          9.847649504953116
+        ],
+        "full_trip_accel_std": [
+          2.4582664379788164,
+          2.178125857071222,
+          1.180813474373735
+        ],
+        "gyro_median": [
+          -0.0005000000000852001,
+          0.00041941089869905,
+          -0.0001999999973351
+        ]
+      },
+      "Vw5": {
+        "stationary_accel_median": [
+          1.6317287126250761,
+          0.4215949995794487,
+          9.862107000249896
+        ],
+        "full_trip_accel_std": [
+          2.1086599314544867,
+          2.3029879951115704,
+          1.0146246439099385
+        ],
+        "gyro_median": [
+          0.0011299161169396501,
+          -0.02055032012474945,
+          0.00987366354257655
+        ]
+      },
+      "Vw6": {
+        "stationary_accel_median": [
+          NaN,
+          NaN,
+          NaN
+        ],
+        "full_trip_accel_std": [
+          2.0294369578405296,
+          2.491876082059422,
+          1.1459398452962848
+        ],
+        "gyro_median": [
+          -0.0002465346670187,
+          0.019100000368871,
+          -0.0016999997664708
+        ]
+      },
+      "Vw7": {
+        "stationary_accel_median": [
+          -0.4067999940729885,
+          2.125900001185239,
+          9.17880000017806
+        ],
+        "full_trip_accel_std": [
+          2.1027796015394804,
+          2.508656538090448,
+          1.0360261342652126
+        ],
+        "gyro_median": [
+          0.00200000013654695,
+          -0.013000000807563,
+          -0.0038415842589780997
+        ]
+      },
+      "Vw8": {
+        "stationary_accel_median": [
+          1.0219999990853248,
+          0.0684999992029825,
+          9.837706930714488
+        ],
+        "full_trip_accel_std": [
+          2.334173425926292,
+          2.519914606050269,
+          1.117561263811469
+        ],
+        "gyro_median": [
+          -0.0023000000107593,
+          -0.0198000000528161,
+          0.0125000007829985
+        ]
+      },
+      "Vw9": {
+        "stationary_accel_median": [
+          NaN,
+          NaN,
+          NaN
+        ],
+        "full_trip_accel_std": [
+          1.7272654451640173,
+          2.7489878282415785,
+          1.124677034843766
+        ],
+        "gyro_median": [
+          -0.0003457078009296,
+          0.043776499901324206,
+          0.008883999943255099
+        ]
+      },
+      "Vw10": {
+        "stationary_accel_median": [
+          NaN,
+          NaN,
+          NaN
+        ],
+        "full_trip_accel_std": [
+          1.6636410408703757,
+          3.1485987568054163,
+          1.3032430985776624
+        ],
+        "gyro_median": [
+          0.01015000020116565,
+          0.028905940841839402,
+          -0.009850000028077899
+        ]
+      },
+      "Vw11": {
+        "stationary_accel_median": [
+          0.14610000241682208,
+          0.08275000046901546,
+          9.844786633308374
+        ],
+        "full_trip_accel_std": [
+          1.8765322875451165,
+          2.103939761316875,
+          1.087796600728925
+        ],
+        "gyro_median": [
+          0.0016199999851137,
+          0.0027999999249066,
+          -0.0008999999656647
+        ]
+      },
+      "Vw12": {
+        "stationary_accel_median": [
+          NaN,
+          NaN,
+          NaN
+        ],
+        "full_trip_accel_std": [
+          2.299656909524601,
+          1.7019168341400104,
+          1.1367901013068828
+        ],
+        "gyro_median": [
+          0.0012500000000086,
+          0.0188554999999874,
+          -0.00635
+        ]
+      },
+      "Vw13": {
+        "stationary_accel_median": [
+          NaN,
+          NaN,
+          NaN
+        ],
+        "full_trip_accel_std": [
+          3.0854579245058202,
+          2.0773164344640445,
+          1.1836497177852214
+        ],
+        "gyro_median": [
+          0.0325297029703005,
+          0.062490099009898006,
+          -0.03735000000000545
+        ]
+      },
+      "Vw14a": {
+        "stationary_accel_median": [
+          NaN,
+          NaN,
+          NaN
+        ],
+        "full_trip_accel_std": [
+          1.9168390025478699,
+          2.0233525066419724,
+          1.1727926863604359
+        ],
+        "gyro_median": [
+          -0.0009589108910927,
+          0.00310198019801835,
+          -0.00474999999999985
+        ]
+      },
+      "Vw14b": {
+        "stationary_accel_median": [
+          NaN,
+          NaN,
+          NaN
+        ],
+        "full_trip_accel_std": [
+          1.6786353794641553,
+          1.7712379584760565,
+          1.0059194224319419
+        ],
+        "gyro_median": [
+          -0.00019250004314595,
+          0.0012605000779943,
+          -0.00084199986095395
+        ]
+      },
+      "Vw14c": {
+        "stationary_accel_median": [
+          0.1842500003944402,
+          -0.044765841469632306,
+          9.850599999597884
+        ],
+        "full_trip_accel_std": [
+          1.6361534427959015,
+          1.4798049112478908,
+          0.8115482488641969
+        ],
+        "gyro_median": [
+          -5.148502346863578e-05,
+          -0.0037222773715267,
+          0.0008149901768363999
+        ]
+      },
+      "Vw15": {
+        "stationary_accel_median": [
+          -0.03408514851484955,
+          0.0182000000000096,
+          9.84695
+        ],
+        "full_trip_accel_std": [
+          0.18849049586311206,
+          0.22534127120525846,
+          0.08027447612818714
+        ],
+        "gyro_median": [
+          -0.0008531782178222,
+          0.00157475247524665,
+          -0.0014
+        ]
+      },
+      "Vw16a": {
+        "stationary_accel_median": [
+          -0.0026267326732669497,
+          -0.0217,
+          9.8488
+        ],
+        "full_trip_accel_std": [
+          1.8567210550717923,
+          1.818269949558617,
+          0.9965515567469678
+        ],
+        "gyro_median": [
+          -0.0005999999999995,
+          0.0003219999999981,
+          -0.0003
+        ]
+      },
+      "Vw16b": {
+        "stationary_accel_median": [
+          NaN,
+          NaN,
+          NaN
+        ],
+        "full_trip_accel_std": [
+          2.296195894265824,
+          2.1812937255060625,
+          1.154599898482186
+        ],
+        "gyro_median": [
+          0.0005955445552657,
+          0.0060765000034493505,
+          -0.0036509999975799
+        ]
+      },
+      "Vw17": {
+        "stationary_accel_median": [
+          NaN,
+          NaN,
+          NaN
+        ],
+        "full_trip_accel_std": [
+          2.2321062152254365,
+          2.185474924299695,
+          0.9669944030103919
+        ],
+        "gyro_median": [
+          0.0035000000004051,
+          0.0370000000039285,
+          -0.0187720000007163
+        ]
+      },
+      "M": {
+        "stationary_accel_median": [
+          0.1872,
+          -0.1023099999997574,
+          9.854888888890432
+        ],
+        "full_trip_accel_std": [
+          1.006665864164396,
+          1.0706061090356156,
+          0.5218381309935792
+        ],
+        "gyro_median": [
+          -0.0014820000002283,
+          0.0027538461539033,
+          -0.000727722772289
+        ]
+      },
+      "Vfa01": {
+        "stationary_accel_median": [
+          0.0667999999995425,
+          -0.5497000000006066,
+          9.847600000000414
+        ],
+        "full_trip_accel_std": [
+          2.3381647143398463,
+          1.5719751616954003,
+          0.8505728802581274
+        ],
+        "gyro_median": [
+          -0.0014549999999051,
+          0.00183069306910775,
+          -0.0017282178221104
+        ]
+      },
+      "Vfa02": {
+        "stationary_accel_median": [
+          0.1514444444444444,
+          -0.4637,
+          9.8526
+        ],
+        "full_trip_accel_std": [
+          2.0509399800986396,
+          1.2725606385506705,
+          0.7339379989161635
+        ],
+        "gyro_median": [
+          -0.0022235294117645,
+          0.0062,
+          -0.0037
+        ]
+      }
+    }
+  },
+  "deployment_contract_comparison": {
+    "training": {
+      "order": [
+        "forward",
+        "lateral",
+        "up",
+        "gyro_forward",
+        "gyro_left",
+        "gyro_up"
+      ],
+      "shape": [
+        1,
+        6,
+        50
+      ],
+      "rate_hz": 10,
+      "accel_units": "m/s\u00b2",
+      "gyro_units": "rad/s",
+      "gravity_included": true
+    },
+    "android": {
+      "canonical_order": [
+        "vehicleAccelForward",
+        "vehicleAccelLeft",
+        "vehicleAccelUp",
+        "vehicleGyroLeft",
+        "vehicleGyroForward",
+        "vehicleGyroUp"
+      ],
+      "shape": [
+        1,
+        6,
+        50
+      ],
+      "rate_hz": 10,
+      "accel_units": "m/s\u00b2",
+      "gyro_units": "rad/s",
+      "gravity_included": "raw accel path gravity-inclusive"
+    },
+    "mismatches": [
+      "Android CanonicalImuSample.toFeatureArray must be verified: its named gyro order is left, forward, up while the training contract is forward, left, up",
+      "Android input is vehicle-frame only after calibration, while corpus provenance does not encode the transform",
+      "Android TCN is calibration-gated; corpus preparation has no equivalent runtime calibration state"
+    ]
+  },
+  "recommendation": "Do not retrain yet. Resolve frame provenance and label synchronization first, then regenerate only train/validation processed views under an explicitly verified transform and recompute train-only normalization. Keep Vta1a/Vta1b/Y1 frozen and untouched."
+}

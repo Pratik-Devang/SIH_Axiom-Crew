@@ -1,0 +1,1738 @@
+{
+  "dataset": "IO-VNBD",
+  "processed_directory": "data\\processed\\io_vnbd",
+  "files_checked": 144,
+  "files_passed": 72,
+  "files_failed": 72,
+  "total_rows": 2141490,
+  "checks": [
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_M (Driver B)_S-M.parquet",
+      "readable": true,
+      "rows": 105974,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S1_S-S1.parquet",
+      "readable": true,
+      "rows": 51746,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S2_S-S2.parquet",
+      "readable": true,
+      "rows": 93876,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S3a_S-S3a.parquet",
+      "readable": true,
+      "rows": 24621,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S3b_S-S3b.parquet",
+      "readable": true,
+      "rows": 6813,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S3c_S-S3c.parquet",
+      "readable": true,
+      "rows": 37183,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_S (Driver A)_S4_S-S4.parquet",
+      "readable": true,
+      "rows": 94600,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vf (Driver E)_V-Vfa01_S-Vfa01.parquet",
+      "readable": true,
+      "rows": 11486,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vf (Driver E)_V-Vfa02_S-Vfa02.parquet",
+      "readable": true,
+      "rows": 67523,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta01a_S-Vta1a.parquet",
+      "readable": true,
+      "rows": 25676,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta01b_S-Vta1b.parquet",
+      "readable": true,
+      "rows": 954,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta02_S-Vta2.parquet",
+      "readable": true,
+      "rows": 10991,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta03_S-Vta3.parquet",
+      "readable": true,
+      "rows": 645,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta04_S-Vta4.parquet",
+      "readable": true,
+      "rows": 1789,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta05_S-Vta5.parquet",
+      "readable": true,
+      "rows": 307,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta06_S-Vta6.parquet",
+      "readable": true,
+      "rows": 1376,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta07_S-Vta7.parquet",
+      "readable": true,
+      "rows": 840,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta08_S-Vta8.parquet",
+      "readable": true,
+      "rows": 3676,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta09_S-Vta9.parquet",
+      "readable": true,
+      "rows": 156,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta10_S-Vta10.parquet",
+      "readable": true,
+      "rows": 1502,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta11_S-Vta11.parquet",
+      "readable": true,
+      "rows": 510,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta12_S-Vta12.parquet",
+      "readable": true,
+      "rows": 610,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta13_S-Vta13.parquet",
+      "readable": true,
+      "rows": 404,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta14_S-Vta14.parquet",
+      "readable": true,
+      "rows": 2885,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta15_S-Vta15.parquet",
+      "readable": true,
+      "rows": 833,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta16_S-Vta16.parquet",
+      "readable": true,
+      "rows": 11335,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta17_S-Vta17.parquet",
+      "readable": true,
+      "rows": 4519,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta19_S-Vta19.parquet",
+      "readable": true,
+      "rows": 292,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta20_S-Vta20.parquet",
+      "readable": true,
+      "rows": 3223,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta21_S-Vta21.parquet",
+      "readable": true,
+      "rows": 2079,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta22_S-Vta22.parquet",
+      "readable": true,
+      "rows": 1564,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta23_S-Vta23.parquet",
+      "readable": true,
+      "rows": 1110,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta24_S-Vta24.parquet",
+      "readable": true,
+      "rows": 1171,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta25_S-Vta25.parquet",
+      "readable": true,
+      "rows": 646,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta26_S-Vta26.parquet",
+      "readable": true,
+      "rows": 1935,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta27_S-Vta27.parquet",
+      "readable": true,
+      "rows": 2540,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta28_S-Vta28.parquet",
+      "readable": true,
+      "rows": 4210,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta29_S-Vta29.parquet",
+      "readable": true,
+      "rows": 23705,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vta (Driver E)_Vta30_S-Vta30.parquet",
+      "readable": true,
+      "rows": 17136,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb01_S-Vtb1.parquet",
+      "readable": true,
+      "rows": 32459,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb02_S-Vtb2.parquet",
+      "readable": true,
+      "rows": 5712,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb03_S-Vtb3.parquet",
+      "readable": true,
+      "rows": 8240,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb04_S-Vtb4.parquet",
+      "readable": true,
+      "rows": 556,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb05_S-Vtb5.parquet",
+      "readable": true,
+      "rows": 64388,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb06_S-Vtb6.parquet",
+      "readable": true,
+      "rows": 498,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb07_S-Vtb7.parquet",
+      "readable": true,
+      "rows": 461,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb08_S-Vtb8.parquet",
+      "readable": true,
+      "rows": 668,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb09_S-Vtb9.parquet",
+      "readable": true,
+      "rows": 452,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb10_S-Vtb10.parquet",
+      "readable": true,
+      "rows": 196,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb11_S-Vtb11.parquet",
+      "readable": true,
+      "rows": 361,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vtb (Driver E)_Vtb12_S-Vtb12.parquet",
+      "readable": true,
+      "rows": 447,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw01_S-Vw1.parquet",
+      "readable": true,
+      "rows": 20476,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw02_S-Vw2.parquet",
+      "readable": true,
+      "rows": 52713,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw03_S-Vw3.parquet",
+      "readable": true,
+      "rows": 3861,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw04_S-Vw4.parquet",
+      "readable": true,
+      "rows": 126526,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw05_S-Vw5.parquet",
+      "readable": true,
+      "rows": 1012,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw06_S-Vw6.parquet",
+      "readable": true,
+      "rows": 1281,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw07_S-Vw7.parquet",
+      "readable": true,
+      "rows": 1602,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw08_S-Vw8.parquet",
+      "readable": true,
+      "rows": 1529,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw09_S-Vw9.parquet",
+      "readable": true,
+      "rows": 552,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw10_S-Vw10.parquet",
+      "readable": true,
+      "rows": 652,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw11_S-Vw11.parquet",
+      "readable": true,
+      "rows": 4909,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw12_S-Vw12.parquet",
+      "readable": true,
+      "rows": 918,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw13_S-Vw13.parquet",
+      "readable": true,
+      "rows": 284,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw14a_S-Vw14a.parquet",
+      "readable": true,
+      "rows": 3138,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw14b_S-Vw14b.parquet",
+      "readable": true,
+      "rows": 19588,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw14c_S-Vw14c.parquet",
+      "readable": true,
+      "rows": 15826,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw15_S-Vw15.parquet",
+      "readable": true,
+      "rows": 1380,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw16a_S-Vw16a.parquet",
+      "readable": true,
+      "rows": 5879,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw16b_S-Vw16b.parquet",
+      "readable": true,
+      "rows": 1126,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Vw (Driver E)_Vw17_S-Vw17.parquet",
+      "readable": true,
+      "rows": 329,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Categorised IOVNB Dataset_Y (Driver D)_Y1_S-Y1.parquet",
+      "readable": true,
+      "rows": 70285,
+      "missing_columns": [],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 98,
+      "status": "PASSED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-M.parquet",
+      "readable": true,
+      "rows": 105974,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S1.parquet",
+      "readable": true,
+      "rows": 51746,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S2.parquet",
+      "readable": true,
+      "rows": 93876,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S3a.parquet",
+      "readable": true,
+      "rows": 24621,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S3b.parquet",
+      "readable": true,
+      "rows": 6813,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S3c.parquet",
+      "readable": true,
+      "rows": 37183,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-S4.parquet",
+      "readable": true,
+      "rows": 94600,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vfa01.parquet",
+      "readable": true,
+      "rows": 11486,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vfa02.parquet",
+      "readable": true,
+      "rows": 67523,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta10.parquet",
+      "readable": true,
+      "rows": 1502,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta11.parquet",
+      "readable": true,
+      "rows": 510,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta12.parquet",
+      "readable": true,
+      "rows": 610,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta13.parquet",
+      "readable": true,
+      "rows": 404,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta14.parquet",
+      "readable": true,
+      "rows": 2885,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta15.parquet",
+      "readable": true,
+      "rows": 833,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta16.parquet",
+      "readable": true,
+      "rows": 11335,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta17.parquet",
+      "readable": true,
+      "rows": 4519,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta19.parquet",
+      "readable": true,
+      "rows": 292,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta1a.parquet",
+      "readable": true,
+      "rows": 25676,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta1b.parquet",
+      "readable": true,
+      "rows": 954,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta2.parquet",
+      "readable": true,
+      "rows": 10991,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta20.parquet",
+      "readable": true,
+      "rows": 3223,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta21.parquet",
+      "readable": true,
+      "rows": 2079,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta22.parquet",
+      "readable": true,
+      "rows": 1564,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta23.parquet",
+      "readable": true,
+      "rows": 1110,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta24.parquet",
+      "readable": true,
+      "rows": 1171,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta25.parquet",
+      "readable": true,
+      "rows": 646,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta26.parquet",
+      "readable": true,
+      "rows": 1935,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta27.parquet",
+      "readable": true,
+      "rows": 2540,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta28.parquet",
+      "readable": true,
+      "rows": 4210,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta29.parquet",
+      "readable": true,
+      "rows": 23705,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta3.parquet",
+      "readable": true,
+      "rows": 645,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta30.parquet",
+      "readable": true,
+      "rows": 17136,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta4.parquet",
+      "readable": true,
+      "rows": 1789,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta5.parquet",
+      "readable": true,
+      "rows": 307,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta6.parquet",
+      "readable": true,
+      "rows": 1376,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta7.parquet",
+      "readable": true,
+      "rows": 840,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta8.parquet",
+      "readable": true,
+      "rows": 3676,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vta9.parquet",
+      "readable": true,
+      "rows": 156,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb1.parquet",
+      "readable": true,
+      "rows": 32459,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb10.parquet",
+      "readable": true,
+      "rows": 196,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb11.parquet",
+      "readable": true,
+      "rows": 361,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb12.parquet",
+      "readable": true,
+      "rows": 447,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb2.parquet",
+      "readable": true,
+      "rows": 5712,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb3.parquet",
+      "readable": true,
+      "rows": 8240,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb4.parquet",
+      "readable": true,
+      "rows": 556,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb5.parquet",
+      "readable": true,
+      "rows": 64388,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb6.parquet",
+      "readable": true,
+      "rows": 498,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb7.parquet",
+      "readable": true,
+      "rows": 461,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb8.parquet",
+      "readable": true,
+      "rows": 668,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vtb9.parquet",
+      "readable": true,
+      "rows": 452,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw1.parquet",
+      "readable": true,
+      "rows": 20476,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw10.parquet",
+      "readable": true,
+      "rows": 652,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw11.parquet",
+      "readable": true,
+      "rows": 4909,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw12.parquet",
+      "readable": true,
+      "rows": 918,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw13.parquet",
+      "readable": true,
+      "rows": 284,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw14a.parquet",
+      "readable": true,
+      "rows": 3138,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw14b.parquet",
+      "readable": true,
+      "rows": 19588,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw14c.parquet",
+      "readable": true,
+      "rows": 15826,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw15.parquet",
+      "readable": true,
+      "rows": 1380,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw16a.parquet",
+      "readable": true,
+      "rows": 5879,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw16b.parquet",
+      "readable": true,
+      "rows": 1126,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw17.parquet",
+      "readable": true,
+      "rows": 329,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw2.parquet",
+      "readable": true,
+      "rows": 52713,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw3.parquet",
+      "readable": true,
+      "rows": 3861,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw4.parquet",
+      "readable": true,
+      "rows": 126526,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw5.parquet",
+      "readable": true,
+      "rows": 1012,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw6.parquet",
+      "readable": true,
+      "rows": 1281,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw7.parquet",
+      "readable": true,
+      "rows": 1602,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw8.parquet",
+      "readable": true,
+      "rows": 1529,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Vw9.parquet",
+      "readable": true,
+      "rows": 552,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 0,
+      "status": "FAILED"
+    },
+    {
+      "file": "data\\processed\\io_vnbd\\Synchronised V abd S datasets_Uncategorised IOVNB Dataset_S-Dataset_S-Y1.parquet",
+      "readable": true,
+      "rows": 70285,
+      "missing_columns": [
+        "orientation_yaw_deg"
+      ],
+      "invalid_timestamps": 0,
+      "backward_timestamp_jumps": 0,
+      "invalid_coordinates": 0,
+      "missing_required_values": 98,
+      "status": "FAILED"
+    }
+  ]
+}

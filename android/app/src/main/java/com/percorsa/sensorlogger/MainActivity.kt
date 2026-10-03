@@ -1,0 +1,1310 @@
+package com.percorsa.sensorlogger
+
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
+import android.view.animation.DecelerateInterpolator
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.webkit.JavascriptInterface
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.widget.Button
+import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.asin
+import kotlin.math.atan2
+import kotlin.math.sqrt
+
+enum class MapCameraState {
+    FOLLOWING,
+    FREE_BROWSE
+}
+
+class MainActivity : AppCompatActivity() {
+
+    companion object {
+        var navController: NavigationController? = null
+    }
+
+    // â”€â”€ Map Layer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private lateinit var mapWebView: WebView
+    private var mapReady = false
+    private var cameraState = MapCameraState.FOLLOWING
+    private var lastMapLat = 0.0
+    private var lastMapLon = 0.0
+    private var lastMapBearing = 0f
+    private var fallbackMapLat = 0.0
+    private var fallbackMapLon = 0.0
+    private var routeDrawn = false
+    private var renderedRoute: Route? = null
+
+    // â”€â”€ Floating Search Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private lateinit var floatingSearchBar: LinearLayout
+    private lateinit var tvSearchPlaceholder: TextView
+
+    // â”€â”€ GNSS Status Chip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private lateinit var gnssStatusChip: LinearLayout
+    private lateinit var tvGnssStatusDot: TextView
+    private lateinit var tvGnssStatusText: TextView
+    private lateinit var tvNavModeText: TextView
+
+    // â”€â”€ Maneuver Card (active navigation) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private lateinit var maneuverCard: LinearLayout
+    private lateinit var tvManeuverIcon: ImageView
+    private lateinit var tvManeuverDistance: TextView
+    private lateinit var tvManeuverInstruction: TextView
+    private lateinit var tvGnssBadge: TextView
+    private lateinit var rowSecondManeuver: LinearLayout
+    private lateinit var tvSecondManeuverIcon: ImageView
+    private lateinit var tvSecondManeuverInstruction: TextView
+
+    // â”€â”€ Floating Map Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private lateinit var btnCompass: FrameLayout
+    private lateinit var compassIndicator: FrameLayout
+    private lateinit var tvCompassArrow: ImageView
+    private lateinit var tvCompassNeedle: TextView
+    private lateinit var btnRecenter: FrameLayout
+    private lateinit var tvRecenterIcon: TextView
+    private var ivRecenterIcon: ImageView? = null
+
+    // ── Full Search Overlay Screen ──────────────────────────────────────────
+    private lateinit var panelSearchOverlay: LinearLayout
+    private lateinit var btnSearchBack: ImageButton
+    private lateinit var etSearchInput: EditText
+    private lateinit var btnSearchClear: ImageButton
+    private lateinit var searchProgressBar: ProgressBar
+    private lateinit var tvSearchError: TextView
+    private lateinit var rvSearchResults: RecyclerView
+    private lateinit var searchAdapter: SearchResultsAdapter
+
+    private lateinit var chipHome: TextView
+    private lateinit var chipWork: TextView
+    private lateinit var chipPetrol: TextView
+    private lateinit var chipHospital: TextView
+    private lateinit var chipFood: TextView
+
+    // â”€â”€ Bottom Sheets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private lateinit var bottomSheet: SwipeBottomSheetLayout
+    private lateinit var sheetHandle: View
+
+    // Instrument panel (IDLE state — was panelIdleSheet, kept same ID)
+    private lateinit var panelIdleSheet: LinearLayout
+    private lateinit var idleExpandedContent: LinearLayout
+    private lateinit var tvMetricSpeed: TextView
+    private lateinit var tvIdleLocationStatus: TextView
+    private lateinit var btnDebugSettings: ImageButton
+    private lateinit var btnNavigate: Button
+    private lateinit var btnIdleFuel: Button
+    private lateinit var btnIdleHospital: Button
+    private lateinit var btnIdleFood: Button
+    private var isIdleSheetExpanded = false
+
+    private lateinit var panelRoutePreviewSheet: LinearLayout
+    private lateinit var tvDestinationName: TextView
+    private lateinit var tvDestinationAddress: TextView
+    private lateinit var tvRouteDistance: TextView
+    private lateinit var tvRouteEta: TextView
+    private lateinit var routeProgressBar: ProgressBar
+    private lateinit var tvRouteError: TextView
+    private lateinit var btnCancelRoute: Button
+    private lateinit var btnStartNav: Button
+
+    private lateinit var panelNavigatingSheet: LinearLayout
+    private lateinit var navStatsRow: LinearLayout
+    private lateinit var tvNavSpeed: TextView
+    private lateinit var tvNavDistance: TextView
+    private lateinit var tvNavEta: TextView
+    private lateinit var tvDrStatusLine: TextView
+    private lateinit var navRouteProgress: ProgressBar
+    private lateinit var tvNavProgress: TextView
+    private lateinit var btnEndNav: Button
+    private lateinit var btnEndNavQuick: FrameLayout
+    private lateinit var navExpandedContent: LinearLayout
+    private lateinit var tvNavDestName: TextView
+    private lateinit var tvNavDestAddress: TextView
+    private lateinit var tvNavRouteSummary: TextView
+    private var isNavSheetExpanded = false
+
+    private lateinit var layoutNavDetailsToggle: LinearLayout
+    private lateinit var ivNavDetailsChevron: ImageView
+    private lateinit var layoutNavDetailsContent: LinearLayout
+    private lateinit var tvNavDetailMode: TextView
+    private lateinit var tvNavDetailGnss: TextView
+    private lateinit var tvNavDetailSpeed: TextView
+    private lateinit var tvNavDetailHeading: TextView
+    private lateinit var tvNavDetailAccuracy: TextView
+    private lateinit var tvNavDetailMlSpeed: TextView
+    private var isNavDetailsExpanded = true
+
+    private lateinit var panelArrivedSheet: LinearLayout
+    private lateinit var tvArrivedDestName: TextView
+    private lateinit var btnDone: Button
+
+    // â”€â”€ Trip tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private var tripStartMs = 0L
+    private var drPathDistanceM = 0.0
+    private var lastDrLat = 0.0
+    private var lastDrLon = 0.0
+
+    // â”€â”€ Handlers & Timers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private val uiHandler = Handler(Looper.getMainLooper())
+    private val searchDebounceHandler = Handler(Looper.getMainLooper())
+    private var searchRunnable: Runnable? = null
+
+    private val uiRunnable = object : Runnable {
+        override fun run() {
+            val currentDisplayRotation = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                display?.rotation ?: android.view.Surface.ROTATION_0
+            } else {
+                @Suppress("DEPRECATION")
+                windowManager.defaultDisplay.rotation
+            }
+            navController?.sensorEngine?.setDisplayRotation(currentDisplayRotation)
+            navController?.tick()
+            val state = navController?.state?.value
+            if (state != null) {
+                renderState(state)
+            }
+            uiHandler.postDelayed(this, 100)
+        }
+    }
+
+    private val PERMISSION_CODE = 1001
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        window.statusBarColor = Color.TRANSPARENT
+        window.decorView.systemUiVisibility =
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        setContentView(R.layout.activity_main)
+
+        if (navController == null) {
+            navController = NavigationController(this)
+        }
+
+        bindViews()
+        setupSearchExperience()
+        setupInstrumentActions()
+        setupMapWebView()
+        checkPermissions()
+
+        tvSearchPlaceholder.setOnClickListener {
+            openSearchOverlay()
+        }
+
+        btnRecenter.setOnClickListener {
+            cameraState = MapCameraState.FOLLOWING
+            updateRecenterButtonAppearance()
+            val s = navController?.state?.value ?: return@setOnClickListener
+            if (s.hasValidPosition) {
+                mapWebView.evaluateJavascript(
+                    "map.panTo([${s.latitude}, ${s.longitude}], {animate:true, duration:0.5});", null
+                )
+            }
+        }
+
+        // Long-press recenter = reset bearing to north
+        btnRecenter.setOnLongClickListener {
+            // Leaflet is north-up; reset the focused camera instead of calling a MapLibre API.
+            mapWebView.evaluateJavascript("if(marker) map.setView(marker.getLatLng(), map.getZoom(), {animate:true});", null)
+            true
+        }
+
+        btnCompass.setOnClickListener {
+            val s = navController?.state?.value ?: return@setOnClickListener
+            if (s.hasValidPosition) {
+                mapWebView.evaluateJavascript(
+                    "resetMapRotation(); map.setView([${s.latitude}, ${s.longitude}], 16, {animate:true});", null
+                )
+            } else {
+                mapWebView.evaluateJavascript("resetMapRotation();", null)
+            }
+        }
+
+        btnCancelRoute.setOnClickListener {
+            navController?.cancelSearch()
+            mapWebView.evaluateJavascript("clearRoute();", null)
+            routeDrawn = false
+            renderedRoute = null
+        }
+
+        btnStartNav.setOnClickListener {
+            isNavSheetExpanded = false
+            navExpandedContent.visibility = View.GONE
+            navController?.beginDriving()
+            cameraState = MapCameraState.FOLLOWING
+            updateRecenterButtonAppearance()
+        }
+
+        btnEndNav.setOnClickListener {
+            isNavSheetExpanded = false
+            navExpandedContent.visibility = View.GONE
+            navController?.stopNavigation()
+            mapWebView.evaluateJavascript("clearRoute(); clearPath();", null)
+            routeDrawn = false
+            renderedRoute = null
+            resetTripCounters()
+            cameraState = MapCameraState.FOLLOWING
+            updateRecenterButtonAppearance()
+        }
+
+        btnDone.setOnClickListener {
+            navController?.stopNavigation()
+            mapWebView.evaluateJavascript("clearRoute(); clearPath();", null)
+            routeDrawn = false
+            renderedRoute = null
+            resetTripCounters()
+            cameraState = MapCameraState.FOLLOWING
+            updateRecenterButtonAppearance()
+        }
+    }
+
+    private fun bindViews() {
+        mapWebView                  = findViewById(R.id.mapWebView)
+
+        // Floating Search Bar
+        floatingSearchBar           = findViewById(R.id.floatingSearchBar)
+        tvSearchPlaceholder         = findViewById(R.id.tvSearchPlaceholder)
+
+        // GNSS Status Chip
+        gnssStatusChip              = findViewById(R.id.gnssStatusChip)
+        tvGnssStatusDot             = findViewById(R.id.tvGnssStatusDot)
+        tvGnssStatusText            = findViewById(R.id.tvGnssStatusText)
+        tvNavModeText               = findViewById(R.id.tvNavModeText)
+
+        // Maneuver card
+        maneuverCard                = findViewById(R.id.maneuverCard)
+        tvManeuverIcon              = findViewById(R.id.tvManeuverIcon)
+        tvManeuverDistance          = findViewById(R.id.tvManeuverDistance)
+        tvManeuverInstruction       = findViewById(R.id.tvManeuverInstruction)
+        tvGnssBadge                 = findViewById(R.id.tvGnssBadge)
+        rowSecondManeuver           = findViewById(R.id.rowSecondManeuver)
+        tvSecondManeuverIcon        = findViewById(R.id.tvSecondManeuverIcon)
+        tvSecondManeuverInstruction = findViewById(R.id.tvSecondManeuverInstruction)
+
+        // FABs
+        btnCompass                  = findViewById(R.id.btnCompass)
+        compassIndicator            = findViewById(R.id.compassIndicator)
+        tvCompassArrow              = findViewById(R.id.tvCompassArrow)
+        tvCompassNeedle             = findViewById(R.id.tvCompassNeedle)
+        btnRecenter                 = findViewById(R.id.btnRecenter)
+        tvRecenterIcon              = findViewById(R.id.tvRecenterIcon)
+        ivRecenterIcon              = findViewById(R.id.ivRecenterIcon)
+
+        // Search overlay
+        panelSearchOverlay          = findViewById(R.id.panelSearchOverlay)
+        btnSearchBack               = findViewById(R.id.btnSearchBack)
+        etSearchInput               = findViewById(R.id.etSearchInput)
+        btnSearchClear              = findViewById(R.id.btnSearchClear)
+        searchProgressBar           = findViewById(R.id.searchProgressBar)
+        tvSearchError               = findViewById(R.id.tvSearchError)
+        rvSearchResults             = findViewById(R.id.rvSearchResults)
+
+        chipHome                    = findViewById(R.id.chipHome)
+        chipWork                    = findViewById(R.id.chipWork)
+        chipPetrol                  = findViewById(R.id.chipPetrol)
+        chipHospital                = findViewById(R.id.chipHospital)
+        chipFood                    = findViewById(R.id.chipFood)
+
+        // Bottom sheets
+        bottomSheet                 = findViewById(R.id.bottomSheet)
+        sheetHandle                 = findViewById(R.id.sheetHandle)
+        panelIdleSheet              = findViewById(R.id.panelIdleSheet)
+        idleExpandedContent         = findViewById(R.id.idleExpandedContent)
+
+        // Instrument panel widgets (inside panelIdleSheet)
+        tvMetricSpeed               = findViewById(R.id.tvMetricSpeed)
+        tvIdleLocationStatus        = findViewById(R.id.tvIdleLocationStatus)
+        btnDebugSettings             = findViewById(R.id.btnDebugSettings)
+        btnNavigate                 = findViewById(R.id.btnNavigate)
+        btnIdleFuel                 = findViewById(R.id.btnIdleFuel)
+        btnIdleHospital             = findViewById(R.id.btnIdleHospital)
+        btnIdleFood                 = findViewById(R.id.btnIdleFood)
+
+        panelRoutePreviewSheet      = findViewById(R.id.panelRoutePreviewSheet)
+        tvDestinationName           = findViewById(R.id.tvDestinationName)
+        tvDestinationAddress        = findViewById(R.id.tvDestinationAddress)
+        tvRouteDistance             = findViewById(R.id.tvRouteDistance)
+        tvRouteEta                  = findViewById(R.id.tvRouteEta)
+        routeProgressBar            = findViewById(R.id.routeProgressBar)
+        tvRouteError                = findViewById(R.id.tvRouteError)
+        btnCancelRoute              = findViewById(R.id.btnCancelRoute)
+        btnStartNav                 = findViewById(R.id.btnStartNav)
+
+        panelNavigatingSheet        = findViewById(R.id.panelNavigatingSheet)
+        navStatsRow                 = findViewById(R.id.navStatsRow)
+        tvNavSpeed                  = findViewById(R.id.tvNavSpeed)
+        tvNavDistance               = findViewById(R.id.tvNavDistance)
+        tvNavEta                    = findViewById(R.id.tvNavEta)
+        tvDrStatusLine              = findViewById(R.id.tvDrStatusLine)
+        navRouteProgress            = findViewById(R.id.navRouteProgress)
+        tvNavProgress               = findViewById(R.id.tvNavProgress)
+        btnEndNav                   = findViewById(R.id.btnEndNav)
+        btnEndNavQuick              = findViewById(R.id.btnEndNavQuick)
+        navExpandedContent          = findViewById(R.id.navExpandedContent)
+        tvNavDestName               = findViewById(R.id.tvNavDestName)
+        tvNavDestAddress            = findViewById(R.id.tvNavDestAddress)
+        tvNavRouteSummary           = findViewById(R.id.tvNavRouteSummary)
+
+        layoutNavDetailsToggle      = findViewById(R.id.layoutNavDetailsToggle)
+        ivNavDetailsChevron         = findViewById(R.id.ivNavDetailsChevron)
+        layoutNavDetailsContent     = findViewById(R.id.layoutNavDetailsContent)
+        tvNavDetailMode             = findViewById(R.id.tvNavDetailMode)
+        tvNavDetailGnss             = findViewById(R.id.tvNavDetailGnss)
+        tvNavDetailSpeed            = findViewById(R.id.tvNavDetailSpeed)
+        tvNavDetailHeading          = findViewById(R.id.tvNavDetailHeading)
+        tvNavDetailAccuracy         = findViewById(R.id.tvNavDetailAccuracy)
+        tvNavDetailMlSpeed          = findViewById(R.id.tvNavDetailMlSpeed)
+
+        panelArrivedSheet           = findViewById(R.id.panelArrivedSheet)
+        tvArrivedDestName           = findViewById(R.id.tvArrivedDestName)
+        btnDone                     = findViewById(R.id.btnDone)
+    }
+
+    private fun setupSearchExperience() {
+        searchAdapter = SearchResultsAdapter { result ->
+            hideKeyboard()
+            panelSearchOverlay.visibility = View.GONE
+            navController?.startNavigation(result)
+        }
+        rvSearchResults.layoutManager = LinearLayoutManager(this)
+        rvSearchResults.adapter = searchAdapter
+
+        btnSearchBack.setOnClickListener {
+            hideKeyboard()
+            panelSearchOverlay.visibility = View.GONE
+        }
+
+        btnSearchClear.setOnClickListener {
+            etSearchInput.text.clear()
+            navController?.cancelSearch()
+            showRecentOrResults(navController?.state?.value ?: return@setOnClickListener)
+        }
+
+        etSearchInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val q = s?.toString() ?: ""
+                btnSearchClear.visibility = if (q.isNotEmpty()) View.VISIBLE else View.GONE
+
+                searchRunnable?.let { searchDebounceHandler.removeCallbacks(it) }
+                if (q.trim().length >= 2) {
+                    searchRunnable = Runnable {
+                        navController?.search(q.trim())
+                    }
+                    searchDebounceHandler.postDelayed(searchRunnable!!, 400)
+                } else if (q.isEmpty()) {
+                    navController?.cancelSearch()
+                    showRecentOrResults(navController?.state?.value ?: return)
+                }
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        etSearchInput.setOnEditorActionListener { v, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                searchRunnable?.let { searchDebounceHandler.removeCallbacks(it) }
+                navController?.search(v.text.toString())
+                hideKeyboard()
+                true
+            } else false
+        }
+
+        chipHome.visibility = View.GONE
+        chipWork.visibility = View.GONE
+        chipHome.setOnClickListener { navController?.state?.value?.homePlace?.let { searchAdapter.submitList(listOf(it)) } }
+        chipWork.setOnClickListener { navController?.state?.value?.workPlace?.let { searchAdapter.submitList(listOf(it)) } }
+        chipPetrol.setOnClickListener { triggerNearbySearch("petrol") }
+        chipHospital.setOnClickListener { triggerNearbySearch("hospital") }
+        chipFood.setOnClickListener { triggerNearbySearch("restaurant") }
+    }
+
+    private fun setupInstrumentActions() {
+        // Navigate â€” open search overlay
+        btnNavigate.setOnClickListener {
+            openSearchOverlay()
+        }
+
+        // Floating search bar click
+        tvSearchPlaceholder.setOnClickListener {
+            openSearchOverlay()
+        }
+
+        btnEndNavQuick.setOnClickListener {
+            btnEndNav.performClick()
+        }
+
+        layoutNavDetailsToggle.setOnClickListener {
+            isNavDetailsExpanded = !isNavDetailsExpanded
+            layoutNavDetailsContent.visibility = if (isNavDetailsExpanded) View.VISIBLE else View.GONE
+            ivNavDetailsChevron.setImageResource(
+                if (isNavDetailsExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
+            )
+        }
+
+        navStatsRow.setOnClickListener {
+            if (panelNavigatingSheet.visibility == View.VISIBLE) {
+                isNavSheetExpanded = !isNavSheetExpanded
+                updateNavSheetExpansion()
+            }
+        }
+
+        sheetHandle.setOnClickListener {
+            if (panelNavigatingSheet.visibility == View.VISIBLE) {
+                isNavSheetExpanded = !isNavSheetExpanded
+                updateNavSheetExpansion()
+            } else if (panelIdleSheet.visibility == View.VISIBLE) {
+                isIdleSheetExpanded = !isIdleSheetExpanded
+                updateIdleSheetExpansion()
+            }
+        }
+
+        bottomSheet.onVerticalSwipe = { expand ->
+            if (panelNavigatingSheet.visibility == View.VISIBLE && isNavSheetExpanded != expand) {
+                isNavSheetExpanded = expand
+                updateNavSheetExpansion()
+            } else if (panelIdleSheet.visibility == View.VISIBLE && isIdleSheetExpanded != expand) {
+                isIdleSheetExpanded = expand
+                updateIdleSheetExpansion()
+            }
+        }
+
+        btnDebugSettings.setOnClickListener {
+            startActivity(Intent(this, DebugActivity::class.java))
+        }
+
+        btnIdleFuel.setOnClickListener { triggerNearbySearch("petrol") }
+        btnIdleHospital.setOnClickListener { triggerNearbySearch("hospital") }
+        btnIdleFood.setOnClickListener { triggerNearbySearch("restaurant") }
+    }
+
+    private fun triggerChipSearch(query: String) {
+        openSearchOverlay()
+        etSearchInput.setText(query)
+        etSearchInput.setSelection(query.length)
+        navController?.search(query)
+    }
+
+    private fun triggerNearbySearch(category: String) {
+        openSearchOverlay()
+        etSearchInput.text.clear()
+        navController?.searchNearby(category)
+        hideKeyboard()
+    }
+
+    private fun openSearchOverlay() {
+        panelSearchOverlay.visibility = View.VISIBLE
+        etSearchInput.requestFocus()
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.showSoftInput(etSearchInput, InputMethodManager.SHOW_IMPLICIT)
+        showRecentOrResults(navController?.state?.value ?: return)
+    }
+
+    private fun showRecentOrResults(state: NavigationState) {
+        searchAdapter.userLocation = if (state.hasValidPosition) LatLon(state.latitude, state.longitude) else null
+        val showingSearch = state.navMode == NavMode.SEARCHING || etSearchInput.text.isNotEmpty()
+        searchAdapter.submitList(if (showingSearch) state.searchResults else state.recentSearches)
+        chipHome.visibility = if (state.homePlace != null) View.VISIBLE else View.GONE
+        chipWork.visibility = if (state.workPlace != null) View.VISIBLE else View.GONE
+    }
+
+    private fun updateIdleSheetExpansion() {
+        idleExpandedContent.animate().cancel()
+        val travel = 12f * resources.displayMetrics.density
+        if (isIdleSheetExpanded) {
+            idleExpandedContent.visibility = View.VISIBLE
+            idleExpandedContent.alpha = 0f
+            idleExpandedContent.translationY = travel
+            idleExpandedContent.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(220L)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        } else {
+            idleExpandedContent.animate()
+                .alpha(0f)
+                .translationY(travel)
+                .setDuration(170L)
+                .setInterpolator(DecelerateInterpolator())
+                .withEndAction {
+                    idleExpandedContent.visibility = View.GONE
+                    idleExpandedContent.alpha = 1f
+                    idleExpandedContent.translationY = 0f
+                }
+                .start()
+        }
+        sheetHandle.contentDescription = if (isIdleSheetExpanded) {
+            "Collapse navigation controls"
+        } else {
+            "Expand navigation controls"
+        }
+    }
+
+    private fun updateNavSheetExpansion() {
+        navExpandedContent.animate().cancel()
+        val travel = 12f * resources.displayMetrics.density
+        if (isNavSheetExpanded) {
+            navExpandedContent.visibility = View.VISIBLE
+            navExpandedContent.alpha = 0f
+            navExpandedContent.translationY = travel
+            navExpandedContent.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(220L)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        } else {
+            navExpandedContent.animate()
+                .alpha(0f)
+                .translationY(travel)
+                .setDuration(170L)
+                .setInterpolator(DecelerateInterpolator())
+                .withEndAction {
+                    navExpandedContent.visibility = View.GONE
+                    navExpandedContent.alpha = 1f
+                    navExpandedContent.translationY = 0f
+                }
+                .start()
+        }
+        sheetHandle.contentDescription = if (isNavSheetExpanded) {
+            "Collapse navigation details"
+        } else {
+            "Expand navigation details"
+        }
+    }
+
+    private fun resetTripCounters() {
+        tripStartMs = 0L
+        drPathDistanceM = 0.0
+        lastDrLat = 0.0
+        lastDrLon = 0.0
+    }
+
+    // â”€â”€ Map WebView Setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    private fun setupMapWebView() {
+        with(mapWebView.settings) {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            cacheMode = WebSettings.LOAD_DEFAULT
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            allowFileAccess = true
+            setRenderPriority(WebSettings.RenderPriority.HIGH)
+        }
+        mapWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        mapWebView.addJavascriptInterface(WebAppInterface(), "AndroidNative")
+
+        mapWebView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                mapReady = true
+                bootstrapLastKnownLocation()
+            }
+        }
+        mapWebView.loadDataWithBaseURL(
+            "https://nominatim.openstreetmap.org",
+            buildMapHtml(), "text/html", "UTF-8", null
+        )
+    }
+
+    inner class WebAppInterface {
+        @JavascriptInterface
+        fun onUserMapGesture() {
+            runOnUiThread {
+                cameraState = MapCameraState.FREE_BROWSE
+                updateRecenterButtonAppearance()
+            }
+        }
+    }
+
+    private fun bootstrapLastKnownLocation() {
+        if (!hasLocationPermission()) return
+        try {
+            val lm = getSystemService(LOCATION_SERVICE) as? android.location.LocationManager ?: return
+            for (provider in listOf(
+                android.location.LocationManager.GPS_PROVIDER,
+                android.location.LocationManager.NETWORK_PROVIDER
+            )) {
+                try {
+                    val loc = lm.getLastKnownLocation(provider)
+                    if (loc != null && loc.accuracy < 200f) {
+                        fallbackMapLat = loc.latitude
+                        fallbackMapLon = loc.longitude
+                        val js = "updatePosition(${loc.latitude},${loc.longitude},${loc.bearing},${loc.accuracy},true,false);"
+                        mapWebView.post { mapWebView.evaluateJavascript(js, null) }
+                        break
+                    }
+                } catch (_: SecurityException) {}
+            }
+        } catch (_: Exception) {}
+    }
+
+    // â”€â”€ State Rendering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    private fun renderState(state: NavigationState) {
+        val isNavigating = state.navMode == NavMode.NAVIGATING ||
+                state.navMode == NavMode.GNSS_DEGRADED ||
+                state.navMode == NavMode.GNSS_DENIED
+
+        // In active navigation, hide the full-size search bar to give maximum map dominance
+        floatingSearchBar.visibility = if (isNavigating) View.GONE else View.VISIBLE
+
+        renderGnssStatusChip(state)
+        renderBottomSheet(state)
+        renderManeuverCard(state)
+        renderMap(state)
+        renderCompass(state)
+        renderInstrumentPanel(state)
+    }
+
+    enum class DisplayNavMode(val label: String) {
+        GNSS("GNSS"),
+        DEAD_RECKONING("DEAD RECKONING"),
+        DEGRADED("DEGRADED"),
+        GNSS_RECOVERING("GNSS RECOVERING")
+    }
+
+    private fun resolveNavStatusMode(state: NavigationState): DisplayNavMode {
+        return when {
+            state.drActive || state.navMode == NavMode.GNSS_DENIED || state.gnssQuality == GnssQuality.DENIED ->
+                DisplayNavMode.DEAD_RECKONING
+            state.gnssQuality == GnssQuality.RECOVERING ->
+                DisplayNavMode.GNSS_RECOVERING
+            state.navMode == NavMode.GNSS_DEGRADED || state.gnssQuality == GnssQuality.POOR || state.gnssQuality == GnssQuality.FAIR ->
+                DisplayNavMode.DEGRADED
+            else ->
+                DisplayNavMode.GNSS
+        }
+    }
+
+    private fun getNavModeColor(mode: DisplayNavMode): Int = when (mode) {
+        DisplayNavMode.GNSS -> ContextCompat.getColor(this, R.color.gnss_good)
+        DisplayNavMode.DEAD_RECKONING -> ContextCompat.getColor(this, R.color.gnss_denied)
+        DisplayNavMode.DEGRADED -> ContextCompat.getColor(this, R.color.nav_warning)
+        DisplayNavMode.GNSS_RECOVERING -> ContextCompat.getColor(this, R.color.gnss_recovering)
+    }
+
+    private fun getNavModeBg(mode: DisplayNavMode): Int = when (mode) {
+        DisplayNavMode.GNSS -> R.drawable.pill_gnss_good
+        DisplayNavMode.DEAD_RECKONING -> R.drawable.pill_gnss_denied
+        DisplayNavMode.DEGRADED -> R.drawable.pill_gnss_poor
+        DisplayNavMode.GNSS_RECOVERING -> R.drawable.pill_gnss_recovering
+    }
+
+    private fun renderGnssStatusChip(state: NavigationState) {
+        val mode = resolveNavStatusMode(state)
+        val modeColor = getNavModeColor(mode)
+        tvGnssStatusText.text = mode.label
+        tvGnssStatusText.setTextColor(modeColor)
+        gnssStatusChip.setBackgroundResource(getNavModeBg(mode))
+        tvGnssStatusDot.backgroundTintList = ColorStateList.valueOf(modeColor)
+
+        val navModeSubtext = when {
+            state.drActive && state.mlInferenceActive -> " · TCN"
+            state.drActive -> " · INS"
+            else -> ""
+        }
+        tvNavModeText.text = navModeSubtext
+    }
+
+    private fun renderManeuverCard(state: NavigationState) {
+        // Maneuver card visible only during active navigation
+        val isNavigating = state.navMode == NavMode.NAVIGATING ||
+                state.navMode == NavMode.GNSS_DEGRADED ||
+                state.navMode == NavMode.GNSS_DENIED
+
+        maneuverCard.visibility = if (isNavigating) View.VISIBLE else View.GONE
+
+        if (isNavigating) {
+            val m = state.nextManeuver
+            tvManeuverIcon.setImageResource(maneuverIconRes(m?.type))
+            tvManeuverInstruction.text = m?.instruction ?: "Continue on route"
+            tvManeuverDistance.text = if (m != null) {
+                if (m.distanceM < 1000) "%.0f m".format(Locale.US, m.distanceM)
+                else "%.1f km".format(Locale.US, m.distanceM / 1000.0)
+            } else state.distanceFormatted
+
+            val m2 = state.secondManeuver
+            if (m2 != null) {
+                rowSecondManeuver.visibility = View.VISIBLE
+                tvSecondManeuverIcon.setImageResource(maneuverIconRes(m2.type))
+                tvSecondManeuverInstruction.text = m2.instruction
+            } else {
+                rowSecondManeuver.visibility = View.GONE
+            }
+
+            // Clear actual navigation mode (GNSS / DEAD RECKONING / DEGRADED / GNSS RECOVERING)
+            val mode = resolveNavStatusMode(state)
+            val badgeColor = getNavModeColor(mode)
+            val badgeBg = getNavModeBg(mode)
+            tvGnssBadge.text = "● ${mode.label}"
+            tvGnssBadge.setTextColor(badgeColor)
+            tvGnssBadge.setBackgroundResource(badgeBg)
+        }
+    }
+
+    private fun gnssPillBackground(quality: GnssQuality): Int {
+        return when (quality) {
+            GnssQuality.GOOD -> R.drawable.pill_gnss_good
+            GnssQuality.FAIR -> R.drawable.pill_gnss_fair
+            GnssQuality.POOR -> R.drawable.pill_gnss_poor
+            GnssQuality.DENIED -> R.drawable.pill_gnss_denied
+            GnssQuality.RECOVERING -> R.drawable.pill_gnss_fair // Use fair for recovering
+        }
+    }
+
+    private fun renderBottomSheet(state: NavigationState) {
+        val allSheets = listOf(panelIdleSheet, panelRoutePreviewSheet, panelNavigatingSheet, panelArrivedSheet)
+
+        fun show(sheet: LinearLayout) {
+            allSheets.forEach { it.visibility = if (it == sheet) View.VISIBLE else View.GONE }
+        }
+
+        when (state.navMode) {
+            NavMode.IDLE -> {
+                show(panelIdleSheet)
+                if (isNavSheetExpanded) {
+                    isNavSheetExpanded = false
+                    navExpandedContent.visibility = View.GONE
+                }
+            }
+            NavMode.SEARCHING -> {
+                // Search overlay is already full-screen; keep instrument panel visible beneath
+                searchProgressBar.visibility = if (state.searchLoading) View.VISIBLE else View.GONE
+                tvSearchError.visibility = if (state.searchError != null) View.VISIBLE else View.GONE
+                tvSearchError.text = state.searchError ?: ""
+                showRecentOrResults(state)
+            }
+            NavMode.ROUTE_PREVIEW -> {
+                show(panelRoutePreviewSheet)
+                tvDestinationName.text = state.destination?.name ?: ""
+                tvDestinationAddress.text = state.destination?.address ?: ""
+                tvRouteDistance.text = state.route?.distanceFormatted ?: "--"
+                tvRouteEta.text = state.route?.durationFormatted ?: "--"
+                routeProgressBar.visibility = if (state.routeLoading) View.VISIBLE else View.GONE
+                tvRouteError.visibility = if (state.routeError != null) View.VISIBLE else View.GONE
+                tvRouteError.text = state.routeError ?: ""
+                btnStartNav.isEnabled = state.route != null && !state.routeLoading
+            }
+            NavMode.NAVIGATING, NavMode.GNSS_DEGRADED, NavMode.GNSS_DENIED -> {
+                show(panelNavigatingSheet)
+                tvNavSpeed.text = state.speedKmhDisplay
+                tvNavDistance.text = state.distanceFormatted
+                tvNavEta.text = state.estimatedArrivalFormatted
+                navRouteProgress.progress = state.routeProgressPercent
+                tvNavProgress.text = "%d%% complete".format(Locale.US, state.routeProgressPercent)
+
+                // Populate expanded navigation details
+                tvNavDestName.text = state.destination?.name ?: "Current Route"
+                tvNavDestAddress.text = state.destination?.address ?: ""
+                val duration = state.route?.durationFormatted ?: state.etaFormatted
+                val distance = state.route?.distanceFormatted ?: state.distanceFormatted
+                tvNavRouteSummary.text = if (duration != "--" && distance != "--") "$distance · $duration" else ""
+
+                renderNavigationDetails(state)
+
+                // Compact subtle status line
+                val rawStatus = state.statusLine
+                if (rawStatus.isNotEmpty()) {
+                    val cleanStatus = rawStatus.replace("â€”", "·").replace("—", "·").replace(" - ", " · ")
+                    tvDrStatusLine.text = "● $cleanStatus"
+                    val statusColor = when {
+                        state.navMode == NavMode.GNSS_DENIED || state.drActive || state.offRoute ->
+                            ContextCompat.getColor(this, R.color.nav_warning)
+                        state.speedSource == SpeedSource.UNAVAILABLE ->
+                            ContextCompat.getColor(this, R.color.nav_error)
+                        else ->
+                            ContextCompat.getColor(this, R.color.nav_warning)
+                    }
+                    tvDrStatusLine.setTextColor(statusColor)
+                    tvDrStatusLine.visibility = View.VISIBLE
+                } else {
+                    tvDrStatusLine.visibility = View.GONE
+                }
+            }
+            NavMode.ARRIVED -> {
+                show(panelArrivedSheet)
+                tvArrivedDestName.text = state.destination?.name ?: ""
+                if (isNavSheetExpanded) {
+                    isNavSheetExpanded = false
+                    navExpandedContent.visibility = View.GONE
+                }
+            }
+            NavMode.ERROR -> {
+                show(panelIdleSheet)
+                state.errorMessage?.let { Toast.makeText(this, it, Toast.LENGTH_LONG).show() }
+                if (isNavSheetExpanded) {
+                    isNavSheetExpanded = false
+                    navExpandedContent.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    private fun renderInstrumentPanel(state: NavigationState) {
+        // Only update instrument panel widgets when they are visible (IDLE mode)
+        if (panelIdleSheet.visibility != View.VISIBLE) return
+
+        // Update speed display
+        tvMetricSpeed.text = state.speedKmhDisplay
+        tvIdleLocationStatus.text = when {
+            !state.hasValidPosition -> "Waiting for location"
+            state.gnssQuality == GnssQuality.DENIED -> "Location estimate from sensors"
+            else -> "Location ready"
+        }
+    }
+
+    private fun renderNavigationDetails(state: NavigationState) {
+        val mode = resolveNavStatusMode(state)
+        tvNavDetailMode.text = mode.label
+        tvNavDetailMode.setTextColor(getNavModeColor(mode))
+
+        tvNavDetailGnss.text = state.gnssQuality.label()
+
+        tvNavDetailSpeed.text = formatSpeed(state)
+
+        val rawHeading = when {
+            state.vehicleHeadingDeg.isFinite() && state.vehicleHeadingDeg >= 0f -> state.vehicleHeadingDeg
+            state.heading.isFinite() && state.heading >= 0f -> state.heading
+            state.deviceAzimuthDeg.isFinite() && state.deviceAzimuthDeg >= 0f -> state.deviceAzimuthDeg
+            else -> Float.NaN
+        }
+        tvNavDetailHeading.text = formatHeading(rawHeading)
+
+        tvNavDetailAccuracy.text = formatAccuracy(state.positionAccuracy)
+
+        tvNavDetailMlSpeed.text = formatMlSpeed(state)
+    }
+
+    private fun formatSpeed(state: NavigationState): String {
+        return if (state.speed.isFinite() && state.speed >= 0f) {
+            "%s km/h (%.1f m/s)".format(Locale.US, state.speedKmhDisplay, state.speed)
+        } else {
+            "--"
+        }
+    }
+
+    private fun formatHeading(headingDeg: Float): String {
+        if (!headingDeg.isFinite() || headingDeg < 0f) return "--"
+        val normalized = ((headingDeg % 360f) + 360f) % 360f
+        val directions = arrayOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+        val index = (((normalized + 22.5f) % 360f) / 45f).toInt().coerceIn(0, 7)
+        return "%.0f° %s".format(Locale.US, normalized, directions[index])
+    }
+
+    private fun formatAccuracy(acc: Float): String {
+        return if (acc.isFinite() && acc > 0f && acc < 10_000f) {
+            "± %.1f m".format(Locale.US, acc)
+        } else {
+            "Unavailable"
+        }
+    }
+
+    private fun formatMlSpeed(state: NavigationState): String {
+        return when {
+            state.mlInferenceActive && state.mlSpeedMps.isFinite() && state.mlSpeedMps >= 0f ->
+                "%.1f m/s (%.0f km/h)".format(Locale.US, state.mlSpeedMps, state.mlSpeedMps * 3.6f)
+            state.mlModelLoaded ->
+                "Standby (buffer loading)"
+            else ->
+                "Unavailable"
+        }
+    }
+
+    private fun renderCompass(state: NavigationState) {
+        compassIndicator.rotation = -state.compassBearingDeg
+    }
+
+
+    private fun renderMap(state: NavigationState) {
+        if (!mapReady) return
+
+        // A last-known fix keeps the marker and compass useful when GPS starts off.
+        val displayLat = if (state.hasValidPosition) state.latitude else fallbackMapLat
+        val displayLon = if (state.hasValidPosition) state.longitude else fallbackMapLon
+        if (displayLat == 0.0 && displayLon == 0.0) return
+
+        val latDelta = abs(displayLat - lastMapLat)
+        val lonDelta = abs(displayLon - lastMapLon)
+        // The map marker represents active navigation. Use the authoritative
+        // provider heading rather than the independent phone compass.
+        val mapBearing = state.deviceAzimuthDeg
+        val brgDelta = abs(mapBearing - lastMapBearing)
+
+        if (latDelta > 0.000015 || lonDelta > 0.000015 || brgDelta > 3f) {
+            lastMapLat = displayLat
+            lastMapLon = displayLon
+            lastMapBearing = mapBearing
+            val drFlag = if (state.drActive) "true" else "false"
+            val acc = if (state.positionAccuracy < 1000f) state.positionAccuracy else 0f
+            val js = "updatePosition(${displayLat},${displayLon},${mapBearing},$acc,false,$drFlag);"
+            mapWebView.evaluateJavascript(js, null)
+        }
+
+        if (state.route != null && state.route != renderedRoute) {
+            if (routeDrawn) mapWebView.evaluateJavascript("clearRoute();", null)
+            if (drawRoute(state.route!!, state.destination)) {
+                renderedRoute = state.route
+                routeDrawn = true
+            }
+        }
+
+        if (routeDrawn && state.route == null) {
+            routeDrawn = false
+            renderedRoute = null
+            mapWebView.evaluateJavascript("clearRoute();", null)
+        }
+
+        val isNavigating = state.navMode == NavMode.NAVIGATING ||
+                state.navMode == NavMode.GNSS_DEGRADED ||
+                state.navMode == NavMode.GNSS_DENIED
+
+        if (isNavigating && cameraState == MapCameraState.FOLLOWING) {
+            val js = "if(marker) map.panTo(marker.getLatLng(), {animate:true,duration:0.3,easeLinearity:0.5});"
+            mapWebView.evaluateJavascript(js, null)
+        }
+    }
+
+    private fun drawRoute(route: Route, destination: GeocodingResult?): Boolean {
+        if (route.polyline.size < 2) return false
+        val coordsJson = route.polyline.joinToString(",") { "[${it.lat},${it.lon}]" }
+        val destLat = destination?.location?.lat ?: route.polyline.lastOrNull()?.lat ?: return false
+        val destLon = destination?.location?.lon ?: route.polyline.lastOrNull()?.lon ?: return false
+        val js = "drawRoute([$coordsJson], $destLat, $destLon);"
+        mapWebView.evaluateJavascript(js, null)
+        return true
+    }
+
+    private fun updateRecenterButtonAppearance() {
+        // Always neutral — recenter is not a state indicator, just an action
+        tvRecenterIcon.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+        ivRecenterIcon?.setColorFilter(ContextCompat.getColor(this, R.color.text_primary))
+    }
+
+    // â”€â”€ Leaflet HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    private fun buildMapHtml(): String = """
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body, #mapStage, #map { height:100%; width:100%; background:#0B1220; overflow:hidden; }
+    /* Portrait screens need more than sqrt(2) coverage when the map is rotated. */
+    #mapStage { position:absolute; width:200%; height:200%; left:-50%; top:-50%; transform-origin:center center; }
+    .leaflet-control-zoom {
+      display:block!important; border:1px solid rgba(61,214,245,.28)!important;
+      border-radius:14px!important; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.34)!important;
+    }
+    .leaflet-control-zoom a {
+      width:42px!important; height:42px!important; line-height:40px!important;
+      color:#EDF1F7!important; background:rgba(11,18,32,.94)!important;
+      border-color:#232D42!important; font-size:24px!important;
+    }
+    .leaflet-control-zoom a:hover { background:#182238!important; color:#3DD6F5!important; }
+    .leaflet-control-attribution {
+      font-size:8px; opacity:0.3; background:transparent!important; color:#8A93A6!important; margin-bottom: 95px!important;
+    }
+    .leaflet-tile-pane { filter: brightness(0.58) contrast(1.14) saturate(0.72); }
+    @keyframes snapPulse {
+      0%   { transform: scale(0.95); opacity: 0.9; }
+      50%  { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.9; }
+    }
+  </style>
+</head>
+<body>
+<div id="mapStage"><div id="map"></div></div>
+<script>
+  // Bootstrap at street-city zoom (15), not subcontinent (5)
+  var map = L.map('map', {
+    zoomControl: false, attributionControl: true,
+    zoomAnimation: true, fadeAnimation: false, preferCanvas: true
+  }).setView([20.5937, 78.9629], 15);
+
+  // Two-finger rotation, while one-finger dragging remains normal map panning.
+  var mapRotation = 0;
+  var rotationStartAngle = 0;
+  var rotationStartValue = 0;
+  var rotating = false;
+  var mapStage = document.getElementById('mapStage');
+
+  function touchAngle(a, b) {
+    return Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) * 180 / Math.PI;
+  }
+
+  function applyMapRotation() {
+    mapStage.style.transform = 'rotate(' + mapRotation + 'deg)';
+  }
+
+  function resetMapRotation() {
+    mapRotation = 0;
+    applyMapRotation();
+  }
+
+  map.getContainer().addEventListener('touchstart', function(event) {
+    if (event.touches.length !== 2) return;
+    rotating = true;
+    rotationStartAngle = touchAngle(event.touches[0], event.touches[1]);
+    rotationStartValue = mapRotation;
+    // Keep Leaflet's native pinch handler active so fractional zoom and tile
+    // loading remain correct while this listener adds rotation.
+    map.dragging.disable();
+  }, {passive:false});
+
+  map.getContainer().addEventListener('touchmove', function(event) {
+    if (!rotating || event.touches.length !== 2) return;
+    mapRotation = rotationStartValue + touchAngle(event.touches[0], event.touches[1]) - rotationStartAngle;
+    applyMapRotation();
+  }, {passive:false});
+
+  map.getContainer().addEventListener('touchend', function(event) {
+    if (!rotating || event.touches.length > 1) return;
+    rotating = false;
+    map.dragging.enable();
+    map.invalidateSize({pan:false});
+  }, {passive:false});
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19,
+    subdomains: ['a','b','c'], keepBuffer:8,
+    updateWhenIdle:false, updateWhenZooming:true
+  }).addTo(map);
+
+  map.on('dragstart zoomstart', function() {
+    if (window.AndroidNative && window.AndroidNative.onUserMapGesture) {
+      window.AndroidNative.onUserMapGesture();
+    }
+  });
+
+  // ── Signature Percorsa Vehicle Marker: Clean Navigation Puck & Covariance Ring ──
+  function makeVehicleIcon(bearing, isDr) {
+    var haloColor = isDr ? '#FFB020' : '#3DD6F5';
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">';
+    
+    if (isDr) {
+      // Widening translucent uncertainty cone projecting forward
+      svg += '<polygon points="48,48 24,6 72,6" fill="url(#coneGradient)" opacity="0.35"/>' +
+             '<defs><linearGradient id="coneGradient" x1="0" y1="1" x2="0" y2="0">' +
+             '<stop offset="0%" stop-color="#FFB020" stop-opacity="0.6"/>' +
+             '<stop offset="100%" stop-color="#FFB020" stop-opacity="0.02"/>' +
+             '</linearGradient></defs>' +
+             // Amber outer trust ring
+             '<circle cx="48" cy="48" r="20" fill="#FFB020" fill-opacity="0.12" stroke="#FFB020" stroke-width="1.5"/>';
+    } else {
+      // Thin steady cyan trust ring
+      svg += '<circle cx="48" cy="48" r="18" fill="#3DD6F5" fill-opacity="0.12" stroke="#3DD6F5" stroke-width="1.5"/>';
+    }
+
+    // Vehicle Core Geometry: Modern clean navigation puck (dark disc + white border + vibrant chevron)
+    svg += '<circle cx="48" cy="48" r="14" fill="#0D1524" stroke="#FFFFFF" stroke-width="2.5"/>' +
+           '<path d="M48 24 L60 58 L48 51 L36 58 Z" fill="' + haloColor + '"/>' +
+           '</svg>';
+
+    return L.divIcon({
+      html: '<div style="transform-origin:center;transform:rotate('+bearing+'deg);transition:transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);">' + svg + '</div>',
+      iconSize:[96,96], iconAnchor:[48,48], className:''
+    });
+  }
+
+
+  function makeDestIcon() {
+    return L.divIcon({
+      html: '<div style="width:24px;height:24px;background:#0B1220;border:2.5px solid #3DD6F5;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px #3DD6F5;"><div style="width:8px;height:8px;background:#3DD6F5;border-radius:50%;"></div></div>',
+      iconSize:[24,24], iconAnchor:[12,12], className:''
+    });
+  }
+
+  function makeStartIcon() {
+    return L.divIcon({
+      html: '<div style="width:16px;height:16px;background:#0B1220;border:3px solid #EDF1F7;border-radius:50%;box-shadow:0 1px 8px rgba(0,0,0,.55)"></div>',
+      iconSize:[16,16], iconAnchor:[8,8], className:''
+    });
+  }
+
+  var marker = null;
+  var startMarker = null;
+  var destMarker = null;
+  var accuracyCircle = null;
+  var routeCasing = null;
+  var routePolyline = null;
+  var trackPath = L.polyline([], {color:'#3DD6F5',weight:3.5,opacity:0.65,dashArray:'4 3'}).addTo(map);
+  var isFirstFix = true;
+
+  function updatePosition(lat, lon, bearing, accuracyM, isBootstrap, isDr) {
+    var ll = [lat, lon];
+    isDr = isDr === true || isDr === 'true';
+    if (marker) {
+      marker.setIcon(makeVehicleIcon(bearing, isDr));
+      marker.setLatLng(ll);
+    } else {
+      marker = L.marker(ll, {icon: makeVehicleIcon(bearing, isDr), zIndexOffset:1000}).addTo(map);
+    }
+    if (accuracyCircle) map.removeLayer(accuracyCircle);
+    if (accuracyM > 0 && accuracyM < 80) {
+      accuracyCircle = L.circle(ll, {
+        radius: accuracyM, color: isDr ? '#FFB020' : '#3DD6F5',
+        fillColor: isDr ? '#FFB020' : '#3DD6F5',
+        fillOpacity: isDr ? 0.12 : 0.06, weight:1.5, dashArray: isDr ? '3 3' : null
+      }).addTo(map);
+    }
+    if (!isBootstrap) trackPath.addLatLng(ll);
+    if (isFirstFix) {
+      map.setView(ll, 16, {animate:false});
+      isFirstFix = false;
+    }
+  }
+
+  function drawRoute(coords, destLat, destLon) {
+    if (!coords || coords.length < 2) return;
+    if (routeCasing) { map.removeLayer(routeCasing); routeCasing = null; }
+    if (routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
+    if (startMarker)   { map.removeLayer(startMarker); startMarker = null; }
+    if (destMarker)    { map.removeLayer(destMarker); destMarker = null; }
+    routeCasing = L.polyline(coords, {
+      color:'#07101C', weight:10, opacity:0.78,
+      lineJoin:'round', lineCap:'round'
+    }).addTo(map);
+    routePolyline = L.polyline(coords, {
+      color:'#14B8A6', weight:5.5, opacity:0.95,
+      lineJoin:'round', lineCap:'round'
+    }).addTo(map);
+    startMarker = L.marker(coords[0], {icon: makeStartIcon(), interactive:false, zIndexOffset:850}).addTo(map);
+    destMarker = L.marker([destLat, destLon], {icon: makeDestIcon(), zIndexOffset:900}).addTo(map);
+    var bounds = routePolyline.getBounds().pad(0.18);
+    map.fitBounds(bounds, {animate:true, duration:0.5, paddingTopLeft:[28, 110], paddingBottomRight:[28, 190]});
+  }
+
+  function clearRoute() {
+    if (routeCasing) { map.removeLayer(routeCasing); routeCasing = null; }
+    if (routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
+    if (startMarker)   { map.removeLayer(startMarker); startMarker = null; }
+    if (destMarker)    { map.removeLayer(destMarker); destMarker = null; }
+  }
+
+  function clearPath() {
+    trackPath.setLatLngs([]);
+    isFirstFix = true;
+  }
+</script>
+</body>
+</html>
+    """.trimIndent()
+
+    // â”€â”€ Permissions & Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    private fun hasLocationPermission() =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+
+    private fun checkPermissions() {
+        val needed = mutableListOf<String>()
+        if (!hasLocationPermission()) needed += Manifest.permission.ACCESS_FINE_LOCATION
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED)
+            needed += Manifest.permission.ACCESS_COARSE_LOCATION
+        if (needed.isNotEmpty())
+            ActivityCompat.requestPermissions(this, needed.toTypedArray(), PERMISSION_CODE)
+        else
+            navController?.start()
+    }
+
+    override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, results: IntArray) {
+        super.onRequestPermissionsResult(code, perms, results)
+        navController?.start()
+        if (mapReady) bootstrapLastKnownLocation()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        navController?.start()
+        uiHandler.post(uiRunnable)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Do NOT call navController.stop() here so DebugActivity can share the live stream
+        uiHandler.removeCallbacks(uiRunnable)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (isFinishing) {
+            navController?.stop()
+        }
+        navController = null
+    }
+
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    private fun hideKeyboard() {
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(etSearchInput.windowToken, 0)
+    }
+
+    private fun gnssColor(q: GnssQuality): Int = when (q) {
+        GnssQuality.GOOD       -> ContextCompat.getColor(this, R.color.gnss_good)
+        GnssQuality.FAIR       -> ContextCompat.getColor(this, R.color.gnss_fair)
+        GnssQuality.POOR       -> ContextCompat.getColor(this, R.color.gnss_poor)
+        GnssQuality.DENIED     -> ContextCompat.getColor(this, R.color.gnss_denied)    // orange-amber, not red
+        GnssQuality.RECOVERING -> ContextCompat.getColor(this, R.color.gnss_recovering)
+    }
+
+    private fun gnssPillBg(q: GnssQuality): Int = when (q) {
+        GnssQuality.GOOD       -> R.drawable.pill_gnss_good
+        GnssQuality.FAIR       -> R.drawable.pill_gnss_fair
+        GnssQuality.POOR       -> R.drawable.pill_gnss_poor
+        GnssQuality.DENIED     -> R.drawable.pill_gnss_poor   // amber pill for DENIED (not red)
+        GnssQuality.RECOVERING -> R.drawable.pill_gnss_recovering
+    }
+
+    private fun mlColor(state: NavigationState): Int = ContextCompat.getColor(
+        this,
+        when {
+            state.mlInferenceActive -> R.color.ml_active
+            state.mlError != null -> R.color.nav_red
+            state.mlModelLoaded -> R.color.ml_ready
+            else -> R.color.text_tertiary
+        }
+    )
+
+    private fun maneuverIconRes(type: ManeuverType?): Int = when (type) {
+        ManeuverType.TURN_LEFT    -> R.drawable.ic_turn_left
+        ManeuverType.TURN_RIGHT   -> R.drawable.ic_turn_right
+        ManeuverType.SLIGHT_LEFT  -> R.drawable.ic_turn_left
+        ManeuverType.SLIGHT_RIGHT -> R.drawable.ic_turn_right
+        ManeuverType.SHARP_LEFT   -> R.drawable.ic_turn_left
+        ManeuverType.SHARP_RIGHT  -> R.drawable.ic_turn_right
+        ManeuverType.U_TURN       -> R.drawable.ic_u_turn
+        ManeuverType.ROUNDABOUT   -> R.drawable.ic_roundabout
+        ManeuverType.ARRIVE       -> R.drawable.ic_destination
+        ManeuverType.DEPART       -> R.drawable.ic_straight
+        else                      -> R.drawable.ic_straight
+    }
+}

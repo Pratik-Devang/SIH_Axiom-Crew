@@ -1,0 +1,26 @@
+{
+  "outage_start_s": 50.0,
+  "outage_duration_s": 45.0,
+  "distance_traveled_during_outage_m": 514.48,
+  "percorsa_max_drift_m": 1.64,
+  "percorsa_rmse_drift_m": 0.64,
+  "percorsa_mean_drift_m": 0.54,
+  "percorsa_endpoint_drift_m": 1.64,
+  "percorsa_drift_percentage": 0.32,
+  "baseline_last_fix_max_error_m": 427.95,
+  "error_reduction_pct": 99.6,
+  "metrics": {
+    "percorsa": {
+      "rmse_m": 0.6377349302001486,
+      "mae_m": 0.5448501999612808,
+      "max_error_m": 1.6375780810927376,
+      "endpoint_error_m": 1.6375780810927376
+    },
+    "last_fix": {
+      "rmse_m": 254.50916685297915,
+      "mae_m": 226.83553826908405,
+      "max_error_m": 427.9450315936133,
+      "endpoint_error_m": 427.9450315936133
+    }
+  }
+}

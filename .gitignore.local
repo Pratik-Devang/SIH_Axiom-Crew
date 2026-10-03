@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Raw and processed datasets
+data/raw/
+data/processed/
+
+# Temporary/output files
+*.log
