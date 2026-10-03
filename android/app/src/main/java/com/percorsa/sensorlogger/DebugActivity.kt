@@ -17,8 +17,18 @@ import kotlin.math.sqrt
 
 /**
  * Comprehensive Developer Mode Engineering Telemetry Screen.
- * Exposes internal sensor pipeline, timing, GNSS 1D KF, TCN buffer readiness,
- * and subsystem health status.
+ *
+ * Exposes 10 structured telemetry cards aligning with SIH specifications:
+ * 1. Pipeline Architecture & Subsystem Health
+ * 2. Seamless GNSS Deficit & Navigation Mode
+ * 3. AI Speed Estimate & Fusion Visibility (TCN → ESKF)
+ * 4. 15-State ESKF Estimator & Measurement Updates
+ * 5. In-Vehicle Alignment & Arbitrary Mounting
+ * 6. Map Matching & Vehicle Constraints
+ * 7. GNSS Telemetry & 1D Adaptive KF
+ * 8. Real-Time Pipeline Timing & Rates
+ * 9. Raw Sensor Readings (Phone Frame)
+ * 10. Data Logging & Calibration
  */
 class DebugActivity : AppCompatActivity() {
 
@@ -37,6 +47,7 @@ class DebugActivity : AppCompatActivity() {
     private lateinit var tvDbgGravity: TextView
     private lateinit var tvDbgLinearAccel: TextView
     private lateinit var tvDbgVehicleFrameAccel: TextView
+    private lateinit var tvDbgVehicleFrameGyro: TextView
     private lateinit var tvDbgFilterStatus: TextView
     private lateinit var tvDbgOrient: TextView
     private lateinit var tvDbgGpsStatus: TextView
@@ -51,6 +62,12 @@ class DebugActivity : AppCompatActivity() {
     private lateinit var tvDbgDrProvider: TextView
     private lateinit var tvDbgGnssQuality: TextView
     private lateinit var tvDbgAccuracy: TextView
+    private lateinit var tvDbgRouteTracking: TextView
+    private lateinit var tvDbgEskfState: TextView
+    private lateinit var tvDbgEskfVectors: TextView
+    private lateinit var tvDbgEskfCov: TextView
+    private lateinit var tvDbgEskfUpdates: TextView
+    private lateinit var tvDbgTcnMetrics: TextView
     private lateinit var tvDbgTripStatus: TextView
     private lateinit var tvDbgSampleCount: TextView
     private lateinit var tvDebugRecIndicator: TextView
@@ -82,6 +99,7 @@ class DebugActivity : AppCompatActivity() {
         tvDbgGravity           = findViewById(R.id.tvDbgGravity)
         tvDbgLinearAccel       = findViewById(R.id.tvDbgLinearAccel)
         tvDbgVehicleFrameAccel = findViewById(R.id.tvDbgVehicleFrameAccel)
+        tvDbgVehicleFrameGyro  = findViewById(R.id.tvDbgVehicleFrameGyro)
         tvDbgFilterStatus      = findViewById(R.id.tvDbgFilterStatus)
         tvDbgOrient            = findViewById(R.id.tvDbgOrient)
         tvDbgGpsStatus         = findViewById(R.id.tvDbgGpsStatus)
@@ -91,11 +109,17 @@ class DebugActivity : AppCompatActivity() {
         tvDbgGpsSpeed          = findViewById(R.id.tvDbgGpsSpeed)
         tvDbgTcnStatus         = findViewById(R.id.tvDbgTcnStatus)
         tvDbgTcnModel          = findViewById(R.id.tvDbgTcnModel)
+        tvDbgTcnMetrics        = findViewById(R.id.tvDbgTcnMetrics)
         tvDbgProcessedStream   = findViewById(R.id.tvDbgProcessedStream)
         tvDbgNavMode           = findViewById(R.id.tvDbgNavMode)
         tvDbgDrProvider        = findViewById(R.id.tvDbgDrProvider)
         tvDbgGnssQuality       = findViewById(R.id.tvDbgGnssQuality)
         tvDbgAccuracy          = findViewById(R.id.tvDbgAccuracy)
+        tvDbgRouteTracking     = findViewById(R.id.tvDbgRouteTracking)
+        tvDbgEskfState         = findViewById(R.id.tvDbgEskfState)
+        tvDbgEskfVectors       = findViewById(R.id.tvDbgEskfVectors)
+        tvDbgEskfCov           = findViewById(R.id.tvDbgEskfCov)
+        tvDbgEskfUpdates       = findViewById(R.id.tvDbgEskfUpdates)
         tvDbgTripStatus        = findViewById(R.id.tvDbgTripStatus)
         tvDbgSampleCount       = findViewById(R.id.tvDbgSampleCount)
         tvDebugRecIndicator    = findViewById(R.id.tvDebugRecIndicator)
@@ -117,7 +141,7 @@ class DebugActivity : AppCompatActivity() {
             val nc = MainActivity.navController ?: return@setOnClickListener
             if (nc.sensorEngine.isRecording) {
                 nc.stopRecording()
-                btnDebugRecord.text = "● Start Recording"
+                btnDebugRecord.text = "● Start Sensor Logging (CSV)"
                 btnDebugRecord.backgroundTintList =
                     android.content.res.ColorStateList.valueOf(0xFFDC2626.toInt())
                 btnDebugShare.isEnabled = lastRecordedFile?.exists() == true
@@ -126,7 +150,7 @@ class DebugActivity : AppCompatActivity() {
                 val recorder = CsvRecorder(this)
                 lastRecordedFile = recorder.file
                 nc.startRecording(recorder)
-                btnDebugRecord.text = "■ Stop Recording"
+                btnDebugRecord.text = "■ Stop Sensor Logging"
                 btnDebugRecord.backgroundTintList =
                     android.content.res.ColorStateList.valueOf(0xFF1E293B.toInt())
                 btnDebugShare.isEnabled = false
@@ -156,70 +180,182 @@ class DebugActivity : AppCompatActivity() {
         val nc = MainActivity.navController ?: return
         val snap = nc.sensorEngine.getSnapshot()
         val state = nc.state.value
-        val health = state.navigationHealth
+        val eskf = nc.eskfDiagnostics
 
-        // ── 1. Pipeline Flow Visualization ──────────────────────────────────
+        // ── 1. Pipeline Architecture & Subsystem Health ─────────────────────
         val tcnReadyBadge = if (snap.tcnBufferReady) {
             "[${snap.tcnBufferCapacity}/${snap.tcnBufferCapacity} READY]"
         } else {
             "[${snap.tcnBufferCount}/${snap.tcnBufferCapacity} WAITING]"
         }
-        tvDbgPipelineDiagram.text = "RAW SENSORS (200Hz) → GRAVITY/LINEAR → FILTERING → VEHICLE FRAME → 10Hz CANONICAL → TCN BUFFER $tcnReadyBadge\nRAW GNSS → 1D ADAPTIVE KF → FILTERED GNSS → NAV STATE"
+        tvDbgPipelineDiagram.text = "IMU (200Hz) → VEHICLE FRAME → 10Hz CANONICAL → TCN BUFFER $tcnReadyBadge → 15-STATE ESKF\nGNSS FIX → 1D ADAPTIVE KF → NIS GATING → ESKF HYBRID FUSION"
 
-        // ── 2. Live Subsystem Health ─────────────────────────────────────────
         val imuStatusStr = if (snap.imuHz > 10) "ACTIVE (%.0f Hz)".format(Locale.US, snap.imuHz) else "STALE"
         val gpsAgeStr = if (snap.gpsFixAgeMs >= 0) "${snap.gpsFixAgeMs} ms ago" else "No fix yet"
-        tvDbgHealthSummary.text = "IMU Stream: $imuStatusStr | GNSS Fix: $gpsAgeStr"
-        tvDbgHealthDetails.text = "Accel: ${if (snap.hasAccel) "ACTIVE" else "STALE"} | Gyro: ${if (snap.hasGyro) "ACTIVE" else "STALE"} | RotVec: ${if (snap.hasRotVector) "ACTIVE" else "STALE"} | Grav: ${if (snap.hasGravity) "ACTIVE" else "STALE"} | Mag: ${if (snap.hasMag) "ACTIVE" else "STALE"} | GNSS: ${if (snap.hasGps) "ACTIVE" else "STALE"}"
+        tvDbgHealthSummary.text = "IMU Stream: $imuStatusStr · GNSS Fix: $gpsAgeStr"
+        tvDbgHealthSummary.setTextColor(if (snap.imuHz > 10 && snap.hasGps) 0xFF34D399.toInt() else 0xFFF59E0B.toInt())
+        tvDbgHealthDetails.text = "Accel: %s  |  Gyro: %s  |  RotVec: %s\nGravity: %s  |  Mag: %s  |  GNSS: %s".format(
+            if (snap.hasAccel) "ACTIVE" else "STALE",
+            if (snap.hasGyro) "ACTIVE" else "STALE",
+            if (snap.hasRotVector) "ACTIVE" else "STALE",
+            if (snap.hasGravity) "ACTIVE" else "STALE",
+            if (snap.hasMag) "ACTIVE" else "STALE",
+            if (snap.hasGps) "ACTIVE" else "STALE"
+        )
 
-        // ── 3. Sensor Timing & Delivery Rates ───────────────────────────────
-        tvDbgImuHz.text = "Requested: 200 Hz | Actual IMU Rate: %.1f Hz (Raw Callbacks: %.1f Hz)".format(Locale.US, snap.imuHz, snap.rawCallbackHz)
-        tvDbgTimingStats.text = "Req dt: 5.00 ms | Avg dt: %.2f ms | Min dt: %.2f ms | Max dt: %.2f ms | Jitter: %.2f ms".format(
-            Locale.US, snap.avgDtMs, snap.minDtMs, snap.maxDtMs, snap.dtJitterMs)
+        // ── 2. Seamless GNSS Deficit & Navigation Mode ───────────────────────
+        val modeColor = when (state.navMode) {
+            NavMode.NAVIGATING -> 0xFF3DD6F5.toInt()
+            NavMode.GNSS_DEGRADED, NavMode.GNSS_DENIED -> 0xFFF59E0B.toInt()
+            NavMode.ERROR -> 0xFFEF4444.toInt()
+            else -> 0xFFE2E8F0.toInt()
+        }
+        val modeLabel = when {
+            state.drActive -> "DEAD RECKONING (Active DR)"
+            state.gnssQuality == GnssQuality.RECOVERING -> "GNSS RECOVERING (Blending)"
+            state.navMode == NavMode.GNSS_DEGRADED -> "DEGRADED (Weak GNSS)"
+            state.navMode == NavMode.NAVIGATING -> "GNSS (Doppler Fix)"
+            else -> state.navMode.name
+        }
+        tvDbgNavMode.text = modeLabel
+        tvDbgNavMode.setTextColor(modeColor)
 
-        // ── 4. Raw Sensor Readings ──────────────────────────────────────────
-        tvDbgAccel.text = "X: %+.3f  Y: %+.3f  Z: %+.3f  (Mag: %.2f m/s²)".format(
-            Locale.US, snap.accelX, snap.accelY, snap.accelZ, snap.accelMag)
+        tvDbgDrProvider.text = "PERCORSA_ESKF (15-State Error-State KF)"
+        
+        val deficitDesc = when {
+            state.drActive -> "DEFICIT: DR ACTIVE (ESKF + TCN Speed)"
+            state.gnssQuality == GnssQuality.RECOVERING -> "RECOVERY: Smoothing GNSS Re-entry"
+            state.gnssQuality == GnssQuality.POOR -> "DEGRADED: Low Sat / High DOP"
+            snap.hasGps -> "GNSS AVAILABLE · Doppler Speed Trusted"
+            else -> "STANDBY · Awaiting Fix"
+        }
+        tvDbgGnssQuality.text = deficitDesc
 
-        tvDbgGyro.text = "X: %+.3f  Y: %+.3f  Z: %+.3f  (Mag: %.2f rad/s)".format(
-            Locale.US, snap.gyroX, snap.gyroY, snap.gyroZ, snap.gyroMag)
+        val accStr = if (state.positionAccuracy < Float.MAX_VALUE && state.positionAccuracy.isFinite()) {
+            "± %.1f m (%s)".format(Locale.US, state.positionAccuracy, state.speedSource.name)
+        } else {
+            "-- m (Unavailable)"
+        }
+        tvDbgAccuracy.text = accStr
 
+        // ── 3. AI Speed Estimate & Fusion Visibility ─────────────────────────
+        val bufferReadyStr = if (snap.tcnBufferReady) {
+            "${snap.tcnBufferCapacity}/${snap.tcnBufferCapacity} READY"
+        } else {
+            "${snap.tcnBufferCount}/${snap.tcnBufferCapacity} WAITING"
+        }
+        tvDbgTcnStatus.text = "TCN Input Buffer: $bufferReadyStr (%.1fs @ %d Hz canonical stream)".format(
+            Locale.US, snap.tcnWindowSeconds, TcnInputBuffer.SAMPLE_RATE_HZ
+        )
+        tvDbgTcnStatus.setTextColor(if (snap.tcnInferenceActive) 0xFF34D399.toInt() else 0xFFF59E0B.toInt())
+        tvDbgTcnModel.text = when {
+            snap.tcnInferenceActive -> "Model: ACTIVE · Raw: %.2f m/s · Filtered: %.2f m/s (%.1f km/h)".format(
+                Locale.US,
+                snap.tcnRawSpeedMps,
+                snap.tcnPredictedSpeedMps,
+                snap.tcnPredictedSpeedMps * 3.6f
+            )
+            snap.tcnInferenceError != null -> "Model: ERROR · ${snap.tcnInferenceError}"
+            snap.tcnInferenceInFlight -> "Model: INFERENCE IN FLIGHT"
+            snap.tcnModelLoaded && snap.tcnBufferReady -> "Model: LOADED · Awaiting first inference"
+            !snap.tcnModelLoaded -> "Model: LOADING ONNX MODEL"
+            else -> "Model: WARMING UP · Collecting 5-second buffer"
+        }
+        tvDbgTcnMetrics.text = "Inference: %.2f ms · Fix Age: %d ms · Rate Limited: %s · Rejected: %d".format(
+            Locale.US,
+            snap.tcnInferenceLatencyMs,
+            snap.tcnInferenceAgeMs,
+            if (snap.tcnPredictionRateLimited) "YES" else "NO",
+            snap.tcnRejectedPredictionCount
+        )
+
+        val lastCan = snap.lastCanonicalSample
+        if (lastCan != null) {
+            tvDbgProcessedStream.text = "10Hz Canonical: ax=%+.2f ay=%+.2f az=%+.2f gx=%+.2f gy=%+.2f gz=%+.2f\nFeature order: 1.accel_x 2.accel_y 3.accel_z 4.gyro_x 5.gyro_y 6.gyro_z".format(
+                Locale.US, lastCan.accelX, lastCan.accelY, lastCan.accelZ, lastCan.gyroX, lastCan.gyroY, lastCan.gyroZ
+            )
+        } else {
+            tvDbgProcessedStream.text = "Pipeline: RAW → GRAVITY → LINEAR → VEHICLE FRAME → 10 Hz CANONICAL"
+        }
+
+        // ── 4. 15-State ESKF Estimator Diagnostics & Fusion Updates ─────────
+        val posStr = if (eskf.positionLatitude.isFinite() && eskf.positionLongitude.isFinite()) {
+            "%.5f, %.5f".format(Locale.US, eskf.positionLatitude, eskf.positionLongitude)
+        } else {
+            "--, --"
+        }
+        tvDbgEskfState.text = "State: %s · Calibrated: %s · Pos: %s".format(
+            eskf.runtimeState, if (eskf.calibrationActive) "YES" else "NO", posStr
+        )
+        tvDbgEskfVectors.text = "Vel ENU: (%+.2f, %+.2f, %+.2f) · Speed: %.2f m/s · Hdg: %.1f° · dt: %.3fs".format(
+            Locale.US,
+            eskf.velocityWorldEnu.getOrElse(0) { 0.0 },
+            eskf.velocityWorldEnu.getOrElse(1) { 0.0 },
+            eskf.velocityWorldEnu.getOrElse(2) { 0.0 },
+            if (eskf.speedMps.isFinite()) eskf.speedMps else 0.0,
+            if (eskf.headingDeg.isFinite()) eskf.headingDeg else 0.0,
+            eskf.lastDtSeconds
+        )
+        tvDbgEskfCov.text = "Cov Trace: %.3g · Quat Norm: %.6f · Status: %s".format(
+            Locale.US,
+            if (eskf.covarianceTrace.isFinite()) eskf.covarianceTrace else 0.0,
+            if (eskf.quaternionNorm.isFinite()) eskf.quaternionNorm else 1.0,
+            if (eskf.isHealthy) "HEALTHY" else (eskf.degradationReason ?: "DEGRADED")
+        )
+
+        val gnssUpdateStr = when (eskf.lastGnssAccepted) {
+            true -> "ACC (NIS %.2f, Innov %.1fm)".format(Locale.US, eskf.lastGnssNis, eskf.lastGnssInnovationMagnitudeM)
+            false -> "REJ (%s)".format(eskf.lastGnssRejectionReason ?: "NIS")
+            null -> "STANDBY"
+        }
+        val tcnUpdateStr = when (eskf.lastTcnAccepted) {
+            true -> "ACC (NIS %.2f)".format(Locale.US, eskf.lastTcnNis)
+            false -> "REJ (%s)".format(eskf.lastTcnRejectionReason ?: "NIS")
+            null -> "STANDBY"
+        }
+        val nhcStr = "acc=%s (NIS %.2f)".format(eskf.lastNhcAccepted ?: false, if (eskf.lastNhcNis.isFinite()) eskf.lastNhcNis else 0.0)
+        val zuptStr = "acc=%s (NIS %.2f)".format(eskf.lastZuptAccepted ?: false, if (eskf.lastZuptNis.isFinite()) eskf.lastZuptNis else 0.0)
+        tvDbgEskfUpdates.text = "GNSS: %s · TCN: %s\nNHC: %s · ZUPT: %s".format(gnssUpdateStr, tcnUpdateStr, nhcStr, zuptStr)
+
+        // ── 5. In-Vehicle Alignment & Arbitrary Mounting ─────────────────────
         val q0 = snap.quatW.toDouble(); val q1 = snap.quatX.toDouble()
         val q2 = snap.quatY.toDouble(); val q3 = snap.quatZ.toDouble()
-        val quatNorm = snap.quatNorm
-        val quatValidStr = if (quatNorm in 0.95f..1.05f) "VALID" else "WARNING"
-        tvDbgQuat.text = "W: %+.3f  X: %+.3f  Y: %+.3f  Z: %+.3f (Norm: %.3f • %s)".format(
-            Locale.US, snap.quatW, snap.quatX, snap.quatY, snap.quatZ, quatNorm, quatValidStr)
-
-        val mx = snap.magX.toDouble()
-        val my = snap.magY.toDouble()
-        val mz = snap.magZ.toDouble()
-        val magMag = sqrt(mx * mx + my * my + mz * mz).toFloat()
-        tvDbgMag.text = "X: %+.1f  Y: %+.1f  Z: %+.1f µT (Mag: %.1f µT)".format(
-            Locale.US, snap.magX, snap.magY, snap.magZ, magMag)
-
-        // ── 5. Android-Derived Data ─────────────────────────────────────────
-        val gravMag = snap.gravityMag
-        val gravValidStr = if (gravMag in 9.3f..10.3f) "NORMAL" else "WARNING"
-        tvDbgGravity.text = "X: %+.2f  Y: %+.2f  Z: %+.2f (Mag: %.2f m/s² • %s)".format(
-            Locale.US, snap.gravityX, snap.gravityY, snap.gravityZ, gravMag, gravValidStr)
-
-        tvDbgLinearAccel.text = "X: %+.2f  Y: %+.2f  Z: %+.2f m/s² (Mag: %.2f m/s²)".format(
-            Locale.US, snap.linearAccelX, snap.linearAccelY, snap.linearAccelZ, snap.linearAccelMag)
-
-        // ── 6. Vehicle-Frame & Filtered Data ────────────────────────────────
-        tvDbgVehicleFrameAccel.text = "Fwd: %+.3f  Left: %+.3f  Up: %+.3f m/s² (Mag: %.2f)".format(
-            Locale.US, snap.correctedLinearForward, snap.correctedLinearLeft, snap.correctedLinearUp, snap.correctedLinearMag)
-
-        tvDbgFilterStatus.text = "Filter: Accel Deadband (<0.6m/s²) + Gyro Tremor Filter | Status: ACTIVE (Calibrated: %s)".format(
-            if (snap.isCalibrated) "YES" else "NO")
-
         val pitch = Math.toDegrees(Math.asin((2.0 * (q0 * q2 - q3 * q1)).coerceIn(-1.0, 1.0)))
         val roll  = Math.toDegrees(Math.atan2(2.0 * (q0 * q1 + q2 * q3), 1.0 - 2.0 * (q1 * q1 + q2 * q2)))
         val yaw   = Math.toDegrees(Math.atan2(2.0 * (q0 * q3 + q1 * q2), 1.0 - 2.0 * (q2 * q2 + q3 * q3)))
-        tvDbgOrient.text = "P: %+.0f°  R: %+.0f°  Y: %+.0f°  (Source: ROTATION VECTOR)".format(Locale.US, pitch, roll, yaw)
+        tvDbgOrient.text = "P %+.0f° R %+.0f° Y %+.0f° · %s (Arbitrary Mount)".format(
+            Locale.US, pitch, roll, yaw, snap.rotationSource.name
+        )
 
-        // ── 7. GNSS Telemetry & 1D Kalman Filter ────────────────────────────
+        tvDbgVehicleFrameAccel.text = "Fwd: %+.3f  Left: %+.3f  Up: %+.3f m/s² (Mag: %.2f)".format(
+            Locale.US, snap.correctedLinearForward, snap.correctedLinearLeft, snap.correctedLinearUp, snap.correctedLinearMag)
+        tvDbgVehicleFrameGyro.text = "Fwd: %+.3f  Left: %+.3f  Up: %+.3f rad/s (Mag: %.2f)".format(
+            Locale.US, snap.correctedGyroForward, snap.correctedGyroLeft, snap.correctedGyroUp, snap.correctedGyroMag)
+
+        tvDbgFilterStatus.text = if (snap.isCalibrated) {
+            "CALIBRATED · Gravity + Forward Acceleration Aligned"
+        } else {
+            "UNCALIBRATED · Auto-Estimating from Gravity Vector"
+        }
+
+        // ── 6. Map Matching & Vehicle Constraints ───────────────────────────
+        if (state.route != null) {
+            tvDbgRouteTracking.text = "Map Match: ACTIVE (Seg #%d, Progress: %.1fm)\nCross-Track: %.1fm · Hdg Error: %.1f° · Turn: %s (%.1f°/s)".format(
+                Locale.US,
+                state.routeSegmentIndex,
+                state.routeProgressM,
+                if (state.routeLateralErrorM.isFinite()) state.routeLateralErrorM else 0.0,
+                if (state.routeHeadingErrorDeg.isFinite()) state.routeHeadingErrorDeg else 0.0,
+                state.turnState.name,
+                if (state.turnYawRateDegS.isFinite()) state.turnYawRateDegS else 0f
+            )
+        } else {
+            tvDbgRouteTracking.text = "Map Match: IDLE (No active route)\nConstraints: NHC=%s · ZUPT=%s · MotionObserved=%s".format(
+                eskf.nhcEnabled, eskf.zuptEnabled, eskf.vehicleMotionObserved
+            )
+        }
+
+        // ── 7. GNSS Telemetry & 1D Adaptive Kalman Filter ───────────────────
         val hasGps = snap.hasGps && snap.latitude != 0.0
         val (gpsLabel, gpsColor) = when (state.gnssQuality) {
             GnssQuality.GOOD       -> "● GPS EXCELLENT" to 0xFF34D399.toInt()
@@ -245,100 +381,48 @@ class DebugActivity : AppCompatActivity() {
             tvDbgGpsSpeed.text   = "Speed: --"
         }
 
-        // ── 8. Canonical 10 Hz Stream & TCN Buffer ───────────────────────────
-        val bufferReadyStr = if (snap.tcnBufferReady) {
-            "${snap.tcnBufferCapacity}/${snap.tcnBufferCapacity} READY"
-        } else {
-            "${snap.tcnBufferCount}/${snap.tcnBufferCapacity} WAITING"
-        }
-        tvDbgTcnStatus.text = "TCN Input Buffer: $bufferReadyStr (%.1fs @ %d Hz canonical stream)".format(
-            Locale.US, snap.tcnWindowSeconds, TcnInputBuffer.SAMPLE_RATE_HZ
+        // ── 8. Real-Time Pipeline Timing & Rates ────────────────────────────
+        tvDbgImuHz.text = "IMU Rate: %.1f Hz (Callbacks: %.1f Hz) · 10 Hz Canonical Resampled".format(
+            Locale.US, snap.imuHz, snap.rawCallbackHz
         )
-        tvDbgTcnStatus.setTextColor(if (snap.tcnInferenceActive) 0xFF34D399.toInt() else 0xFFF59E0B.toInt())
-        tvDbgTcnModel.text = when {
-            snap.tcnInferenceActive -> "Model Status: ACTIVE | Raw: %.2f m/s | Filtered: %.2f m/s (%.1f km/h) | Age: %d ms | Inference: %.2f ms | Rate limited: %s | Rejected: %d".format(
-                Locale.US,
-                snap.tcnRawSpeedMps,
-                snap.tcnPredictedSpeedMps,
-                snap.tcnPredictedSpeedMps * 3.6f,
-                snap.tcnInferenceAgeMs,
-                snap.tcnInferenceLatencyMs,
-                if (snap.tcnPredictionRateLimited) "YES" else "NO",
-                snap.tcnRejectedPredictionCount
-            )
-            snap.tcnInferenceError != null -> "Model Status: ERROR | ${snap.tcnInferenceError}"
-            snap.tcnInferenceInFlight -> "Model Status: RUNNING FIRST INFERENCE"
-            snap.tcnModelLoaded && snap.tcnBufferReady -> "Model Status: LOADED | Waiting for first inference"
-            !snap.tcnModelLoaded -> "Model Status: LOADING ONNX MODEL"
-            else -> "Model Status: WARMING UP | Collecting 5-second IMU window"
-        }
-        val lastCan = snap.lastCanonicalSample
-        if (lastCan != null) {
-            tvDbgProcessedStream.text = "10Hz Canonical: ax=%+.2f ay=%+.2f az=%+.2f gx=%+.2f gy=%+.2f gz=%+.2f\nFeature order: 1.accel_x 2.accel_y 3.accel_z 4.gyro_x 5.gyro_y 6.gyro_z".format(
-                Locale.US, lastCan.accelX, lastCan.accelY, lastCan.accelZ, lastCan.gyroX, lastCan.gyroY, lastCan.gyroZ
-            )
-        } else {
-            tvDbgProcessedStream.text = "Pipeline: RAW → GRAVITY → LINEAR → VEHICLE FRAME → 10 Hz CANONICAL"
-        }
+        tvDbgTimingStats.text = "Req dt: 5.00 ms | Avg dt: %.2f ms | Min: %.2f ms | Max: %.2f ms | Jitter: %.2f ms".format(
+            Locale.US, snap.avgDtMs, snap.minDtMs, snap.maxDtMs, snap.dtJitterMs
+        )
 
-        // ── 9. Navigation Engine & Future Fusion Status ──────────────────────
-        tvDbgNavMode.text = "Nav Mode: ${state.navMode}"
-        val eskf = nc.eskfDiagnostics
-        val activeProviderText = "ACTIVE ESTIMATOR: ESKF | status=${eskf.runtimeState} | initialized=${eskf.initialized} | valid=${eskf.valid}"
-        tvDbgDrProvider.text = activeProviderText
-        tvDbgGnssQuality.text = "GNSS Filter: 1D Adaptive Lat/Lon KF | ESKF: ACTIVE | status=${eskf.runtimeState} | Vehicle motion: ${eskf.vehicleMotionObserved} (trusted GNSS >=4.0 m/s, accuracy <=15 m) | TCN: ${if (snap.tcnInferenceActive) "ACTIVE %.2f m/s".format(Locale.US, snap.tcnPredictedSpeedMps) else "INACTIVE"} | ESKF TCN injected: ${if (eskf.lastTcnInjected) "YES" else "NO"} | ESKF TCN accepted: ${eskf.lastTcnAccepted} | DR/ESKF: %.2f m/s".format(
-            Locale.US, eskf.speedMps
-        )
-        tvDbgDrProvider.text = activeProviderText + "\nROUTE: segment=%d progress=%.1fm lateral=%.1fm headingError=%.1f° turn=%s yaw=%.1f°/s offRoute=%s rerouting=%s\nACTIVE ESKF: calibration=%s pos=%s vel=(%.2f, %.2f, %.2f) speed=%.2f m/s heading=%.1f° dt=%.3fs covTrace=%.3g qNorm=%.6f GNSS=%s/NIS %.2f/Innovation %.1fm/t=%.2fs TCN=%s/NIS %.2f/t=%.2fs NHC=%s ZUPT=%s reason=%s".format(
-            Locale.US,
-            state.routeSegmentIndex,
-            state.routeProgressM,
-            state.routeLateralErrorM,
-            state.routeHeadingErrorDeg,
-            state.turnState,
-            state.turnYawRateDegS,
-            state.offRoute,
-            state.recalculating,
-            eskf.calibrationActive,
-            if (!eskf.positionLatitude.isFinite() || !eskf.positionLongitude.isFinite()) "--" else "%.5f,%.5f".format(Locale.US, eskf.positionLatitude, eskf.positionLongitude),
-            eskf.velocityWorldEnu[0], eskf.velocityWorldEnu[1], eskf.velocityWorldEnu[2],
-            eskf.speedMps,
-            eskf.headingDeg,
-            eskf.lastDtSeconds,
-            eskf.covarianceTrace,
-            eskf.quaternionNorm,
-            eskf.lastGnssAccepted,
-            eskf.lastGnssNis,
-            eskf.lastGnssInnovationMagnitudeM,
-            eskf.lastGnssTimestampSeconds,
-            eskf.lastTcnAccepted,
-            eskf.lastTcnNis,
-            eskf.lastTcnTimestampSeconds,
-            "accepted=%s/enabled=%s/NIS=%.2f".format(Locale.US, eskf.lastNhcAccepted, eskf.nhcEnabled, eskf.lastNhcNis),
-            "accepted=%s/enabled=%s/NIS=%.2f".format(Locale.US, eskf.lastZuptAccepted, eskf.zuptEnabled, eskf.lastZuptNis),
-            eskf.degradationReason ?: "none"
-        )
-        tvDbgAccuracy.text = if (state.positionAccuracy < Float.MAX_VALUE)
-            "Position Accuracy: %.0f m | Position Source: RAW GNSS / KF GNSS".format(Locale.US, state.positionAccuracy)
-        else "Position Accuracy: -- | Position Source: RAW GNSS / KF GNSS"
+        // ── 9. Raw Sensor Readings (Phone Frame) ────────────────────────────
+        tvDbgAccel.text = "Accel: X %+.3f  Y %+.3f  Z %+.3f (Mag: %.2f m/s²)".format(
+            Locale.US, snap.accelX, snap.accelY, snap.accelZ, snap.accelMag)
 
-        // ── 10. Recording ───────────────────────────────────────────────────
+        tvDbgGyro.text = "Gyro:  X %+.3f  Y %+.3f  Z %+.3f (Mag: %.2f rad/s)".format(
+            Locale.US, snap.gyroX, snap.gyroY, snap.gyroZ, snap.gyroMag)
+
+        val quatNorm = snap.quatNorm
+        val quatValidStr = if (quatNorm in 0.95f..1.05f) "VALID" else "WARNING"
+        tvDbgQuat.text = "Quat:  W %+.3f  X %+.3f  Y %+.3f  Z %+.3f (Norm: %.3f • %s)".format(
+            Locale.US, snap.quatW, snap.quatX, snap.quatY, snap.quatZ, quatNorm, quatValidStr)
+
+        val mx = snap.magX.toDouble()
+        val my = snap.magY.toDouble()
+        val mz = snap.magZ.toDouble()
+        val magMag = sqrt(mx * mx + my * my + mz * mz).toFloat()
+        tvDbgMag.text = "Mag:   X %+.1f  Y %+.1f  Z %+.1f µT (Mag: %.1f µT)".format(
+            Locale.US, snap.magX, snap.magY, snap.magZ, magMag)
+
+        val gravMag = snap.gravityMag
+        val gravValidStr = if (gravMag in 9.3f..10.3f) "NORMAL" else "WARNING"
+        tvDbgGravity.text = "Grav:  X %+.2f  Y %+.2f  Z %+.2f (Mag: %.2f m/s² • %s)".format(
+            Locale.US, snap.gravityX, snap.gravityY, snap.gravityZ, gravMag, gravValidStr)
+
+        tvDbgLinearAccel.text = "Linear: X %+.2f  Y %+.2f  Z %+.2f m/s² (Mag: %.2f m/s²)".format(
+            Locale.US, snap.linearAccelX, snap.linearAccelY, snap.linearAccelZ, snap.linearAccelMag)
+
+        // ── 10. Data Logging & Calibration ──────────────────────────────────
         val recording = nc.sensorEngine.isRecording
         tvDebugRecIndicator.text = if (recording) "● REC" else "● IDLE"
         tvDebugRecIndicator.setTextColor(if (recording) 0xFFEF4444.toInt() else 0xFF64748B.toInt())
         tvDbgTripStatus.text = if (recording) "● RECORDING" else "● IDLE"
         tvDbgTripStatus.setTextColor(if (recording) 0xFFEF4444.toInt() else 0xFF64748B.toInt())
-        tvDbgSampleCount.text = "${snap.loggedCsvRows} logged"
-    }
-
-    private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
-        val radius = 6_371_000.0
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = kotlin.math.sin(dLat / 2).let { it * it } +
-                kotlin.math.cos(Math.toRadians(lat1)) * kotlin.math.cos(Math.toRadians(lat2)) *
-                kotlin.math.sin(dLon / 2).let { it * it }
-        return (radius * 2.0 * kotlin.math.asin(sqrt(a))).toFloat()
+        tvDbgSampleCount.text = "${snap.loggedCsvRows} samples logged"
     }
 
     private fun shareLastCsv() {

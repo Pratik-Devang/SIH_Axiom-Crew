@@ -26,15 +26,21 @@ interface DeadReckoningProvider {
      * Feed a new sensor snapshot into the DR engine.
      *
      * Called at every sensor update cycle (~100ms from the UI handler).
-     * The implementation must:
-     * - Use [snapshot].correctedLinear* (vehicle-frame linear acceleration) for forward integration
-     * - Use [snapshot].quatW/X/Y/Z (rotation vector) for heading
-     * - Optionally apply ZUPT (zero-velocity update) if detecting stationary state
      *
      * @param snapshot  Latest sensor snapshot from [SensorEngine]
      * @param dtSeconds Time delta since last call, in seconds
      */
     fun update(snapshot: SensorSnapshot, dtSeconds: Double)
+
+    /**
+     * Feed a canonical IMU sample into the DR engine.
+     *
+     * Enables driving the estimation engine with external IMU feeds or simulated streams.
+     *
+     * @param canonicalSample Canonical 6-DOF IMU frame
+     * @param dtSeconds Time delta since last call, in seconds
+     */
+    fun update(canonicalSample: CanonicalImuSample, dtSeconds: Double) {}
 
     /** Inject a trusted TCN forward-speed estimate when GNSS is unavailable. */
     fun injectSpeedEstimate(speedMps: Float, timestampNs: Long = 0L)

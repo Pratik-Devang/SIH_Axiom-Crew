@@ -1,0 +1,2161 @@
+{
+  "verdict": "B",
+  "verdict_text": "Prototype methodology is implementable, but synchronization and frame quality are not yet sufficient to authorize corpus regeneration.",
+  "scope": {
+    "sample_trips": [
+      "S1",
+      "S2",
+      "S3a",
+      "S3b",
+      "S4",
+      "M",
+      "Vfa01",
+      "Vfa02"
+    ],
+    "train_validation_only": true,
+    "locked_test_excluded": [
+      "Vta1a",
+      "Vta1b",
+      "Y1"
+    ],
+    "locked_test_opened": false,
+    "target_used_in_alignment": false
+  },
+  "alignment_method": {
+    "clock": "bounded 0.1 s grid cross-correlation of norm(phone accelerometer - phone gravity) against norm(vehicle indicated longitudinal/lateral acceleration)",
+    "rotation": "gravity-anchored proper rotation solved by weighted Kabsch using phone gravity and vehicle longitudinal/lateral acceleration vectors",
+    "target_independent_signals": [
+      "phone accelerometer",
+      "phone gravity",
+      "phone gyro retained for validation",
+      "vehicle indicated longitudinal acceleration",
+      "vehicle indicated lateral acceleration",
+      "vehicle yaw rate retained for validation"
+    ],
+    "not_used_for_optimization": [
+      "Indicated Vehicle Speed",
+      "GPS speed",
+      "wheel speed",
+      "future target values"
+    ]
+  },
+  "coordinate_conventions": {
+    "phone": "source Android sensor axes; Variant A gyro names are retained as yaw/pitch/roll but their physical axis mapping remains a limitation",
+    "vehicle": "+Forward, +Left, +Up",
+    "rotation": "vehicle = R_vehicle_from_phone @ phone",
+    "gravity": "positive +g source gravity vector constrains vehicle +Up",
+    "training_order_after_transform": [
+      "forward_accel",
+      "lateral_accel",
+      "up_accel",
+      "gyro_forward",
+      "gyro_left",
+      "gyro_up"
+    ]
+  },
+  "results": {
+    "S1": {
+      "source_files": {
+        "smartphone": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S1\\S-S1.csv",
+        "vehicle": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S1\\V-S1.csv"
+      },
+      "phone_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 51746,
+          "rows": 51746,
+          "start_s": 2.922,
+          "end_s": 5177.421,
+          "duration_s": 5174.499000000001
+        }
+      ],
+      "vehicle_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 51746,
+          "rows": 51746,
+          "start_s": 32869.0,
+          "end_s": 38043.5,
+          "duration_s": 5174.5
+        }
+      ],
+      "segment_attempts": [
+        {
+          "phone_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 51746,
+            "rows": 51746,
+            "start_s": 2.922,
+            "end_s": 5177.421,
+            "duration_s": 5174.499000000001
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 51746,
+            "rows": 51746,
+            "start_s": 32869.0,
+            "end_s": 38043.5,
+            "duration_s": 5174.5
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": -0.29999999999957794,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.4234576545308255,
+            "correlation_after": 0.47399919652565514,
+            "rmse_before_mps2": 0.9797400028908753,
+            "rmse_after_mps2": 0.9491371818315273,
+            "half_window_lag_change_s": 0.0,
+            "drift_assessment": "constant offset adequate for this diagnostic window"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                0.7146918259532706,
+                -0.6994392574354885,
+                -0.0005648660667861404
+              ],
+              [
+                0.6994369918134583,
+                0.7146912013376374,
+                -0.0020931348515508628
+              ],
+              [
+                0.0018677254941473988,
+                0.0011008581464912064,
+                0.9999976498536488
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              44.38194901259151,
+              -0.10701285032093838,
+              0.06307464839132676
+            ],
+            "gravity_phone_unit": [
+              -6.628189176539403e-06,
+              9.030592244229954e-06,
+              0.9999999999372576
+            ],
+            "samples": 51742,
+            "confidence": 0.6889128257173593,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.0249384272847937,
+              "lateral_rmse": 1.0601389444751175,
+              "up_rmse": 0.511969700915213,
+              "forward_median_abs": 0.5976857578287949,
+              "lateral_median_abs": 0.5873111659628562,
+              "up_median_abs": 0.22103380619771473,
+              "forward_corr": 0.39743021974496623,
+              "lateral_corr": 0.35822108312447104
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": 0.39743021974496623,
+              "rmse_mps2": 1.0249384272847937,
+              "median_abs_error_mps2": 0.5976857578287949
+            },
+            "acceleration_lateral": {
+              "correlation": 0.35822108312447104,
+              "rmse_mps2": 1.0601389444751175,
+              "median_abs_error_mps2": 0.587311165962856
+            },
+            "gravity_up": {
+              "median_mps2": 9.806565451609583,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": -0.31780185661332955,
+              "rmse_rad_s": 0.15854416193975024,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 5174.1
+          }
+        }
+      ],
+      "label_qa": {
+        "primary": "Indicated Vehicle Speed (km/hr)",
+        "independent_reference": "Velocity (km/hr) from vehicle GPS/VBOX",
+        "count": 51746,
+        "bias_kmh": 0.2806125257836352,
+        "mae_kmh": 0.42200119649054985,
+        "rmse_kmh": 1.3337659266350295,
+        "correlation": 0.9967912960675799,
+        "outlier_over_10_kmh": 108,
+        "wheel_speed_status": "not converted: wheel radius/odometry calibration metadata is absent",
+        "target_replacement": "not automatic"
+      }
+    },
+    "S2": {
+      "source_files": {
+        "smartphone": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S2\\S-S2.csv",
+        "vehicle": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S2\\V-S2.csv"
+      },
+      "phone_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 1864,
+          "rows": 1864,
+          "start_s": 0.011,
+          "end_s": 186.311,
+          "duration_s": 186.3
+        },
+        {
+          "start_index": 1865,
+          "end_index_exclusive": 93876,
+          "rows": 92011,
+          "start_s": 0.11,
+          "end_s": 9201.11,
+          "duration_s": 9201.0
+        }
+      ],
+      "vehicle_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 93876,
+          "rows": 93876,
+          "start_s": 39824.4,
+          "end_s": 49211.9,
+          "duration_s": 9387.5
+        }
+      ],
+      "segment_attempts": [
+        {
+          "phone_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 1864,
+            "rows": 1864,
+            "start_s": 0.011,
+            "end_s": 186.311,
+            "duration_s": 186.3
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 93876,
+            "rows": 93876,
+            "start_s": 39824.4,
+            "end_s": 49211.9,
+            "duration_s": 9387.5
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": -7.599999999999682,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.19691644664741798,
+            "correlation_after": 0.5508604450513741,
+            "rmse_before_mps2": 1.5346770764393405,
+            "rmse_after_mps2": 1.282857180009949,
+            "half_window_lag_change_s": 0.0,
+            "drift_assessment": "constant offset adequate for this diagnostic window"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                -0.7250392126308756,
+                0.6887075820024974,
+                -8.148542447034017e-05
+              ],
+              [
+                -0.688707548505503,
+                -0.7250391277494823,
+                0.0004193611955148971
+              ],
+              [
+                0.00022973711386649508,
+                0.000360172937930041,
+                0.9999999087481527
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              -136.47211155039986,
+              -0.013162967137854942,
+              0.020636390228978615
+            ],
+            "gravity_phone_unit": [
+              1.0197214115849134e-05,
+              -3.0591642347091884e-05,
+              0.9999999994800842
+            ],
+            "samples": 1788,
+            "confidence": 0.578858462808794,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.1215800686728696,
+              "lateral_rmse": 1.179512461198746,
+              "up_rmse": 0.996768193702965,
+              "forward_median_abs": 0.4839064274997531,
+              "lateral_median_abs": 0.4727579402574901,
+              "up_median_abs": 0.08446921672419663,
+              "forward_corr": 0.1749099848285326,
+              "lateral_corr": 0.14052386640664358
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": 0.17490998482853254,
+              "rmse_mps2": 1.1215800686728696,
+              "median_abs_error_mps2": 0.48390642749975316
+            },
+            "acceleration_lateral": {
+              "correlation": 0.14052386640664358,
+              "rmse_mps2": 1.1795124611987462,
+              "median_abs_error_mps2": 0.4727579402574901
+            },
+            "gravity_up": {
+              "median_mps2": 9.80659332034224,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": 0.0038297826335615434,
+              "rmse_rad_s": 0.3648619176291488,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 178.70000000000002
+          }
+        },
+        {
+          "phone_segment": {
+            "start_index": 1865,
+            "end_index_exclusive": 93876,
+            "rows": 92011,
+            "start_s": 0.11,
+            "end_s": 9201.11,
+            "duration_s": 9201.0
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 93876,
+            "rows": 93876,
+            "start_s": 39824.4,
+            "end_s": 49211.9,
+            "duration_s": 9387.5
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": -17.29999999999982,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.028137081886734302,
+            "correlation_after": 0.05742324601815088,
+            "rmse_before_mps2": 1.4020256747793054,
+            "rmse_after_mps2": 1.3855396973784284,
+            "half_window_lag_change_s": 1.8000000000000256,
+            "drift_assessment": "constant offset candidate; investigate affine/piecewise map"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                -0.8377726544453619,
+                -0.5460187846361458,
+                -0.0006828528667009777
+              ],
+              [
+                0.5460187873938354,
+                -0.8377729073423955,
+                0.00019883670467399025
+              ],
+              [
+                -0.0006806442072499546,
+                -0.00020627054036875085,
+                0.9999997470879316
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              146.90567982652416,
+              0.03899804343659692,
+              -0.011818434222421815
+            ],
+            "gravity_phone_unit": [
+              0.0,
+              0.0,
+              1.0
+            ],
+            "samples": 91838,
+            "confidence": 0.5035665302057949,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.4108251071856996,
+              "lateral_rmse": 1.4235244468310366,
+              "up_rmse": 0.6450919743823104,
+              "forward_median_abs": 0.8122649034667587,
+              "lateral_median_abs": 0.7561920878180256,
+              "up_median_abs": 0.2631937440579788,
+              "forward_corr": -0.0025103813024129813,
+              "lateral_corr": 0.0167765021255926
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": -0.0025103813024129787,
+              "rmse_mps2": 1.4108251071856996,
+              "median_abs_error_mps2": 0.8122649034667587
+            },
+            "acceleration_lateral": {
+              "correlation": 0.016776502125592598,
+              "rmse_mps2": 1.4235244468310364,
+              "median_abs_error_mps2": 0.7561920878180256
+            },
+            "gravity_up": {
+              "median_mps2": 9.806587277208692,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": -0.009829528669126415,
+              "rmse_rad_s": 0.14996568825342288,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 9183.7
+          }
+        }
+      ],
+      "label_qa": {
+        "primary": "Indicated Vehicle Speed (km/hr)",
+        "independent_reference": "Velocity (km/hr) from vehicle GPS/VBOX",
+        "count": 93876,
+        "bias_kmh": 0.20254401148110257,
+        "mae_kmh": 0.3544383974476969,
+        "rmse_kmh": 0.546646681153061,
+        "correlation": 0.9997170302445173,
+        "outlier_over_10_kmh": 1,
+        "wheel_speed_status": "not converted: wheel radius/odometry calibration metadata is absent",
+        "target_replacement": "not automatic"
+      }
+    },
+    "S3a": {
+      "source_files": {
+        "smartphone": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S3a\\S-S3a.csv",
+        "vehicle": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S3a\\V-S3a.csv"
+      },
+      "phone_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 24621,
+          "rows": 24621,
+          "start_s": 31.321,
+          "end_s": 2493.321,
+          "duration_s": 2462.0
+        }
+      ],
+      "vehicle_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 24621,
+          "rows": 24621,
+          "start_s": 66118.0,
+          "end_s": 68580.0,
+          "duration_s": 2462.0
+        }
+      ],
+      "segment_attempts": [
+        {
+          "phone_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 24621,
+            "rows": 24621,
+            "start_s": 31.321,
+            "end_s": 2493.321,
+            "duration_s": 2462.0
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 24621,
+            "rows": 24621,
+            "start_s": 66118.0,
+            "end_s": 68580.0,
+            "duration_s": 2462.0
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": 6.7000000000005215,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.2545818627709804,
+            "correlation_after": 0.7568215148517544,
+            "rmse_before_mps2": 1.0123594499812556,
+            "rmse_after_mps2": 0.6464681834681347,
+            "half_window_lag_change_s": 0.0,
+            "drift_assessment": "constant offset adequate for this diagnostic window"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                -0.823858807423232,
+                -0.5667942073485518,
+                0.000995965511229903
+              ],
+              [
+                0.5667939471313304,
+                -0.8238594023240043,
+                -0.0005538028725125014
+              ],
+              [
+                0.0011344278109704981,
+                0.00010825184922104913,
+                0.9999993506773289
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              145.4730154735376,
+              -0.06499793967214076,
+              0.006202378087969909
+            ],
+            "gravity_phone_unit": [
+              1.0197214114466299e-05,
+              -1.0197214115830578e-05,
+              0.9999999998960168
+            ],
+            "samples": 24554,
+            "confidence": 0.5074737073621177,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.157877867779061,
+              "lateral_rmse": 1.186978368891451,
+              "up_rmse": 0.5290864629789989,
+              "forward_median_abs": 0.6143313490312104,
+              "lateral_median_abs": 0.5733434184825847,
+              "up_median_abs": 0.25604168823103923,
+              "forward_corr": -0.014062139319167262,
+              "lateral_corr": 0.04395696876763826
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": -0.014062139319167258,
+              "rmse_mps2": 1.157877867779061,
+              "median_abs_error_mps2": 0.6143313490312104
+            },
+            "acceleration_lateral": {
+              "correlation": 0.04395696876763825,
+              "rmse_mps2": 1.186978368891451,
+              "median_abs_error_mps2": 0.5733434184825847
+            },
+            "gravity_up": {
+              "median_mps2": 9.806592363717973,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": 0.0035596130243793797,
+              "rmse_rad_s": 0.131154340773988,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 2455.299999999991
+          }
+        }
+      ],
+      "label_qa": {
+        "primary": "Indicated Vehicle Speed (km/hr)",
+        "independent_reference": "Velocity (km/hr) from vehicle GPS/VBOX",
+        "count": 24621,
+        "bias_kmh": 0.26165035355996885,
+        "mae_kmh": 0.37254854486007866,
+        "rmse_kmh": 0.515951775385672,
+        "correlation": 0.9997963340841278,
+        "outlier_over_10_kmh": 0,
+        "wheel_speed_status": "not converted: wheel radius/odometry calibration metadata is absent",
+        "target_replacement": "not automatic"
+      }
+    },
+    "S3b": {
+      "source_files": {
+        "smartphone": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S3b\\S-S3b.csv",
+        "vehicle": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S3b\\V-S3b.csv"
+      },
+      "phone_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 2043,
+          "rows": 2043,
+          "start_s": 2503.32,
+          "end_s": 2707.52,
+          "duration_s": 204.19999999999982
+        },
+        {
+          "start_index": 2044,
+          "end_index_exclusive": 6813,
+          "rows": 4769,
+          "start_s": 0.108,
+          "end_s": 476.908,
+          "duration_s": 476.8
+        }
+      ],
+      "vehicle_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 6813,
+          "rows": 6813,
+          "start_s": 68582.8,
+          "end_s": 69264.0,
+          "duration_s": 681.1999999999971
+        }
+      ],
+      "segment_attempts": [
+        {
+          "phone_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 2043,
+            "rows": 2043,
+            "start_s": 2503.32,
+            "end_s": 2707.52,
+            "duration_s": 204.19999999999982
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 6813,
+            "rows": 6813,
+            "start_s": 68582.8,
+            "end_s": 69264.0,
+            "duration_s": 681.1999999999971
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": -0.4999999999995808,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.3613403377879814,
+            "correlation_after": 0.3918465663489404,
+            "rmse_before_mps2": 2.2435206100243845,
+            "rmse_after_mps2": 2.207780520182116,
+            "half_window_lag_change_s": 0.0,
+            "drift_assessment": "constant offset adequate for this diagnostic window"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                0.944407817415519,
+                -0.32848476284239686,
+                -0.013843228844056707
+              ],
+              [
+                0.328059975014743,
+                0.9442923764951551,
+                -0.02624043609503015
+              ],
+              [
+                0.021691638891077777,
+                0.020240263671834194,
+                0.9995598053787045
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              19.15574901183571,
+              -1.2429368447768303,
+              1.1600338631679687
+            ],
+            "gravity_phone_unit": [
+              3.987110716901954e-05,
+              2.039442822209838e-05,
+              0.9999999989971812
+            ],
+            "samples": 2038,
+            "confidence": 0.5310718491218247,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 2.132922925753609,
+              "lateral_rmse": 2.1076566169148094,
+              "up_rmse": 1.4370821473556943,
+              "forward_median_abs": 0.8784592480403597,
+              "lateral_median_abs": 0.8354771237576455,
+              "up_median_abs": 0.2363911835878168,
+              "forward_corr": 0.02580261478722564,
+              "lateral_corr": 0.09848478170007309
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": 0.025802614787225633,
+              "rmse_mps2": 2.132922925753609,
+              "median_abs_error_mps2": 0.8784592480403599
+            },
+            "acceleration_lateral": {
+              "correlation": 0.09848478170007308,
+              "rmse_mps2": 2.1076566169148094,
+              "median_abs_error_mps2": 0.8354771237576458
+            },
+            "gravity_up": {
+              "median_mps2": 9.8022800101992,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": -0.0481222337135889,
+              "rmse_rad_s": 0.3670852025333841,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 203.70000000000002
+          }
+        },
+        {
+          "phone_segment": {
+            "start_index": 2044,
+            "end_index_exclusive": 6813,
+            "rows": 4769,
+            "start_s": 0.108,
+            "end_s": 476.908,
+            "duration_s": 476.8
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 6813,
+            "rows": 6813,
+            "start_s": 68582.8,
+            "end_s": 69264.0,
+            "duration_s": 681.1999999999971
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": 12.400000000000603,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.03343337499392794,
+            "correlation_after": 0.11301817013351935,
+            "rmse_before_mps2": 1.1851772511000562,
+            "rmse_after_mps2": 1.1428785809576094,
+            "half_window_lag_change_s": -3.599999999999987,
+            "drift_assessment": "constant offset candidate; investigate affine/piecewise map"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                0.0867862732377053,
+                0.9962267586266661,
+                0.0006230358850186699
+              ],
+              [
+                -0.9962269344015288,
+                0.08678613231258234,
+                0.0002498222443290043
+              ],
+              [
+                0.00019480872994802302,
+                -0.0006423662713116009,
+                0.9999997747075404
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              -85.02124946691633,
+              -0.011161718108924213,
+              -0.03680487947725143
+            ],
+            "gravity_phone_unit": [
+              -8.985663927877063e-06,
+              2.0394428242939036e-05,
+              0.9999999997516625
+            ],
+            "samples": 4769,
+            "confidence": 0.5228775128565424,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.238884422530651,
+              "lateral_rmse": 1.393208020385797,
+              "up_rmse": 0.5773477013148527,
+              "forward_median_abs": 0.7674398148792843,
+              "lateral_median_abs": 0.70868602159656,
+              "up_median_abs": 0.21107258682304222,
+              "forward_corr": 0.0074556381489184085,
+              "lateral_corr": 0.08405441327725148
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": 0.007455638148918414,
+              "rmse_mps2": 1.238884422530651,
+              "median_abs_error_mps2": 0.7674398148792843
+            },
+            "acceleration_lateral": {
+              "correlation": 0.08405441327725148,
+              "rmse_mps2": 1.393208020385797,
+              "median_abs_error_mps2": 0.70868602159656
+            },
+            "gravity_up": {
+              "median_mps2": 9.806596239981284,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": -0.021528615146746675,
+              "rmse_rad_s": 0.21812662582374456,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 476.7999999999983
+          }
+        }
+      ],
+      "label_qa": {
+        "primary": "Indicated Vehicle Speed (km/hr)",
+        "independent_reference": "Velocity (km/hr) from vehicle GPS/VBOX",
+        "count": 6813,
+        "bias_kmh": 0.2445656779539115,
+        "mae_kmh": 0.44165360133568177,
+        "rmse_kmh": 0.6383642402231351,
+        "correlation": 0.9985489424265513,
+        "outlier_over_10_kmh": 0,
+        "wheel_speed_status": "not converted: wheel radius/odometry calibration metadata is absent",
+        "target_replacement": "not automatic"
+      }
+    },
+    "S4": {
+      "source_files": {
+        "smartphone": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S4\\S-S4.csv",
+        "vehicle": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\S (Driver A)\\S4\\V-S4.csv"
+      },
+      "phone_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 35186,
+          "rows": 35186,
+          "start_s": 8.429,
+          "end_s": 3526.929,
+          "duration_s": 3518.5
+        },
+        {
+          "start_index": 35187,
+          "end_index_exclusive": 90967,
+          "rows": 55780,
+          "start_s": 0.11,
+          "end_s": 5578.009,
+          "duration_s": 5577.899
+        },
+        {
+          "start_index": 90968,
+          "end_index_exclusive": 94600,
+          "rows": 3632,
+          "start_s": 0.11,
+          "end_s": 363.209,
+          "duration_s": 363.099
+        }
+      ],
+      "vehicle_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 94600,
+          "rows": 94600,
+          "start_s": 62173.4,
+          "end_s": 71633.3,
+          "duration_s": 9459.900000000001
+        }
+      ],
+      "segment_attempts": [
+        {
+          "phone_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 35186,
+            "rows": 35186,
+            "start_s": 8.429,
+            "end_s": 3526.929,
+            "duration_s": 3518.5
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 94600,
+            "rows": 94600,
+            "start_s": 62173.4,
+            "end_s": 71633.3,
+            "duration_s": 9459.900000000001
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": -1.7999999999995993,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.24815917108503693,
+            "correlation_after": 0.5237086188108386,
+            "rmse_before_mps2": 1.0790330884316681,
+            "rmse_after_mps2": 0.9021091566720912,
+            "half_window_lag_change_s": 0.0,
+            "drift_assessment": "constant offset adequate for this diagnostic window"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                0.7081784924346086,
+                -0.7060323575093788,
+                -0.0012381449001174628
+              ],
+              [
+                0.7060320963349793,
+                0.7081794779165979,
+                -0.0007113386039322185
+              ],
+              [
+                0.0013790568804721774,
+                -0.00037041533925286644,
+                0.9999989804967787
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              44.91304028960016,
+              -0.07901416400437475,
+              -0.021223256272609525
+            ],
+            "gravity_phone_unit": [
+              1.0197214120041778e-05,
+              1.0197214116972083e-05,
+              0.9999999998960168
+            ],
+            "samples": 35168,
+            "confidence": 0.5185657364469574,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.2847515273882493,
+              "lateral_rmse": 1.2764292806316504,
+              "up_rmse": 0.4975829232653966,
+              "forward_median_abs": 0.7446540348327411,
+              "lateral_median_abs": 0.662350026280367,
+              "up_median_abs": 0.2082809441710128,
+              "forward_corr": 0.06374982044553684,
+              "lateral_corr": 0.010513125342292555
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": 0.06374982044553684,
+              "rmse_mps2": 1.2847515273882493,
+              "median_abs_error_mps2": 0.7446540348327411
+            },
+            "acceleration_lateral": {
+              "correlation": 0.010513125342292559,
+              "rmse_mps2": 1.2764292806316504,
+              "median_abs_error_mps2": 0.662350026280367
+            },
+            "gravity_up": {
+              "median_mps2": 9.806582577493774,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": -0.022748836801233085,
+              "rmse_rad_s": 0.12839782964214883,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 3516.7000000000003
+          }
+        },
+        {
+          "phone_segment": {
+            "start_index": 35187,
+            "end_index_exclusive": 90967,
+            "rows": 55780,
+            "start_s": 0.11,
+            "end_s": 5578.009,
+            "duration_s": 5577.899
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 94600,
+            "rows": 94600,
+            "start_s": 62173.4,
+            "end_s": 71633.3,
+            "duration_s": 9459.900000000001
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": 6.800000000000523,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": -0.0021587005609408835,
+            "correlation_after": 0.034278074781158144,
+            "rmse_before_mps2": 1.3244649956792331,
+            "rmse_after_mps2": 1.3041365086379202,
+            "half_window_lag_change_s": 0.0,
+            "drift_assessment": "constant offset adequate for this diagnostic window"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                0.5836956884334605,
+                0.8119721418264614,
+                0.000764331039893713
+              ],
+              [
+                -0.8119712578123327,
+                0.5836961833412263,
+                -0.001200849509519503
+              ],
+              [
+                -0.001421193459050976,
+                8.031584531662221e-05,
+                0.9999989868787449
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              -54.28905867656657,
+              0.08142841448662957,
+              0.004601763616917767
+            ],
+            "gravity_phone_unit": [
+              -4.476510305482551e-16,
+              9.995289091582016e-06,
+              0.9999999999500472
+            ],
+            "samples": 55779,
+            "confidence": 0.5052300956371176,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.2774939161662016,
+              "lateral_rmse": 1.3051129481232508,
+              "up_rmse": 0.5228955187607605,
+              "forward_median_abs": 0.725442923117349,
+              "lateral_median_abs": 0.6428224861743133,
+              "up_median_abs": 0.22729686576165126,
+              "forward_corr": 0.006202987817976962,
+              "lateral_corr": 0.014717394730493431
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": 0.006202987817976965,
+              "rmse_mps2": 1.2774939161662016,
+              "median_abs_error_mps2": 0.7254429231173488
+            },
+            "acceleration_lateral": {
+              "correlation": 0.014717394730493428,
+              "rmse_mps2": 1.3051129481232508,
+              "median_abs_error_mps2": 0.642822486174313
+            },
+            "gravity_up": {
+              "median_mps2": 9.806582731082234,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": 0.001496093541750517,
+              "rmse_rad_s": 0.1454883325241806,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 5577.79999999998
+          }
+        },
+        {
+          "phone_segment": {
+            "start_index": 90968,
+            "end_index_exclusive": 94600,
+            "rows": 3632,
+            "start_s": 0.11,
+            "end_s": 363.209,
+            "duration_s": 363.099
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 94600,
+            "rows": 94600,
+            "start_s": 62173.4,
+            "end_s": 71633.3,
+            "duration_s": 9459.900000000001
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": 8.300000000000544,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.05861249181150258,
+            "correlation_after": 0.1780911038333985,
+            "rmse_before_mps2": 1.3715263659804096,
+            "rmse_after_mps2": 1.2824906280539576,
+            "half_window_lag_change_s": -1.099999999999996,
+            "drift_assessment": "constant offset candidate; investigate affine/piecewise map"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                -0.3694101702017726,
+                -0.9292457744510986,
+                0.006198130062855395
+              ],
+              [
+                0.9292394400121263,
+                -0.36944206727089984,
+                -0.005159656631577996
+              ],
+              [
+                0.007084439106147739,
+                0.00385351727427606,
+                0.9999674800348104
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              111.67981715302227,
+              -0.40591185645178096,
+              0.22079636344339415
+            ],
+            "gravity_phone_unit": [
+              6.118328460881618e-05,
+              1.019721410478008e-05,
+              0.9999999980763113
+            ],
+            "samples": 3631,
+            "confidence": 0.5589635456798521,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.288138504823882,
+              "lateral_rmse": 1.2912060066819346,
+              "up_rmse": 0.569943636002102,
+              "forward_median_abs": 0.7862444293247731,
+              "lateral_median_abs": 0.7772776329484029,
+              "up_median_abs": 0.2828711815026021,
+              "forward_corr": 0.14733452236068667,
+              "lateral_corr": 0.08851966035872144
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": 0.14733452236068664,
+              "rmse_mps2": 1.288138504823882,
+              "median_abs_error_mps2": 0.7862444293247731
+            },
+            "acceleration_lateral": {
+              "correlation": 0.08851966035872144,
+              "rmse_mps2": 1.2912060066819346,
+              "median_abs_error_mps2": 0.7772776329484027
+            },
+            "gravity_up": {
+              "median_mps2": 9.806269766401263,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": 0.016504402082812817,
+              "rmse_rad_s": 0.10554196895224487,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 362.9999999999987
+          }
+        }
+      ],
+      "label_qa": {
+        "primary": "Indicated Vehicle Speed (km/hr)",
+        "independent_reference": "Velocity (km/hr) from vehicle GPS/VBOX",
+        "count": 94600,
+        "bias_kmh": 0.24070838767547545,
+        "mae_kmh": 0.378231790578224,
+        "rmse_kmh": 0.6215550741117559,
+        "correlation": 0.9997473018961288,
+        "outlier_over_10_kmh": 2,
+        "wheel_speed_status": "not converted: wheel radius/odometry calibration metadata is absent",
+        "target_replacement": "not automatic"
+      }
+    },
+    "M": {
+      "source_files": {
+        "smartphone": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\M (Driver B)\\S-M.csv",
+        "vehicle": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\M (Driver B)\\V-M.csv"
+      },
+      "phone_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 44226,
+          "rows": 44226,
+          "start_s": 4.227,
+          "end_s": 4426.727,
+          "duration_s": 4422.5
+        },
+        {
+          "start_index": 44227,
+          "end_index_exclusive": 53468,
+          "rows": 9241,
+          "start_s": 0.11,
+          "end_s": 924.111,
+          "duration_s": 924.001
+        },
+        {
+          "start_index": 53469,
+          "end_index_exclusive": 105974,
+          "rows": 52505,
+          "start_s": 925.575,
+          "end_s": 6175.975,
+          "duration_s": 5250.400000000001
+        }
+      ],
+      "vehicle_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 221,
+          "rows": 221,
+          "start_s": 29608.4,
+          "end_s": 29630.4,
+          "duration_s": 22.0
+        },
+        {
+          "start_index": 222,
+          "end_index_exclusive": 105974,
+          "rows": 105752,
+          "start_s": 29630.6,
+          "end_s": 40205.7,
+          "duration_s": 10575.099999999999
+        }
+      ],
+      "segment_attempts": [
+        {
+          "phone_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 44226,
+            "rows": 44226,
+            "start_s": 4.227,
+            "end_s": 4426.727,
+            "duration_s": 4422.5
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 221,
+            "rows": 221,
+            "start_s": 29608.4,
+            "end_s": 29630.4,
+            "duration_s": 22.0
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": 4.50000000000049,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.09195139566728919,
+            "correlation_after": 0.597134326623502,
+            "rmse_before_mps2": 0.8958152381272849,
+            "rmse_after_mps2": 1.979401964419746,
+            "half_window_lag_change_s": -1.3000000000000007,
+            "drift_assessment": "constant offset candidate; investigate affine/piecewise map"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                0.9861958237056351,
+                -0.16558316876765136,
+                -0.00010736121380620331
+              ],
+              [
+                0.1655820865227707,
+                0.9861913450025797,
+                -0.0030337542369378787
+              ],
+              [
+                0.0006082173396592383,
+                0.0029740986648236606,
+                0.9999953923937851
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              9.53105249761008,
+              -0.034848288737711,
+              0.17040358407987388
+            ],
+            "gravity_phone_unit": [
+              -0.00016320590440905628,
+              -8.667631854934911e-05,
+              0.9999999829255242
+            ],
+            "samples": 175,
+            "confidence": 0.5404143491542679,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 0.9410740977243381,
+              "lateral_rmse": 1.0311682202962213,
+              "up_rmse": 0.31607233337926777,
+              "forward_median_abs": 0.5585869701342809,
+              "lateral_median_abs": 0.4960996768693333,
+              "up_median_abs": 0.1846928868846696,
+              "forward_corr": -0.22147036550266783,
+              "lateral_corr": 0.3831277621197392
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": -0.2214703655026678,
+              "rmse_mps2": 0.9410740977243381,
+              "median_abs_error_mps2": 0.5585869701342812
+            },
+            "acceleration_lateral": {
+              "correlation": 0.3831277621197392,
+              "rmse_mps2": 1.0311682202962213,
+              "median_abs_error_mps2": 0.4960996768693333
+            },
+            "gravity_up": {
+              "median_mps2": 9.80654837251388,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": -0.01456884539103846,
+              "rmse_rad_s": 0.1268125775323139,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 17.499999999999936
+          }
+        },
+        {
+          "phone_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 44226,
+            "rows": 44226,
+            "start_s": 4.227,
+            "end_s": 4426.727,
+            "duration_s": 4422.5
+          },
+          "vehicle_segment": {
+            "start_index": 222,
+            "end_index_exclusive": 105974,
+            "rows": 105752,
+            "start_s": 29630.6,
+            "end_s": 40205.7,
+            "duration_s": 10575.099999999999
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": 21.30000000000073,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.2816725862243398,
+            "correlation_after": 0.7631625084092543,
+            "rmse_before_mps2": 1.719319746256232,
+            "rmse_after_mps2": 1.0688848121686847,
+            "half_window_lag_change_s": 0.0,
+            "drift_assessment": "constant offset adequate for this diagnostic window"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                0.6201577675444597,
+                -0.7844769675878853,
+                0.0004802899014016315
+              ],
+              [
+                0.7844763702273747,
+                0.6201562194222506,
+                -0.00175728961301042
+              ],
+              [
+                0.0010806984573080538,
+                0.0014665728818421284,
+                0.9999983406260362
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              51.67231713923662,
+              -0.061919472582774276,
+              0.08402851566870535
+            ],
+            "gravity_phone_unit": [
+              -1.0197213963213172e-05,
+              1.0197213231655425e-05,
+              0.9999999998960168
+            ],
+            "samples": 44225,
+            "confidence": 0.546112902717161,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.7422260866812056,
+              "lateral_rmse": 1.7932956324004423,
+              "up_rmse": 0.6500846426089791,
+              "forward_median_abs": 0.8506476047232134,
+              "lateral_median_abs": 0.7960176338661433,
+              "up_median_abs": 0.22835148343088293,
+              "forward_corr": 0.007762867286476104,
+              "lateral_corr": 0.17668874358216774
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": 0.007762867286476104,
+              "rmse_mps2": 1.7422260866812056,
+              "median_abs_error_mps2": 0.8506476047232137
+            },
+            "acceleration_lateral": {
+              "correlation": 0.17668874358216774,
+              "rmse_mps2": 1.7932956324004423,
+              "median_abs_error_mps2": 0.7960176338661433
+            },
+            "gravity_up": {
+              "median_mps2": 9.806579060823681,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": -0.03696456174507398,
+              "rmse_rad_s": 0.22245963235067823,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 4422.500000000063
+          }
+        },
+        {
+          "phone_segment": {
+            "start_index": 44227,
+            "end_index_exclusive": 53468,
+            "rows": 9241,
+            "start_s": 0.11,
+            "end_s": 924.111,
+            "duration_s": 924.001
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 221,
+            "rows": 221,
+            "start_s": 29608.4,
+            "end_s": 29630.4,
+            "duration_s": 22.0
+          },
+          "rejected": true,
+          "reason": "insufficient synchronized dynamic samples"
+        },
+        {
+          "phone_segment": {
+            "start_index": 44227,
+            "end_index_exclusive": 53468,
+            "rows": 9241,
+            "start_s": 0.11,
+            "end_s": 924.111,
+            "duration_s": 924.001
+          },
+          "vehicle_segment": {
+            "start_index": 222,
+            "end_index_exclusive": 105974,
+            "rows": 105752,
+            "start_s": 29630.6,
+            "end_s": 40205.7,
+            "duration_s": 10575.099999999999
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": -23.099999999999902,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": -0.2982747588799766,
+            "correlation_after": -0.21222295368502658,
+            "rmse_before_mps2": 2.769286251437023,
+            "rmse_after_mps2": 2.588334498299151,
+            "half_window_lag_change_s": 2.0000000000000284,
+            "drift_assessment": "constant offset candidate; investigate affine/piecewise map"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                0.5445414669815535,
+                -0.838722036428939,
+                -0.004465013557703048
+              ],
+              [
+                0.8385295225440985,
+                0.5445185690379498,
+                -0.019177272872591182
+              ],
+              [
+                0.018515684150028848,
+                0.006698774616052797,
+                0.999806129136594
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              57.00028702123352,
+              -1.0609311824217857,
+              0.383880193522713
+            ],
+            "gravity_phone_unit": [
+              5.672973494553033e-16,
+              -1.019721412058942e-05,
+              0.9999999999480085
+            ],
+            "samples": 9010,
+            "confidence": 0.4817108433043359,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.6157069479732875,
+              "lateral_rmse": 2.887488220232023,
+              "up_rmse": 0.5883464577891833,
+              "forward_median_abs": 0.756370341171588,
+              "lateral_median_abs": 1.4302744633639297,
+              "up_median_abs": 0.3177236513977877,
+              "forward_corr": 0.06298434113643642,
+              "lateral_corr": -0.1361409679190927
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": 0.06298434113643639,
+              "rmse_mps2": 1.6157069479732875,
+              "median_abs_error_mps2": 0.756370341171588
+            },
+            "acceleration_lateral": {
+              "correlation": -0.1361409679190927,
+              "rmse_mps2": 2.887488220232023,
+              "median_abs_error_mps2": 1.4302744633639297
+            },
+            "gravity_up": {
+              "median_mps2": 9.804690235647891,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": 0.05383067274653098,
+              "rmse_rad_s": 0.3182629570312924,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 900.9000000000001
+          }
+        },
+        {
+          "phone_segment": {
+            "start_index": 53469,
+            "end_index_exclusive": 105974,
+            "rows": 52505,
+            "start_s": 925.575,
+            "end_s": 6175.975,
+            "duration_s": 5250.400000000001
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 221,
+            "rows": 221,
+            "start_s": 29608.4,
+            "end_s": 29630.4,
+            "duration_s": 22.0
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": -19.39999999999985,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": -0.2277623196863583,
+            "correlation_after": 0.6997388924132235,
+            "rmse_before_mps2": 4.072734189989423,
+            "rmse_after_mps2": 1.1911304770083013,
+            "half_window_lag_change_s": null,
+            "drift_assessment": "constant offset adequate for this diagnostic window"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                -0.9674400827901593,
+                0.2530307618343509,
+                -0.005926194098769792
+              ],
+              [
+                -0.2530255521178168,
+                -0.9674582307496272,
+                -0.0016253400486802103
+              ],
+              [
+                -0.006144606288631948,
+                -7.29405774587648e-05,
+                0.9999811190683698
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              -165.34309582249463,
+              0.35206222255300756,
+              -0.004179266144660803
+            ],
+            "gravity_phone_unit": [
+              -3.059164221917236e-05,
+              -9.157300163251568e-05,
+              0.9999999953392683
+            ],
+            "samples": 221,
+            "confidence": 0.5155602050371725,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 0.888518253898638,
+              "lateral_rmse": 0.9992293218416067,
+              "up_rmse": 0.6603411158309022,
+              "forward_median_abs": 0.47288745556351974,
+              "lateral_median_abs": 0.6212500911048476,
+              "up_median_abs": 0.40781565636246964,
+              "forward_corr": -0.09135106338510969,
+              "lateral_corr": 0.15359188353379977
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": -0.0913510633851097,
+              "rmse_mps2": 0.888518253898638,
+              "median_abs_error_mps2": 0.47288745556351963
+            },
+            "acceleration_lateral": {
+              "correlation": 0.15359188353379977,
+              "rmse_mps2": 0.9992293218416067,
+              "median_abs_error_mps2": 0.621250091104848
+            },
+            "gravity_up": {
+              "median_mps2": 9.806406589921844,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": -0.16765261394127512,
+              "rmse_rad_s": 0.12391432496438075,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 22.0
+          }
+        },
+        {
+          "phone_segment": {
+            "start_index": 53469,
+            "end_index_exclusive": 105974,
+            "rows": 52505,
+            "start_s": 925.575,
+            "end_s": 6175.975,
+            "duration_s": 5250.400000000001
+          },
+          "vehicle_segment": {
+            "start_index": 222,
+            "end_index_exclusive": 105974,
+            "rows": 105752,
+            "start_s": 29630.6,
+            "end_s": 40205.7,
+            "duration_s": 10575.099999999999
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": 7.30000000000053,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.12434584520644541,
+            "correlation_after": 0.151087822479435,
+            "rmse_before_mps2": 1.5766155627916676,
+            "rmse_after_mps2": 1.5534980532382003,
+            "half_window_lag_change_s": -2.3999999999999915,
+            "drift_assessment": "constant offset candidate; investigate affine/piecewise map"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                0.9472789116836878,
+                -0.32040610628906707,
+                -0.001609512984222069
+              ],
+              [
+                0.32039642305832633,
+                0.9472728767089305,
+                -0.004497681960555125
+              ],
+              [
+                0.002965732758972661,
+                0.0037448770696832216,
+                0.9999885900973745
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              18.68698578389417,
+              -0.16992421935019394,
+              0.21456709603303759
+            ],
+            "gravity_phone_unit": [
+              1.0197214102421421e-05,
+              5.518213822396904e-15,
+              0.9999999999480085
+            ],
+            "samples": 52505,
+            "confidence": 0.5151674321783395,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.343460704702575,
+              "lateral_rmse": 1.7624754967976184,
+              "up_rmse": 0.6226172051764302,
+              "forward_median_abs": 0.695166297996662,
+              "lateral_median_abs": 0.6462465327267393,
+              "up_median_abs": 0.307542389812639,
+              "forward_corr": -0.013619843094729925,
+              "lateral_corr": 0.07428957180808814
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": -0.013619843094729916,
+              "rmse_mps2": 1.343460704702575,
+              "median_abs_error_mps2": 0.6951662979966617
+            },
+            "acceleration_lateral": {
+              "correlation": 0.07428957180808816,
+              "rmse_mps2": 1.7624754967976184,
+              "median_abs_error_mps2": 0.6462465327267393
+            },
+            "gravity_up": {
+              "median_mps2": 9.806480766181412,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": -0.0387673426904506,
+              "rmse_rad_s": 0.19530623155276192,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 5250.399999999981
+          }
+        }
+      ],
+      "label_qa": {
+        "primary": "Indicated Vehicle Speed (km/hr)",
+        "independent_reference": "Velocity (km/hr) from vehicle GPS/VBOX",
+        "count": 105974,
+        "bias_kmh": 0.31072733209089004,
+        "mae_kmh": 0.45665089510445944,
+        "rmse_kmh": 1.7872741104528167,
+        "correlation": 0.9962931534457137,
+        "outlier_over_10_kmh": 154,
+        "wheel_speed_status": "not converted: wheel radius/odometry calibration metadata is absent",
+        "target_replacement": "not automatic"
+      }
+    },
+    "Vfa01": {
+      "source_files": {
+        "smartphone": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vf (Driver E)\\V-Vfa01\\S-Vfa01.csv",
+        "vehicle": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vf (Driver E)\\V-Vfa01\\V-Vfa01.csv"
+      },
+      "phone_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 11486,
+          "rows": 11486,
+          "start_s": 2.607,
+          "end_s": 1151.107,
+          "duration_s": 1148.5
+        }
+      ],
+      "vehicle_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 11535,
+          "rows": 11535,
+          "start_s": 33622.0,
+          "end_s": 34775.4,
+          "duration_s": 1153.4000000000015
+        }
+      ],
+      "segment_attempts": [
+        {
+          "phone_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 11486,
+            "rows": 11486,
+            "start_s": 2.607,
+            "end_s": 1151.107,
+            "duration_s": 1148.5
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 11535,
+            "rows": 11535,
+            "start_s": 33622.0,
+            "end_s": 34775.4,
+            "duration_s": 1153.4000000000015
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": -5.299999999999649,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": -0.012038569712557219,
+            "correlation_after": 0.20095615604989278,
+            "rmse_before_mps2": 2.4661766745619054,
+            "rmse_after_mps2": 2.3707315938234776,
+            "half_window_lag_change_s": 0.0,
+            "drift_assessment": "constant offset adequate for this diagnostic window"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                -0.3421960583653899,
+                0.9396285247804056,
+                0.0003050544100546633
+              ],
+              [
+                -0.9396269781578058,
+                -0.3421948606427355,
+                -0.0019542946884964956
+              ],
+              [
+                -0.0017319229838010822,
+                -0.0009553892927810717,
+                0.9999980438351255
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              -110.01075770937013,
+              0.09923192702218918,
+              -0.0547398646935709
+            ],
+            "gravity_phone_unit": [
+              3.05919511502265e-05,
+              -4.927020514369781e-05,
+              0.9999999983182898
+            ],
+            "samples": 11433,
+            "confidence": 0.533790922108812,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 1.5262977746638506,
+              "lateral_rmse": 2.506320566119937,
+              "up_rmse": 0.8529367352400986,
+              "forward_median_abs": 0.9148379457240122,
+              "lateral_median_abs": 1.297165200442974,
+              "up_median_abs": 0.4627210429679934,
+              "forward_corr": 0.051077161601593465,
+              "lateral_corr": 0.08408652683365415
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": 0.051077161601593465,
+              "rmse_mps2": 1.5262977746638506,
+              "median_abs_error_mps2": 0.9148379457240123
+            },
+            "acceleration_lateral": {
+              "correlation": 0.08408652683365415,
+              "rmse_mps2": 2.506320566119937,
+              "median_abs_error_mps2": 1.297165200442974
+            },
+            "gravity_up": {
+              "median_mps2": 9.806536581598749,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": 0.017960173441021562,
+              "rmse_rad_s": 0.18882206979492175,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 1143.2
+          }
+        }
+      ],
+      "label_qa": {
+        "primary": "Indicated Vehicle Speed (km/hr)",
+        "independent_reference": "Velocity (km/hr) from vehicle GPS/VBOX",
+        "count": 11535,
+        "bias_kmh": 0.3615714583355008,
+        "mae_kmh": 0.4501847765843088,
+        "rmse_kmh": 0.5825116792903531,
+        "correlation": 0.9998502795723391,
+        "outlier_over_10_kmh": 0,
+        "wheel_speed_status": "not converted: wheel radius/odometry calibration metadata is absent",
+        "target_replacement": "not automatic"
+      }
+    },
+    "Vfa02": {
+      "source_files": {
+        "smartphone": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vf (Driver E)\\V-Vfa02\\S-Vfa02.csv",
+        "vehicle": "data\\raw\\io_vnbd\\Synchronised V abd S datasets\\Categorised IOVNB Dataset\\Vf (Driver E)\\V-Vfa02\\V-Vfa02.csv"
+      },
+      "phone_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 67523,
+          "rows": 67523,
+          "start_s": 0.038,
+          "end_s": 6752.239,
+          "duration_s": 6752.201
+        }
+      ],
+      "vehicle_segments": [
+        {
+          "start_index": 0,
+          "end_index_exclusive": 67755,
+          "rows": 67755,
+          "start_s": 35829.9,
+          "end_s": 42605.3,
+          "duration_s": 6775.4000000000015
+        }
+      ],
+      "segment_attempts": [
+        {
+          "phone_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 67523,
+            "rows": 67523,
+            "start_s": 0.038,
+            "end_s": 6752.239,
+            "duration_s": 6752.201
+          },
+          "vehicle_segment": {
+            "start_index": 0,
+            "end_index_exclusive": 67755,
+            "rows": 67755,
+            "start_s": 35829.9,
+            "end_s": 42605.3,
+            "duration_s": 6775.4000000000015
+          },
+          "synchronization": {
+            "method": "grid_search_cross_correlation",
+            "signals": [
+              "norm(phone_accelerometer - phone_gravity)",
+              "norm(vehicle_indicated_longitudinal/lateral_acceleration)"
+            ],
+            "offset_vehicle_minus_phone_s": -8.799999999999699,
+            "constant_offset_search_range_s": [
+              -30.0,
+              30.0
+            ],
+            "search_step_s": 0.1,
+            "correlation_before": 0.04923005301062979,
+            "correlation_after": 0.16534545487409769,
+            "rmse_before_mps2": 2.204738252524369,
+            "rmse_after_mps2": 2.1675618235192013,
+            "half_window_lag_change_s": -0.09999999999999964,
+            "drift_assessment": "constant offset adequate for this diagnostic window"
+          },
+          "rotation": {
+            "method": "gravity_anchor_plus_weighted_kabsch_dynamic_acceleration",
+            "rotation_direction": "vehicle_vector = R_vehicle_from_phone @ phone_vector",
+            "source_convention": "phone Android sensor axes; gravity vector is positive +g in source samples",
+            "vehicle_convention": "+Forward, +Left, +Up",
+            "matrix_vehicle_from_phone": [
+              [
+                0.7985954869869639,
+                0.6018673043022417,
+                -0.000998086172210401
+              ],
+              [
+                -0.6018669265994276,
+                0.7985961084300285,
+                0.0006769535977429589
+              ],
+              [
+                0.0012045039700162685,
+                6.010296889256432e-05,
+                0.999999272778645
+              ]
+            ],
+            "euler_yaw_pitch_roll_deg": [
+              -37.00375507731072,
+              -0.06901301057638018,
+              0.0034436489538984916
+            ],
+            "gravity_phone_unit": [
+              -8.278928007594438e-06,
+              -1.0401160517505958e-05,
+              0.9999999999116376
+            ],
+            "samples": 67435,
+            "confidence": 0.5082292726334394,
+            "poorly_constrained": false,
+            "residual_mps2": {
+              "forward_rmse": 2.0731734551740066,
+              "lateral_rmse": 1.3881769428847508,
+              "up_rmse": 0.7355839690589552,
+              "forward_median_abs": 1.124438375800957,
+              "lateral_median_abs": 0.8068599936354649,
+              "up_median_abs": 0.4512159708818799,
+              "forward_corr": 0.009761660796812045,
+              "lateral_corr": 0.0231554297369455
+            }
+          },
+          "validation": {
+            "acceleration_forward": {
+              "correlation": 0.009761660796812038,
+              "rmse_mps2": 2.0731734551740066,
+              "median_abs_error_mps2": 1.124438375800957
+            },
+            "acceleration_lateral": {
+              "correlation": 0.023155429736945506,
+              "rmse_mps2": 1.3881769428847508,
+              "median_abs_error_mps2": 0.806859993635465
+            },
+            "gravity_up": {
+              "median_mps2": 9.806558536502209,
+              "expected_mps2": 9.80665
+            },
+            "yaw_rate": {
+              "correlation": -0.008285858831256763,
+              "rmse_rad_s": 0.16469009982164462,
+              "note": "interpretation depends on Variant A yaw/pitch/roll physical-axis semantics"
+            },
+            "segment_duration_s": 6743.400000000001
+          }
+        }
+      ],
+      "label_qa": {
+        "primary": "Indicated Vehicle Speed (km/hr)",
+        "independent_reference": "Velocity (km/hr) from vehicle GPS/VBOX",
+        "count": 67755,
+        "bias_kmh": 0.3054498116581803,
+        "mae_kmh": 0.3798819877632648,
+        "rmse_kmh": 0.8005381659478941,
+        "correlation": 0.9995363183754156,
+        "outlier_over_10_kmh": 30,
+        "wheel_speed_status": "not converted: wheel radius/odometry calibration metadata is absent",
+        "target_replacement": "not automatic"
+      }
+    }
+  },
+  "label_qa_policy": "performed after alignment parameter estimation only; target retained unless independently disproven",
+  "limitations": [
+    "source clocks exhibit resets and large duration differences; a constant offset is not universally adequate",
+    "dynamic acceleration Kabsch is weak on straight/low-dynamics segments and cannot prove frame correctness alone",
+    "Variant A gyro yaw/pitch/roll semantics require source-level confirmation",
+    "wheel speed cannot be converted without wheel-radius/odometry calibration",
+    "this prototype does not regenerate data"
+  ],
+  "regeneration_gate": {
+    "temporal_synchronization_reliable": false,
+    "rotation_reliably_estimable": false,
+    "enough_segments_constrained": false,
+    "indicated_speed_independently_consistent": "requires review of reported QA metrics",
+    "recommendation": "NO-GO until rejected/reset segments are handled and transform/synchronization quality thresholds are reviewed on train/validation"
+  },
+  "proposed_deterministic_algorithm": [
+    "parse raw S/V fields",
+    "split non-monotonic/reset/gap segments",
+    "estimate target-independent clock offset per overlapping segment",
+    "reject insufficient overlap or excessive drift",
+    "estimate gravity-anchored rotation from dynamic acceleration references",
+    "validate residual/correlation and persist matrix/quality",
+    "compare indicated speed with vehicle GPS velocity as QA",
+    "resample only verified monotonic overlap",
+    "construct 50-sample stride-1 windows at 10 Hz",
+    "fit normalization on train trips only"
+  ]
+}
