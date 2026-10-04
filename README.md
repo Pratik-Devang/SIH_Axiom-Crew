@@ -25,7 +25,16 @@ Standard consumer smartphone navigation applications depend entirely on continuo
 
 Percorsa implements an integrated edge-to-cloud navigation pipeline designed for automotive dynamics:
 
-$$\text{Smartphone / External IMU} \longrightarrow \text{Sensor Canonicalization} \longrightarrow \text{TCN Forward Speed Estimation} \longrightarrow \text{Strapdown INS Propagation} \longrightarrow \text{15-State ESKF Fusion} \longrightarrow \text{Map \& Vehicle Constraints} \longrightarrow \text{Navigation Controller} \longrightarrow \text{Android Navigation UI}$$
+```
+Smartphone / External IMU
+  → Sensor Canonicalization
+  → TCN Forward Speed Estimation
+  → Strapdown INS Propagation
+  → 15-State ESKF Fusion
+  → Map & Vehicle Constraints
+  → Navigation Controller
+  → Android Navigation UI
+```
 
 When GNSS signals are healthy, the estimator uses high-confidence satellite fixes to continuously calibrate accelerometer and gyroscope sensor biases alongside device-to-vehicle orientation. When GNSS outages occur, Percorsa smoothly transitions to dead reckoning—integrating strapdown inertial kinematics with Temporal Convolutional Network (TCN) forward-velocity updates, Non-Holonomic Constraints (NHC), Zero Velocity Updates (ZUPT), and route-network geometry to suppress drift until satellite recovery.
 
@@ -40,8 +49,8 @@ When GNSS signals are healthy, the estimator uses high-confidence satellite fixe
 | **Inertial Navigation** | Strapdown INS mechanization (`src/navigation/ins.py`, `EskfPropagator.kt`) | Continuous nominal state integration for position, velocity, and Hamilton quaternion attitude |
 | **Sensor Fusion** | 15-state Error-State Kalman Filter (`src/navigation/eskf.py`, `PercorsaEskfProvider.kt`) | Fuses kinematics, TCN velocity, GNSS observations, and bias error states via Joseph-form covariance updates |
 | **GNSS Quality Handling** | Adaptive quality monitor + NIS gating (`GnssQualityMonitor.kt`, `EskfGnssUpdater.kt`) | Classifies GNSS health (Good/Fair/Poor/Lost), gates multipath innovations, and manages re-entry |
-| **Map Matching** | Route geometry projection & track tracking (`RouteGeometry.kt`, `src/navigation/route.py`) | Projects navigation estimates onto active OSRM route segments and computes cross-track / heading errors |
-| **Vehicle Motion Constraints**| Non-Holonomic Constraints (NHC) + ZUPT (`EskfConstraintUpdates.kt`, `src/navigation/constraints.py`) | Enforces near-zero lateral/vertical velocity ($v_y \approx 0, v_z \approx 0$) and zero-velocity clamp during halts |
+| **Map Matching** | Route geometry projection and track tracking (`RouteGeometry.kt`, `src/navigation/route.py`) | Projects navigation estimates onto active OSRM route segments and computes cross-track / heading errors |
+| **Vehicle Motion Constraints** | Non-Holonomic Constraints (NHC) + ZUPT (`EskfConstraintUpdates.kt`, `src/navigation/constraints.py`) | Enforces near-zero lateral/vertical velocity (vy ≈ 0, vz ≈ 0) and zero-velocity clamp during halts |
 | **On-Device Edge Inference** | ONNX Runtime Mobile (`onnxruntime-android:1.22.0`) | Executes optimized `tcn.onnx` directly on Android CPU with low power overhead |
 | **Developer Telemetry** | 10 structured diagnostic cards (`DebugActivity.kt`) | Real-time visibility into filter states, covariance traces, NIS metrics, sensor streams, and CSV logging |
 | **Sensor Abstraction** | Canonical IMU interface (`ImuMeasurementFrame`, `CanonicalImuSample.kt`) | Decouples downstream estimators from Android `SensorEvent` for external/higher-rate IMU integration |
@@ -58,14 +67,14 @@ flowchart TD
         GNSS[Android GNSS Subsystem] --> C[GnssQualityMonitor]
     end
 
-    subgraph Preprocessing["Preprocessing & Normalization"]
+    subgraph Preprocessing["Preprocessing and Normalization"]
         B --> D[ImuPreprocessor]
-        D -->|10 Hz Resampling & Frame Rotation| E[Canonical IMU Stream]
+        D -->|10 Hz Resampling and Frame Rotation| E[Canonical IMU Stream]
         E --> F[TcnInputBuffer]
     end
 
-    subgraph Estimation["Estimation & AI Fusion Core"]
-        F -->|50-Sample Rolling Window [1,6,50]| G[TcnSpeedPredictor / ONNX Runtime]
+    subgraph Estimation["Estimation and AI Fusion Core"]
+        F -->|50-Sample Rolling Window 1x6x50| G[TcnSpeedPredictor / ONNX Runtime]
         G --> H[TcnSpeedFilter / Rate Limiter]
         
         E -->|IMU Kinematics dt=100ms| I[Strapdown INS Propagator]
@@ -73,14 +82,14 @@ flowchart TD
         H -->|ML Forward Speed Measurement Update| J
         C -->|Trusted Fixes / Innovation Gating| J
         
-        K[Vehicle & Map Constraints] -->|NHC: vy=0, vz=0 | J
+        K[Vehicle and Map Constraints] -->|NHC: vy=0, vz=0| J
         K -->|ZUPT / Zero Angular Rate| J
     end
 
-    subgraph Controller["Navigation & Routing Engine"]
+    subgraph Controller["Navigation and Routing Engine"]
         J -->|Fused State: Lat, Lon, Speed, Heading, Covariance| L[NavigationController]
         M[OSRM Routing / Nominatim Search] --> L
-        N[TurnDetector & OffRouteDetector] --> L
+        N[TurnDetector and OffRouteDetector] --> L
     end
 
     subgraph UI["User Interfaces"]
@@ -96,42 +105,44 @@ flowchart TD
 
 ### Sensor Pipeline
 - **Raw Callback Ingestion**: Ingests hardware accelerometer, gyroscope, gravity, and rotation vector callbacks asynchronously via Android `SensorEventListener` (`SensorEngine.kt`).
-- **Timestamp & Monotonicity Management**: Validates monotonic nanosecond timestamps (`SystemClock.elapsedRealtimeNanos()`), detects dropped samples or stalls, and guards against duplicate sensor frames.
-- **Resampling & Canonicalization**: Resamples raw measurements to a deterministic **10 Hz** sample grid ($dt = 0.1\text{ s}$).
-- **Vehicle-Frame Transformation**: Leverages Android rotation vectors and gravity vectors to resolve the rotation matrix $R_{p}^v$ mapping device-body coordinates to the vehicle frame ($X\text{-forward}, Y\text{-lateral}, Z\text{-up}$).
+- **Timestamp and Monotonicity Management**: Validates monotonic nanosecond timestamps (`SystemClock.elapsedRealtimeNanos()`), detects dropped samples or stalls, and guards against duplicate sensor frames.
+- **Resampling and Canonicalization**: Resamples raw measurements to a deterministic **10 Hz** sample grid (dt = 0.1 s).
+- **Vehicle-Frame Transformation**: Leverages Android rotation vectors and gravity vectors to resolve the rotation matrix mapping device-body coordinates to the vehicle frame (X-forward, Y-lateral, Z-up).
 - **Outlier Filtering**: Clamps anomalous acceleration spikes and manages initial sensor stabilization.
 
 ### ML Speed Estimation Contract
 - **Input Channels (6)**: `[accel_forward, accel_lateral, accel_up, gyro_forward, gyro_lateral, gyro_up]`
 - **Sample Rate**: Deterministic **10 Hz**
 - **Temporal Window**: **5.0 seconds** (50 historical samples)
-- **Input Tensor Signature**: `[1, 6, 50]` (`Float32`)
-- **Output Tensor Signature**: `[1]` (`Float32`, forward speed `speed_mps` in $m/s$)
+- **Input Tensor Signature**: `[1, 6, 50]` (Float32)
+- **Output Tensor Signature**: `[1]` (Float32, forward speed `speed_mps` in m/s)
 - **Architecture**: 4 residual blocks with dilated causal 1D convolutions (kernel size 3, dilations `[1, 2, 4, 8]`, 128 hidden channels per block, receptive field of 31 samples / 3.1 seconds, 348,417 parameters).
 - **Inference Runtime**: Executed locally on-device via **ONNX Runtime Mobile** (`tcn.onnx`, **~1.35 MB**).
 
 ### 15-State Error-State Kalman Filter (ESKF)
-Percorsa implements an error-state Kalman filter with a 15-dimensional state error vector $\delta\mathbf{x}$:
+Percorsa implements an error-state Kalman filter with a 15-dimensional state error vector:
 
-$$\delta\mathbf{x} = \begin{bmatrix} \delta\mathbf{p}_{3\times 1} & \delta\mathbf{v}_{3\times 1} & \delta\boldsymbol{\theta}_{3\times 1} & \delta\mathbf{b}_{a, 3\times 1} & \delta\mathbf{b}_{g, 3\times 1} \end{bmatrix}^T$$
+```
+dx = [ dp(3x1)  dv(3x1)  dtheta(3x1)  dba(3x1)  dbg(3x1) ]^T
+```
 
-- **Nominal State**: 3D position (ENU / WGS-84 reference), 3D velocity (world ENU), attitude quaternion $\mathbf{q}$ (Hamilton $[w, x, y, z]$ mapping phone frame to ENU), 3D accelerometer bias $\mathbf{b}_a$ (phone frame), and 3D gyroscope bias $\mathbf{b}_g$ (phone frame).
-- **Kinematic Propagation**: Continuous nominal integration via strapdown inertial mechanization with gravity compensation; error covariance propagation $\mathbf{P}_{k|k-1} = \mathbf{F}_d \mathbf{P}_{k-1} \mathbf{F}_d^T + \mathbf{Q}_d$.
-- **Measurement Updates**: Joseph-form stabilized covariance updates $\mathbf{P} = (\mathbf{I} - \mathbf{K}\mathbf{H})\mathbf{P}(\mathbf{I} - \mathbf{K}\mathbf{H})^T + \mathbf{K}\mathbf{R}\mathbf{K}^T$.
-- **Innovation & NIS Gating**: Normalized Innovation Squared ($\text{NIS} = \mathbf{r}^T \mathbf{S}^{-1} \mathbf{r}$) gating using Chi-Square distribution thresholds prevents spurious updates from corrupting state estimates.
-- **Error Injection & Reset**: Injects estimated error vector into the nominal state ($\mathbf{p} \leftarrow \mathbf{p} + \delta\mathbf{p}$, $\mathbf{v} \leftarrow \mathbf{v} + \delta\mathbf{v}$, $\mathbf{q} \leftarrow \mathbf{q} \otimes \delta\mathbf{q}$) and resets the error state to zero.
+- **Nominal State**: 3D position (ENU / WGS-84 reference), 3D velocity (world ENU), attitude quaternion (Hamilton `[w, x, y, z]` mapping phone frame to ENU), 3D accelerometer bias (phone frame), and 3D gyroscope bias (phone frame).
+- **Kinematic Propagation**: Continuous nominal integration via strapdown inertial mechanization with gravity compensation; error covariance propagation.
+- **Measurement Updates**: Joseph-form stabilized covariance updates.
+- **Innovation and NIS Gating**: Normalized Innovation Squared (NIS) gating using Chi-Square distribution thresholds prevents spurious updates from corrupting state estimates.
+- **Error Injection and Reset**: Injects estimated error vector into the nominal state and resets the error state to zero.
 
-### GNSS Handling & Recovery Lifecycle
-- **Trusted GNSS**: Fixes meeting accuracy ($\le 15\text{ m}$) and quality thresholds provide full position and velocity innovation corrections to the ESKF.
+### GNSS Handling and Recovery Lifecycle
+- **Trusted GNSS**: Fixes meeting accuracy (≤ 15 m) and quality thresholds provide full position and velocity innovation corrections to the ESKF.
 - **Degraded GNSS**: Degraded observations (high dilution of precision, multipath jumps) undergo measurement noise inflation or rejection via NIS gating.
 - **Outage Detection**: Transition to dead reckoning is triggered immediately when GNSS updates cease or fail quality thresholds.
 - **GNSS Recovery**: When satellite fixes return, the filter checks innovation gates; if position has drifted during long outages, position/velocity covariance is adaptively inflated to smoothly re-converge without abrupt trajectory tearing or filter reboots.
 
-### Map & Vehicle Constraints
-- **Non-Holonomic Constraints (NHC)**: Enforces physical automotive kinematics assuming zero wheel slip under normal driving: lateral velocity $v_y \approx 0$ and vertical velocity $v_z \approx 0$ in the vehicle frame.
+### Map and Vehicle Constraints
+- **Non-Holonomic Constraints (NHC)**: Enforces physical automotive kinematics assuming zero wheel slip under normal driving: lateral velocity vy ≈ 0 and vertical velocity vz ≈ 0 in the vehicle frame.
 - **Zero Velocity Updates (ZUPT)**: Automatically detects vehicle halts via acceleration variance and gyro thresholds, applying a direct zero-velocity pseudo-measurement update that locks position drift and estimates gyroscope bias.
 - **Route Geometry Projection**: Projects filtered coordinates against active polyline segments from OSRM to track route progress, cross-track error, and heading deviation.
-- **Turn & Off-Route Detection**: Monitors vehicle yaw rate ($\ge 12^\circ/\text{s}$) to detect maneuvers and evaluates sustained cross-track displacement ($> 30\text{ m}$) to trigger automatic route recalculation.
+- **Turn and Off-Route Detection**: Monitors vehicle yaw rate (≥ 12°/s) to detect maneuvers and evaluates sustained cross-track displacement (> 30 m) to trigger automatic route recalculation.
 
 ---
 
@@ -139,7 +150,7 @@ $$\delta\mathbf{x} = \begin{bmatrix} \delta\mathbf{p}_{3\times 1} & \delta\mathb
 
 Percorsa uses an **AI-assisted GNSS/INS fusion** architecture. The machine learning model does not act as an unconstrained end-to-end black box position predictor; instead, it is integrated as a dedicated virtual sensor within the Bayesian state estimator.
 
-```text
+```
   ┌────────────────────────────────┐
   │ 6-Axis IMU Canonical Stream    │
   └───────┬────────────────┬───────┘
@@ -167,11 +178,7 @@ Percorsa uses an **AI-assisted GNSS/INS fusion** architecture. The machine learn
                                └──────────────────────┘
 ```
 
-The TCN predicts scalar forward speed $v_x$, which is formulated as an explicit measurement update:
-
-$$h_{\text{TCN}}(\mathbf{x}) = \mathbf{e}_1^T \mathbf{R}_v^p \mathbf{R}(q)^T \mathbf{v}_{\text{world}}$$
-
-This allows the filter to observe vehicle forward velocity during satellite blackouts without suffering from runaway accelerometer double-integration errors.
+The TCN predicts scalar forward speed `v_x`, formulated as an explicit measurement update that allows the filter to observe vehicle forward velocity during satellite blackouts without suffering from runaway accelerometer double-integration errors.
 
 ---
 
@@ -195,7 +202,7 @@ Throughout the outage cycle, the estimator continues active propagation and erro
 
 ---
 
-## 8. Edge & External IMU Architecture
+## 8. Edge and External IMU Architecture
 
 The navigation engine is decoupled from Android-specific `SensorEvent` classes via the `ImuMeasurementFrame` and `CanonicalImuSample` interfaces. 
 
@@ -221,32 +228,32 @@ This clean abstraction separates the state estimator from the physical hardware 
 The Percorsa mobile application is a native Android application engineered for real-time edge navigation:
 
 - **Turn-by-Turn Navigation UI**: Interactive map view rendering OpenStreetMap tiles, displaying real-time vehicle positioning, route polylines, navigation turn cues, maneuver arrows, current speed, and heading.
-- **Trip Status & Health Indicator**: Real-time pill indicators displaying GNSS health (`Good`, `Fair`, `Poor`, `Lost`, `Dead Reckoning`) and navigation mode.
-- **Route Search & Calculation**: Integrated search using Nominatim geocoding and OSRM routing services.
+- **Trip Status and Health Indicator**: Real-time pill indicators displaying GNSS health (`Good`, `Fair`, `Poor`, `Lost`, `Dead Reckoning`) and navigation mode.
+- **Route Search and Calculation**: Integrated search using Nominatim geocoding and OSRM routing services.
 - **Background Sensor Logging**: Continuous logging of 6-axis raw IMU, canonical samples, GNSS fixes, and filter diagnostics to timestamped CSV files.
-- **Pre-Built Packages**: Ready-to-install debug binaries are available in the repository (`Percorsa-Navigation-Final.apk`, `Percorsa-Navigation-Integration.apk`).
+- **Build from Source**: See [android/README.md](android/README.md) for build instructions. The compiled APK is output to `android/app/build/outputs/apk/debug/Percorsa.apk`.
 
 ---
 
-## 10. Developer Mode & Diagnostics
+## 10. Developer Mode and Diagnostics
 
 Developer Mode provides full engineering visibility into internal estimator states without cluttering the driver-facing navigation display.
 
 Access Developer Mode in the app via the debug action in the top toolbar to view 10 dedicated telemetry cards:
-1. **Pipeline Architecture & Health**: Real-time operational status of the sensor engine, TCN predictor, and ESKF estimator.
+1. **Pipeline Architecture and Health**: Real-time operational status of the sensor engine, TCN predictor, and ESKF estimator.
 2. **Navigation State**: Current navigation mode, active dead reckoning provider, and GNSS blend factor.
 3. **AI Speed Estimation**: Raw TCN inference output, filtered speed, rate limiting counters, and outlier rejections.
-4. **15-State ESKF Telemetry**: Full nominal state vector (position ENU, velocity ENU, quaternion norm, biases) and $15\times 15$ covariance trace.
-5. **Measurement Innovations & NIS**: Acceptance flags, NIS values, and rejection reasons for GNSS, TCN, NHC, and ZUPT updates.
+4. **15-State ESKF Telemetry**: Full nominal state vector (position ENU, velocity ENU, quaternion norm, biases) and 15x15 covariance trace.
+5. **Measurement Innovations and NIS**: Acceptance flags, NIS values, and rejection reasons for GNSS, TCN, NHC, and ZUPT updates.
 6. **Vehicle Frame Alignment**: Dynamic pitch, roll, and azimuth angles alongside phone-to-vehicle transformation validity.
 7. **Map-Matching Diagnostics**: Active route segment ID, distance along route, cross-track error, heading error, and turn detection status.
 8. **GNSS Metrics**: Raw satellite count, HDOP, horizontal accuracy, fix timestamp, and 1D adaptive Kalman filter state.
 9. **Raw Sensor Streams**: Real-time 3-axis accelerometer, gyroscope, magnetometer, and gravity readings.
-10. **Data Logging & Export**: On-device CSV recording controls and Android share sheet export for field trial analysis.
+10. **Data Logging and Export**: On-device CSV recording controls and Android share sheet export for field trial analysis.
 
 ---
 
-## 11. ML Training & Provenance
+## 11. ML Training and Provenance
 
 ### Training Pipeline
 The ML pipeline provides end-to-end tooling for model training and deployment:
@@ -267,7 +274,7 @@ python -m src.ml.verify_onnx
 python scripts/deploy_android_tcn.py
 ```
 
-### Dataset Provenance & Limitations
+### Dataset Provenance and Limitations
 The preliminary model development was conducted using the public **IO-VNBD** (Input-Output Vehicle Navigation Benchmark Dataset) corpus. 
 
 > [!NOTE]
@@ -280,20 +287,20 @@ The preliminary model development was conducted using the public **IO-VNBD** (In
 
 ---
 
-## 12. Verification & Validation Status
+## 12. Verification and Validation Status
 
 | Subsystem | Verification Scope | Status |
 |---|---|---|
 | **Python Test Suite** | 139 automated tests covering preprocessing, ML, ESKF, kinematics, constraints, maps, and API endpoints | **Passed (139/139 passing)** |
-| **Android Unit Tests** | 21 test suites covering `PercorsaEskfProvider`, `EskfPropagator`, `EskfGnssUpdater`, `EskfTcnUpdater`, `EskfConstraintUpdates`, `RouteGeometry`, `TcnInputBuffer`, `SensorEngine` | **Passed (Debug & Release)** |
+| **Android Unit Tests** | 21 test suites covering `PercorsaEskfProvider`, `EskfPropagator`, `EskfGnssUpdater`, `EskfTcnUpdater`, `EskfConstraintUpdates`, `RouteGeometry`, `TcnInputBuffer`, `SensorEngine` | **Passed (Debug and Release)** |
 | **Asset Integrity** | Automated Gradle verification task (`verifyTcnAssets`) ensuring `tcn.onnx` and `normalization.json` integrity | **Passed** |
-| **PyTorch / ONNX Parity** | Max absolute difference between PyTorch and exported ONNX predictions on identical inputs | **Verified ($< 5.72 \times 10^{-6}$, tolerance $10^{-4}$)** |
+| **PyTorch / ONNX Parity** | Max absolute difference between PyTorch and exported ONNX predictions on identical inputs | **Verified (< 5.72e-6, tolerance 1e-4)** |
 | **Android Build** | Clean compilation of debug and release APK packages targeting Android SDK 34 | **Verified** |
 | **Physical Hardware Benchmarks** | In-vehicle road trials across extensive multi-day drive cycles with survey-grade RTK reference | **Roadmap / Future Work** |
 
 ---
 
-## 13. System Performance & Specifications
+## 13. System Performance and Specifications
 
 | Parameter | Specification / Status | Notes |
 |---|---|---|
@@ -310,26 +317,27 @@ The preliminary model development was conducted using the public **IO-VNBD** (In
 ## 14. Repository Structure
 
 ```text
-SIH_Axiom-Crew/
+Percorsa/
 ├── android/                          # Native Android navigation application (Kotlin)
 │   ├── app/
-│   │   ├── src/main/assets/          # Deployed ONNX model (tcn.onnx) & normalization.json
+│   │   ├── src/main/assets/          # Deployed ONNX model (tcn.onnx) and normalization.json
 │   │   ├── src/main/java/            # SensorEngine, ESKF, TCN Predictor, Controllers, Activities
 │   │   └── src/test/java/            # 21 Android unit test suites
 │   ├── build.gradle.kts              # Top-level Gradle configuration
 │   └── gradlew.bat                   # Gradle build wrapper
-├── artifacts/                        # Exported models, parity checks, evaluation audits, and APKs
-│   ├── evaluation/                   # IO-VNBD provenance reports & alignment audits
-│   ├── model_info.json               # Trained model metadata & parameter counts
-│   ├── normalization.json            # Feature mean & standard deviation vectors
+├── artifacts/                        # Exported models, parity checks, evaluation audits
+│   ├── evaluation/                   # IO-VNBD provenance reports and alignment audits
+│   ├── model_info.json               # Trained model metadata and parameter counts
+│   ├── normalization.json            # Feature mean and standard deviation vectors
 │   ├── onnx_parity.json              # Numerical verification results
 │   ├── speed_metrics.json            # Model evaluation metrics
 │   ├── tcn.onnx                      # Production ONNX model artifact (~1.35 MB)
 │   └── tcn_best.pt                   # PyTorch checkpoint artifact (~1.34 MB)
 ├── configs/                          # Experiment configs and split definitions
 ├── data/                             # Dataset schemas, split manifests, and raw/processed trip data
-├── docs/                             # Architecture records, contracts, and schema documentation
-├── models/                           # Model checkpoints and documentation
+├── demo/                             # Hackathon demo configuration and scripts
+├── evaluation/                       # Frozen TCN evaluation pipeline and results
+├── models/                           # Model checkpoints and exports
 ├── scripts/                          # CLI utilities for data ingestion, evaluation, API, and replays
 │   ├── benchmark.py                  # Model latency profiling script
 │   ├── deploy_android_tcn.py         # Deployment sync script for Android assets
@@ -364,14 +372,14 @@ SIH_Axiom-Crew/
 cd android
 
 # Run all unit tests
-.\gradlew.bat test
+.\gradlew.bat testDebugUnitTest
 
 # Build debug APK
 .\gradlew.bat assembleDebug
 ```
-The compiled APK will be generated at `android/app/build/outputs/apk/debug/app-debug.apk`.
+The compiled APK will be generated at `android/app/build/outputs/apk/debug/Percorsa.apk`.
 
-### Python Environment & Test Execution
+### Python Environment and Test Execution
 ```powershell
 # Create and activate virtual environment
 python -m venv .venv
@@ -389,7 +397,7 @@ python -m pytest tests/ -q
 ## 16. Demonstration Workflow
 
 1. **Launch Percorsa**: Open the Percorsa application on an Android device or emulator.
-2. **Sensor & GPS Initialization**: Allow location and sensor permissions; observe real-time satellite acquisition on the status indicator.
+2. **Sensor and GPS Initialization**: Allow location and sensor permissions; observe real-time satellite acquisition on the status indicator.
 3. **Initiate Route Navigation**: Enter a destination via the search bar and select **Start Navigation** to load OSRM route geometry.
 4. **Observe GNSS-Aided Fusion**: In open sky conditions, view real-time state fusion with high-confidence GNSS corrections.
 5. **Simulate / Enter GNSS Outage**: Enter a tunnel or disable device location services.
@@ -399,11 +407,11 @@ python -m pytest tests/ -q
 
 ---
 
-## 17. Current Limitations & Scope
+## 17. Current Limitations and Scope
 
 - **Preliminary ML Training Corpus**: The TCN speed model was trained on the IO-VNBD dataset. As identified during provenance auditing, public datasets often lack exact vehicle-to-phone time-synchronization ground truth, meaning current weights serve as an experimental baseline.
 - **Hardware Validation Scope**: The canonical sensor layer is architecture-ready for external IMU integration, but physical testing with specialized external hardware (e.g., tactical-grade FOG/MEMS units) remains for future field campaigns.
-- **Outage Drift Performance**: The target of $<10\%$ drift over distance traveled is an evaluation benchmark objective for field validation rather than an unconditional production claim across all uncalibrated devices.
+- **Outage Drift Performance**: The target of <10% drift over distance traveled is an evaluation benchmark objective for field validation rather than an unconditional production claim across all uncalibrated devices.
 
 ---
 
@@ -416,7 +424,7 @@ python -m pytest tests/ -q
 
 ---
 
-## 19. Team & Attribution
+## 19. Team and Attribution
 
 Developed by **Axiom-Crew** for **Smart India Hackathon (SIH)**.
 

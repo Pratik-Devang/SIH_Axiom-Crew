@@ -1,4 +1,6 @@
-# Data layout
+# Data
+
+This folder holds all raw, interim, and processed trip data used for training and evaluation.
 
 ```text
 data/
@@ -10,12 +12,11 @@ data/
 └── splits/       Trip-level train, validation and test assignments.
 ```
 
-The initial prototype should use IO-VNBD only. PPC and UrbanNav adapters belong
-to the post-hackathon validation phase.
+The initial prototype uses IO-VNBD only. PPC and UrbanNav adapters belong to the post-hackathon validation phase.
 
-## Standard processed schema
+## Standard Processed Schema
 
-Required fields:
+Each processed trip Parquet file contains these required fields:
 
 ```text
 timestamp
@@ -30,6 +31,8 @@ trip_id
 dataset_name
 ```
 
-Reference fields are used for training and evaluation. They must not be exposed
-to the navigation estimator during a simulated GNSS outage.
+Reference fields (`speed_reference`, `heading_reference`, `gnss_available`) are used for training and evaluation only. They must **not** be exposed to the navigation estimator during a simulated GNSS outage.
 
+## Split Convention
+
+Complete trip families are assigned to exactly one of `train`, `validation`, or `test` in `splits/io_vnbd_splits.yaml`. No single trip appears in more than one split — this prevents data leakage between the ML training and evaluation phases.

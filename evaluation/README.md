@@ -1,9 +1,42 @@
-# Frozen TCN evaluation
+# Evaluation
 
-Run `python evaluation/evaluate.py` from the repository root. The evaluator is separate from training and loads the frozen deployed bundle `artifacts/tcn_best.pt`.
+This folder contains the frozen TCN evaluation pipeline, configuration, and result outputs.
 
-It evaluates the manifest's held-out whole trips (`Vta1a`, `Vta1b`, `Y1`) using the checkpoint's exact six-channel z-score normalization and causal `[batch, 6, 50]` windows. It writes actual outputs beneath `evaluation/results/baseline_v1/`.
+## Overview
 
-The root artifact is the canonical model because the existing evaluator, ONNX exporter and verifier, benchmark, and Android deployment script all select it first. Its legacy model-info count predates the current named split manifest; its checkpoint has no conflicting explicit trip list, and the existing evaluator specifies use of the current manifest in that legacy case. This observation is recorded in `metadata.json`. The evaluator stops on any explicit model, normalization, feature-order, input-shape, or split mismatch rather than silently substituting an artifact.
+The evaluator is intentionally separate from the training pipeline. It loads the **frozen deployed bundle** (`artifacts/tcn_best.pt`) and evaluates it against held-out test trips — it never retrain or mutate the model.
 
-State-wise results are intentionally omitted. The processed IO-VNBD trip files have no validated state-label column, and the evaluator does not derive one.
+## Running the Evaluator
+
+From the repository root:
+
+```powershell
+python evaluation/evaluate.py
+```
+
+## Folder Contents
+
+```text
+evaluation/
+├── config.yaml       # Evaluation configuration (trip list, split, metrics)
+├── evaluate.py       # Main evaluation script
+├── metrics.py        # MAE, RMSE, and per-segment metric utilities
+├── plots.py          # Trajectory and speed error plot generators
+├── results/          # Output: per-trip metric JSONs and figures
+└── README.md         # This file
+```
+
+## What It Evaluates
+
+The evaluator uses the manifest's held-out whole trips (`Vta1a`, `Vta1b`, `Y1`) with:
+- The checkpoint's exact 6-channel z-score normalization.
+- Causal `[batch, 6, 50]` input windows.
+- Output written to `evaluation/results/baseline_v1/`.
+
+The root artifact (`artifacts/tcn_best.pt`) is the canonical model because all downstream tools — ONNX exporter, verifier, benchmark, and Android deployment script — select it first. Its legacy model-info count predates the current named split manifest; the evaluator uses the current manifest in that legacy case (recorded in `metadata.json`).
+
+The evaluator halts on any mismatch in model, normalization, feature order, input shape, or split rather than silently substituting an artifact.
+
+## What Is Intentionally Omitted
+
+State-wise (motion class) results are not produced. The processed IO-VNBD trip files have no validated state-label column, and the evaluator does not derive one from unlabeled data.
