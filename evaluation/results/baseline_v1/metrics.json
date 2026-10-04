@@ -1,0 +1,25 @@
+{
+  "model": "SpeedTCN",
+  "model_version": "v2",
+  "dataset": "IO-VNBD",
+  "split": "held_out_test",
+  "sample_count": 93391,
+  "trip_count": 3,
+  "overall": {
+    "mae_mps": 4.058327198368523,
+    "mae_kmh": 14.609977914126683,
+    "rmse_mps": 5.904856942125914,
+    "rmse_kmh": 21.25748499165329,
+    "r2": 0.10957581649675407,
+    "bias_mps": 0.75127387145526,
+    "bias_kmh": 2.704585937238936,
+    "p95_absolute_error_mps": 12.83511734008789,
+    "p95_absolute_error_kmh": 46.20642242431641,
+    "max_absolute_error_mps": 58.927117705345154,
+    "max_absolute_error_kmh": 212.13762373924257
+  },
+  "state_wise_evaluation": {
+    "performed": false,
+    "reason": "No validated state labels are present in the processed evaluation dataset."
+  }
+}

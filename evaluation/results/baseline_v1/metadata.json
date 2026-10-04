@@ -1,0 +1,55 @@
+{
+  "model_filename": "artifacts/tcn_best.pt",
+  "model_sha256": "76cd5de80fad14b2a8f9c66ce8cee9f86007a040340a64b4a2900956c7f8bda0",
+  "model_version": "v2",
+  "model_format": "PyTorch checkpoint",
+  "model_selection": "Existing evaluator, ONNX exporter/verifier, benchmark, and Android deployment scripts select artifacts/tcn_best.pt first.",
+  "legacy_provenance_observation": "This deployed checkpoint has no explicit trip-name split metadata. artifacts/model_info.json reports a legacy test-trip count, so the repository's current canonical manifest is used exactly as src.ml.evaluate specifies.",
+  "input_shape": [
+    null,
+    6,
+    50
+  ],
+  "input_features": [
+    "accel_x",
+    "accel_y",
+    "accel_z",
+    "gyro_x",
+    "gyro_y",
+    "gyro_z"
+  ],
+  "sampling_rate_hz": 10,
+  "window_size": 50,
+  "stride": 1,
+  "target_variable": "speed_mps",
+  "target_units": "m/s",
+  "target_transformation": "vehicle_speed km/h divided by 3.6 -> speed_mps",
+  "preprocessing": "Existing standardize_trip_dataframe plus frozen checkpoint z-score normalization; no evaluator-specific transformation.",
+  "normalization_file": "artifacts/normalization.json",
+  "normalization_sha256": "5f624328496f109168292bc7cba7155445686f30b6832e523e72a8a00c716646",
+  "dataset": "IO-VNBD",
+  "test_split": "test",
+  "test_trips": [
+    "Vta1a",
+    "Vta1b",
+    "Y1"
+  ],
+  "number_of_trips": 3,
+  "number_of_samples": 93391,
+  "git_commit_sha": "e87b0bd83e01210d6a4de2040094d162e42aa194",
+  "python_version": "3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]",
+  "package_versions": {
+    "torch": "2.13.0+cpu",
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "pyyaml": "6.0.3"
+  },
+  "evaluation_timestamp_utc": "2026-10-04T13:32:36.896963+00:00",
+  "plots": [
+    "velocity_vs_ground_truth.png",
+    "velocity_error.png",
+    "error_distribution.png",
+    "per_trip_mae.png"
+  ],
+  "state_wise_evaluation": "Not performed: no validated state labels."
+}

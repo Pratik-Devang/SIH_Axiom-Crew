@@ -1,0 +1,23 @@
+# Frozen-model evaluation configuration. Paths are relative to repository root.
+# This is the bundle selected first by the existing evaluator, ONNX exporter,
+# parity verifier, benchmark, and Android deployment scripts.
+model_path: artifacts/tcn_best.pt
+model_info_path: artifacts/model_info.json
+normalization_path: artifacts/normalization.json
+dataset: IO-VNBD
+dataset_path: data/processed/io_vnbd/trips
+split_manifest: data/splits/io_vnbd_splits.yaml
+test_split: test
+sampling_rate_hz: 10
+window_size: 50
+stride: 1
+input_features: [accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z]
+input_frame: io_vnbd_x_forward_y_lateral_z_up
+normalization: z_score_train_split
+target_column: vehicle_speed
+target_transformation: "vehicle_speed km/h divided by 3.6 -> speed_mps"
+target_units: m/s
+output_directory: evaluation/results/baseline_v1
+seed: 42
+# Changes only evaluator throughput, never the frozen model or data ordering.
+inference_batch_size: 512

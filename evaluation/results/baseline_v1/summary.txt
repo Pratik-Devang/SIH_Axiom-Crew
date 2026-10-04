@@ -1,0 +1,24 @@
+PERCORSA TCN — PRELIMINARY MODEL EVALUATION
+
+Model: artifacts/tcn_best.pt
+Dataset: IO-VNBD
+Test split: test (complete held-out trips)
+Samples: 93391
+Trips: 3
+
+Overall metrics:
+MAE: 4.058327 m/s (14.609978 km/h)
+RMSE: 5.904857 m/s (21.257485 km/h)
+R²: 0.109576
+Bias: 0.751274 m/s
+P95 absolute error: 12.835117 m/s
+Maximum absolute error: 58.927118 m/s
+
+Per-trip results:
+Vta1a: n=25627, MAE=0.654506 m/s, RMSE=0.822136 m/s, R²=0.975912
+Vta1b: n=904, MAE=0.634474 m/s, RMSE=0.812043 m/s, R²=0.971889
+Y1: n=66860, MAE=5.409283 m/s, RMSE=6.959541 m/s, R²=-0.764300
+
+State-wise evaluation was not performed because the current evaluation dataset does not provide validated state labels.
+
+This evaluation measures the existing ML model's velocity-estimation performance. It does NOT by itself establish complete GNSS-denied navigation performance or the SIH positional-drift requirement.
